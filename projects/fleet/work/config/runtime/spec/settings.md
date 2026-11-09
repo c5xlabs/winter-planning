@@ -31,23 +31,8 @@ lifetime is not a setting: §Pinned lists the constants that stay in code.
 | `tick_seconds` | runner | a host store entry, host level; drives every runner's tick and the host tick (`runner/cli/runtime.py:1203`) | `pass`     | `30.0`  | `BZ_RUNNER_TICK_SECONDS` (`runner/cli/runtime.py:140`) |
 
 `BZ_RUNNER_TICK_SECONDS` is deprecated: until it is removed it seeds the entry only when neither the store nor the file
-holds one, and its removal is a follow-up `(BREAK)`. The tests that shorten the tick through it — the crash suite, the
-runner and journey service tests, the rehearsal installer, the runner-host harness checks — move to seeding
-`tick_seconds` from the file. Every other setting below already exists as a file key; this epic changes where it lives
-and when it is evaluated, not whether it exists.
-
-## What the epic builds
-
-The machinery that holds settings, serves them, and says which ones are in force. None of these is a setting.
-
-| Piece                 | Daemon | Owned by                                                                                                             |
-| --------------------- | ------ | -------------------------------------------------------------------------------------------------------------------- |
-| `lifetime` and `env`  | both   | [lifetimes.md](./lifetimes.md)                                                                                       |
-| Runner settings store | runner | [runner-store.md](./runner-store.md)                                                                                 |
-| Runner settings API   | runner | [runner-api.md](./runner-api.md)                                                                                     |
-| Settings revisions    | runner | [runner-store.md](./runner-store.md), [passes.md](./passes.md) §Sessions — kept on the runner, never sent to the hub |
-| Host records          | runner | [host-records.md](./host-records.md)                                                                                 |
-| Hub settings record   | hub    | [hub.md](./hub.md)                                                                                                   |
+holds one (`engineering:deprecations-outlive-epic`). Every other setting below already exists as a file key; this epic
+changes where it lives and when it is evaluated, not whether it exists.
 
 ## Environment variables
 
@@ -181,18 +166,9 @@ file by §Seeding from the file. Every value below is bound into a long-lived ob
 
 ## Lifetimes for constants the sweep will promote
 
-Neither epic waits for the other, and they land in either order. `epic:config/sweep` turns hard-coded constants into
-settings; this epic decides when a setting is evaluated. The table below is not work this epic does: it is the lifetime
-each of these constants will declare when the sweep promotes it, agreed here so the sweep does not have to decide it
-again.
-
-- **This epic first:** a constant the sweep promotes later arrives with its lifetime, and if that is `pass` or `session`
-  it is an entry from the start, seeded from the file and changed through its daemon's API.
-- **The sweep first:** a promoted constant arrives as a file key with its lifetime declared, and is read at boot until
-  this epic's piece for its daemon lands, which makes it an entry like every other key of its lifetime.
-
-The constants listed are the ones a run is most often tuned by, which is why they are named ahead of time; the sweep's
-full list is its own.
+Not work this epic does: the lifetime each of these constants declares when `epic:config/sweep` promotes it, agreed here
+so the sweep does not decide it again (`engineering:config/promoted-constant-lifetime`). They are the constants a run is
+most often tuned by; the sweep's full list is its own.
 
 | Constant                                                                          | Daemon | Where                                                                                                         | Value               | `lifetime` |
 | --------------------------------------------------------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------- | ------------------- | ---------- |
@@ -214,16 +190,6 @@ full list is its own.
 | `DEFAULT_BOUNCE_CAP`                                                              | hub    | `hub/domain/graph/model.py:155`                                                                               | 5                   | `session`  |
 | forge attempt timeout and retry delays                                            | hub    | `hub/forge/internal/github_landing.py:55`                                                                     | 30 s, (1 s, 3 s)    | `pass`     |
 | session `IDLE_TTL`, `ABSOLUTE_MAX_AGE`                                            | hub    | `hub/auth/service.py:96`                                                                                      | 24 h, 30 d          | `pass`     |
-
-## Across both
-
-A few settings only make sense beside a partner on the other daemon — the hub's offline cutoff against the runner's
-tick, its usage staleness against the runner's sample interval, its transcript record cap against the runner's. This
-epic leaves each daemon free to set its own side and does not check one against the other; a runner and a hub set out of
-step simply behave as their settings say. Having the runner take its side of each from the hub's settings is left for
-later. Pairs inside one daemon are checked at its own write, once both sides are settings: the runner's
-`api/hub_proxy.py` retry ceiling below the worker's read timeout, the heartbeat retention window above
-`HEARTBEAT_STALENESS_THRESHOLD`, and the close-drain interval equal to its backoff base.
 
 ## Pinned
 

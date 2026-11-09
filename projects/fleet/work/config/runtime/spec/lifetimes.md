@@ -73,9 +73,8 @@ A key whose lifetime is `pass` or `session` is an **entry** of its daemon's stor
 written once at creation. A `boot` key is never an entry. The strict accessor (`ConfigView`) keeps serving `boot` keys
 from the file; an entry is read only through its daemon's settings reader — [runner-store.md](./runner-store.md) §The
 reader for the runner, [hub.md](./hub.md) §Reading per pass for the hub — and `bzh:config-key-declared` gains the
-sentence that says so: a `pass` or `session` key read through `ConfigView` outside the seed is a finding. The sentence
-lands for each daemon in the piece that makes the last of its keys an entry ([carry-over.md](./carry-over.md)): the
-runner's with piece 4, the hub's with piece 9.
+sentence that says so: a `pass` or `session` key read through `ConfigView` outside the seed is a finding, for each
+daemon once the last of its keys of those lifetimes is an entry.
 
 ## Evaluated at the start of a pass
 
@@ -96,8 +95,6 @@ A hub request is a pass of its own: it takes its snapshot when it arrives. Neith
 and pushes them into running objects; the next pass finding a moved revision is the only way a change arrives. That is
 what keeps a cold start and a long-lived process equally correct.
 
-`bzh:config-read-on-use` is amended to bind entries as it binds configured records — the runner's in piece 3, the hub's
-in piece 9, which also narrows its scope sentence on the hub's process settings to the `boot` keys. A new rule beside
-it, `bzh:settings-snapshot-per-pass`, lands with piece 3 binding the runner, and piece 9 extends its scope to the hub.
-It states the four steps above, its detect list naming an entry read after a pass has begun, an entry captured into an
-object at composition, and a `pass` or `session` key read from the environment.
+`bzh:config-read-on-use` binds entries as it binds configured records, and the new `bzh:settings-snapshot-per-pass`
+states the four steps above, its detect list naming an entry read after a pass has begun, an entry captured into an
+object at composition, and a `pass` or `session` key read from the environment (`engineering:context-rules`).

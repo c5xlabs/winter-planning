@@ -2,12 +2,11 @@
 
 ## Recording durations
 
-A split by time needs times, and none are kept today. The suite plugin gains a recorder: when `BLIZZARD_DURATIONS_OUT`
-names a file, `tests/support/suite_plugin.py` adds each test's setup, call, and teardown durations from
-`pytest_runtest_logreport` and, at session end, writes `{ "<nodeid>": <seconds>, ... }` to that file. Under xdist each
-worker writes its own part, `<file>.<worker id>`, and the controller merges them at `pytest_sessionfinish`, so the file
-holds every test the run executed exactly once. A skipped test is not recorded, since its time says nothing about its
-cost when it runs.
+The suite plugin gains a recorder: when `BLIZZARD_DURATIONS_OUT` names a file, `tests/support/suite_plugin.py` adds each
+test's setup, call, and teardown durations from `pytest_runtest_logreport` and, at session end, writes
+`{ "<nodeid>": <seconds>, ... }` to that file. Under xdist each worker writes its own part, `<file>.<worker id>`, and
+the controller merges them at `pytest_sessionfinish`, so the file holds every test the run executed exactly once. A
+skipped test is not recorded, since its time says nothing about its cost when it runs.
 
 `gate.yml`'s `python-tests` job and `upper-tiers.yml`'s `service-tier` job set `BLIZZARD_DURATIONS_OUT=durations.json`
 and upload it as an artifact, `durations-<job>-<shard>`, on every run, with `if: ${{ !cancelled() }}` so a red run's

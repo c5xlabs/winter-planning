@@ -1,5 +1,7 @@
 # Where a GitLab repository lives
 
+Paths are relative to `blizzard/src/blizzard/`.
+
 ## Nested groups
 
 GitLab groups nest, so a GitLab project's owner is a path (`group/subgroup`). A GitLab repository record's `owner` holds
@@ -13,8 +15,8 @@ against its one segment, as now. `repo_identity` and `pointer_key` in the same m
 `a/x/r` and `b/x/r` on one host stay two repositories.
 
 Both functions run on the runner (`runner/lifecycle/judgement/git_commits.py`) as well as at the hub, so the runner and
-hub ship the change in one release ([carry-over.md](./carry-over.md#shipping)). A GitHub origin, whose namespace is its
-one owner, keys exactly as it does today, so no stored pointer or marker written before the epic changes meaning.
+hub ship the change in one release (`engineering:runner-hub-release`). A GitHub origin, whose namespace is its one
+owner, keys exactly as it does today, so no stored pointer or marker written before the epic changes meaning.
 
 ## GitLab's web addresses
 

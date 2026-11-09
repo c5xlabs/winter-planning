@@ -1,5 +1,7 @@
 # The flow's own train
 
+Paths are relative to `blizzard/src/blizzard/`.
+
 A repository whose `batch_size` is above one lands through a train: its flow gathers the submissions ready on its
 branch, merges them onto the base on a branch of its own, proves that one tree with the repository's checks, and
 advances the base to exactly that tree. Every step is a short pass the flow driver takes as a turn on the flow, as a
@@ -152,8 +154,7 @@ batch it came from — built, and proven:
   red, its member is the one responsible. It is ejected `failure` with `delivery-findings` naming the failing checks on
   the revision that proved it alone, and every other member of the batch it came from returns to the head of the line.
 
-Only a prefix ever lands, so the base takes the members in the order they arrived, and a failure two members cause
-together is charged to the later of them, against a base that already holds the earlier. Each halving costs up to two
+Only a prefix ever lands (`decision:advanced-delivery/trains/split-by-arrival-order`). Each halving costs up to two
 proofs — the half that is proven, then the other half proven afresh — so a batch of eight with one bad member lands the
 other seven in at most seven proofs.
 

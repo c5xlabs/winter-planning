@@ -1,5 +1,7 @@
 # Landing on GitLab
 
+Paths are relative to `blizzard/src/blizzard/`.
+
 ## The policies, unchanged
 
 No policy changes for GitLab. `land` runs each repository's policy against the `RepositoryForge` it is handed
@@ -17,11 +19,9 @@ GitLab repository exactly as they read a GitHub one. What differs is what the fo
 
 ## The head gate
 
-GitHub brings a change up to its base by merging the base in; GitLab rebases it, rewriting the head, so the head no
-longer descends from the submitted commit and today's gate would call it foreign. GitLab's comparisons cannot prove a
-rebase carried the work unchanged the way `base_merge.py` proves a base merge, because they carry no blob ids, no
-per-file line counts, and no total that would show a commit list cut short. So a rebased head is admitted only on the
-hub's own word, checked against what GitLab can say:
+GitLab rebases a change to bring it up to its base, so the head no longer descends from the submitted commit and today's
+gate would call it foreign. A rebased head is admitted only on the hub's own word, checked against what GitLab can say
+(`decision:advanced-delivery/gitlab/rebase-head-gate`):
 
 1. When `update_from_base` answers method `rebase`, `land` hands `rebase-requested/<repo>/<head>` to its effects, naming
    the head it rebased from, before it asks the forge to act.
@@ -31,8 +31,7 @@ hub's own word, checked against what GitLab can say:
    replaced head carried past its own, and the set of paths it changes is the set the replaced head changed.
 
 A head that fails any of these — a rebase nobody asked the hub for, a person's push in between, a rebase that dropped or
-added a file — is a foreign head, and `failure`, as today. The check trades the proof GitHub's base merges get for one
-the forge can answer, and it stands on the narrow fact that the hub asked for this rebase and GitLab performed it.
+added a file — is a foreign head, and `failure`, as today.
 
 The window between the marker and the request is a named point in the crash-point registry (`bzh:crash-point-registry`),
 reached by a `blizzard:crash-sweep` scenario:

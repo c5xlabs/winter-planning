@@ -38,10 +38,9 @@ the host: ingest carries none of them, and the destination's records stand.
 An add and a seed write the runner's `runner_identity` row in the same transaction as its settings, since the id is
 known — the hub returned it, or the file states it — so no settings row ever names a runner the store does not know, and
 `runner:rows-name-registered-runner` (`runner/store/internal/invariants.py:193`) holds after every crash point. A
-retirement keeps the identity row with the settings rows it describes. `architecture/system-shape/runner-scoping.md`
-§Scope, which says a runner's binding is made once from the host file's `id`, and
-`architecture/crash-correctness/runner.md` §Binding at the configured id, which says it is reseeded from the file,
-change to say it is made from `hosted_runners`.
+retirement keeps the identity row with the settings rows it describes. A runner's binding is made from `hosted_runners`,
+not once from the host file's `id` (`architecture/system-shape/runner-scoping.md` §Scope) nor reseeded from the file
+(`architecture/crash-correctness/runner.md` §Binding at the configured id) (`engineering:context-rules`).
 
 `lease_spawns` (`runner/store/schema.py:189`) gains `host_settings_revision` and `runner_settings_revision`, both
 nullable integers, and `transcripts_root`, nullable text, written with each spawn ([passes.md](./passes.md) §Sessions).
@@ -110,8 +109,7 @@ store write.
 
 - **The sealing is the hub's, shared.** The hub's sealing (`hub/secrets/internal/aes_gcm.py`, `key_material.py`), its
   key providers (`env_keys.py`, `directory_keys.py`), and its rotation (`hub/secrets/rotation.py`) move to
-  `foundation/secrets/`, the hub keeping its own keys and behavior exactly as they are. This is pre-work, a piece of its
-  own ([carry-over.md](./carry-over.md)).
+  `foundation/secrets/`, the hub keeping its own keys and behavior exactly as they are.
 - **The host's key.** `BZ_HOST_SECRET_KEY`, with `BZ_HOST_SECRET_KEY_PREVIOUS` readable during a rotation, as the hub's
   key is supplied; where neither is set, a key directory under the host's runtime root, minted at the first start that
   needs it, owner-only, declared as a durable path of the host registry. The variables supply no key of the file and
@@ -125,7 +123,8 @@ store write.
 - **What the old places become.** `BZ_HUB_TOKEN_<NAME>`, `[hub_tokens]`, and the `.env` variables are read only by the
   seed (§Seeding step 6), deprecated, and named in the upgrade note; `runner add` stops writing `.env`, and
   `runner retire` stops editing it. `runners/<name>/`, which `add` and `ingest` create and nothing reads, stops being
-  created and its durable path is deprecated. Their removal is a follow-up `(BREAK)`.
+  created and its durable path is deprecated. Their removal is outside this epic
+  (`engineering:deprecations-outlive-epic`).
 
 ## No default workspace
 
@@ -136,9 +135,8 @@ with no `[[workspace]]` gives a host with no workspace, `init` scaffolds none, a
 read are no longer read. A host with no workspace runs, reports none, and its runners claim nothing until the operator
 creates one ([host-records.md](./host-records.md) §Workspaces and subscriptions) and binds a project to it.
 
-This is a break, made on the owner's word without a deprecation window, since no deployed host relies on the fallback:
-every host `init` scaffolded carries its `[[workspace]]` in its file, and it is seeded as any other. The change note
-names it as breaking. A legacy flat runner file still graduates to a host file naming the workspace it always named.
+This is a break without a deprecation window (`decision:config/runtime/no-default-workspace`), and its change note names
+it as breaking. A legacy flat runner file still graduates to a host file naming the workspace it always named.
 
 ## The reader
 

@@ -15,8 +15,7 @@ A session's model and effort are decided in three places today, each returning a
 The report is built from these same three phases, never from a copy of their rules. Each phase gains a traced form that
 returns the value together with the layer that supplied it. The existing entry points become projections of the traced
 form, so the spawn path and the report cannot disagree: `Spawner` keeps calling `SessionResolver.session_stamps`, which
-keeps its signature and takes `.value` from the traced result. A test pins the agreement: for every configuration
-fixture and authored session in the suite, the traced value equals what `session_stamps` returns for a fresh mint.
+keeps its signature and takes `.value` from the traced result. The agreement is `engineering:traced-resolution`.
 
 ## Provenance vocabulary
 
@@ -49,8 +48,8 @@ defaults when no chunk is named. The node envelope does not change shape; source
 
 ## The hub read
 
-The runner asks the hub for merged sessions on two new routes under `/api/fleet`, behind `require_runner_principal` like
-the rest of the fleet router. A runner token is enough; no lease is needed.
+For `engineering:hub-merge-read`, the runner asks the hub for merged sessions on two new routes under `/api/fleet`,
+behind `require_runner_principal` like the rest of the fleet router. A runner token is enough; no lease is needed.
 
 - `GET /api/fleet/sessions?graph=<name>` answers for the effective graph of each name — the newest graph that is not
   retired — or only for the named one. Chunk defaults are empty, so every field's source is `graph` or `unset`.
@@ -111,11 +110,3 @@ session, so an alias edited after a pool was minted changes the next fresh sessi
 When a chunk is named, the report reads this runner's own store for the pool head of each session in that chunk and
 shows its recorded harness, model, and effort beside the fresh-mint answer, flagging where they differ. The read goes
 through the existing lease-session repository; the report opens no write path to the store.
-
-## Proof
-
-- The agreement test above, run over fixtures that exercise every source in the vocabulary.
-- Route tests: a runner token without a lease is answered; a request without a runner token is refused; an unknown graph
-  or chunk returns `404` with the name that did not resolve.
-- A merge test per field, showing the source changes from `graph` to `chunk` exactly when the declaration's value is
-  empty or null, alongside the existing test pinning the precedence itself.

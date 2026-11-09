@@ -108,7 +108,8 @@ record through the same write as every other edit, and take its superuser check 
 may write). `PUT` sets `prompt` and returns `prompt_file` and `prompt_package` to their defaults, since a prompt set
 through the route has always won over the configured one; `DELETE` returns all three to their defaults, so the workspace
 is primed with no standing prompt, and its `source` answers `default`. The `workspace_prompt` table they wrote is
-deprecated, read only by the seed ([runner-store.md](./runner-store.md) §Seeding), and dropped by a follow-up.
+deprecated, read only by the seed ([runner-store.md](./runner-store.md) §Seeding), and dropped later
+(`engineering:deprecations-outlive-epic`).
 
 A workspace's or subscription's create and edit are validated as the host's file is at boot — a provider the host cannot
 build, a root that is not a path, a `max_environments` below one — and refused with each key's error.

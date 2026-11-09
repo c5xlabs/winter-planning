@@ -101,5 +101,5 @@ No common tenant is created on it; its `tenant` is the hub's seeded one, and sin
 answers header-less requests too, which a test of that behaviour needs.
 
 A fresh hub costs about ten seconds, the whole of `init` and the migrations. The harness never shortens that by starting
-from a pre-migrated store ([the initiative's](../../../../work/test-suite/initiative.md#decisions) black-box rule). A
-fresh hub's log is the test's whole, so it can assert on any line.
+from a pre-migrated store ([the initiative's](../../../../work/test-suite/decisions.md) black-box rule). A fresh hub's
+log is the test's whole, so it can assert on any line.

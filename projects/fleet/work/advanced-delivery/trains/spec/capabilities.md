@@ -1,5 +1,7 @@
 # Capabilities, narrowed to the repository
 
+Paths are relative to `blizzard/src/blizzard/`.
+
 ## What a repository's forge has in force
 
 Until this epic a repository's capabilities are its forge kind's. Some are not: whether GitHub runs a merge queue on a
@@ -29,7 +31,8 @@ Classic branch protection is unreadable in detail without admin access, though w
 not (`protected` on `GET /repos/{o}/{r}/branches/{base}`), and a probe records it. An advance the forge refuses as
 protected is remembered on the probe as `advance_refused_at`, and leaves `refs.advance` out from then on, however many
 scheduled probes follow, until an operator takes one on demand — the act that says the base's protection has changed. A
-train refused once therefore never loops into the same refusal.
+train refused once therefore never loops into the same refusal
+(`decision:advanced-delivery/trains/remembered-refused-advance`).
 
 `ForgeRegistry.offered(forge, repository)` — the one place a caller asks, as the forges epic made it — answers the
 kind's capabilities, narrowed by the repository's last probe. A probe is taken when a repository is created, when its
@@ -39,6 +42,12 @@ last answer stands and is retried at the next check. A repository never yet prob
 whose capability check needs a probed capability answers `pending` until a probe succeeds, rather than refusing work
 because the forge blinked. `GET /api/repositories/{repository}` carries the last probe, when it was taken, and its
 `advance_refused_at`, and `blizzard hub repo probe <repository>` takes one on demand and clears `advance_refused_at`.
+
+At first boot after the migration every repository is probed, so the capabilities the hub offers it are known before any
+visit asks; a probe the forge cannot answer at boot is retried at the next visit's check, which answers `pending`
+meanwhile. A repository whose policy needs a probed capability it turns out to lack, such as a `fast-forward` repository
+whose base only pull requests may change, is reported with a `forge-capability-missing` event and escalated to a person
+at its next visit, as the forges epic escalates any missing capability.
 
 ## New seam operations
 

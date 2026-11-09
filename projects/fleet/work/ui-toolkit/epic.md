@@ -4,31 +4,65 @@ refinement: outline
 status: planned
 ---
 
-# Plan — `epic:ui-toolkit`
+# UI toolkit
 
-Every small surface the board grows — a form, a picker, a confirmation sheet — is invented, styled, and maintained by
+A standalone epic; its requirements are inline below.
+
+## The problem
+
+Every small surface the board grows, a form, a picker, a confirmation sheet, is invented, styled, and maintained by
 hand, and the count climbs with every epic that touches it. The cost of writing each one is the visible half. The
 expensive half is drift: two dialogs written six months apart agree on nothing, and the operator learns each of them
-separately. Assembling the next one from a toolkit is faster to write, and quieter to use. In the spirit of
-`initiative:config`, this is a survey first and an adoption second. It follows `epic:storybook`, whose workshop is where
-the survey's candidates are judged.
+separately.
 
-## What to build
+## The outcome
 
-- **The survey.** A deliberate look at the component libraries and frontend accelerants the web surface does not yet
-  use, judged against the board's real needs — the forms, tables, sheets, and pickers it already has and the ones its
-  roadmap will ask for.
-- **One choice, made on evidence.** The candidate that wins does so on a demonstration rather than a feature matrix, and
-  the reasoning is written down where the next person to ask can find it.
-- **Migration where the payoff is real.** Hand-built pieces move to the toolkit when the move buys something; the rest
-  stay. Wholesale replacement is not the goal and would not pay.
-- **A path for the next surface.** After adoption, the way to add a form is to assemble one — demonstrated by building
-  the next real surface the board needs from parts.
+The next surface is assembled from a toolkit, which is faster to write and quieter to use. In the spirit of
+`initiative:config`, this is a survey first and an adoption second.
+
+## What this epic is not
+
+Wholesale replacement of the hand-built pieces is not the goal and would not pay.
+
+## Depends on
+
+- `epic:storybook`, whose workshop is where the survey's candidates are judged.
+
+## Requirements
+
+### The survey (product:toolkit-survey)
+
+A deliberate look at the component libraries and frontend accelerants the web surface does not yet use, judged against
+the board's real needs: the forms, tables, sheets, and pickers it already has and the ones its roadmap will ask for.
+
+### One choice, made on evidence (product:toolkit-choice)
+
+The candidate that wins does so on a demonstration rather than a feature matrix, and the reasoning is written down where
+the next person to ask can find it.
+
+Acceptance:
+
+- The choice rests on a demonstration, and its reasoning is written down where the next person can find it.
+
+### Migration where the payoff is real (product:payoff-migration)
+
+Hand-built pieces move to the toolkit when the move buys something; the rest stay.
+
+### A path for the next surface (product:assembled-surface)
+
+After adoption, the way to add a form is to assemble one, demonstrated by building the next real surface the board needs
+from parts.
+
+Acceptance:
+
+- The next new board surface after adoption is built from the toolkit's parts.
 
 ## Open questions
 
-- Whether a choice worth making constrains the existing frontend stack, and what an honest answer costs if it does.
-- What counts as evidence: the most convincing experiment is building one real board surface twice, which is also the
-  most expensive.
-- How the epics already queued against the board — the story map, `epic:intake`, and `epic:self-sourced-work`'s
-  authoring surface — sequence around this one, since each is cheaper after it and blocked waiting for it.
+- **Engineering:** Whether a choice worth making constrains the existing frontend stack, and what an honest answer costs
+  if it does.
+- **Product owner:** What counts as evidence: the most convincing experiment is building one real board surface twice,
+  which is also the most expensive.
+- **Product owner:** How the epics already queued against the board (the story map, `epic:intake`, and
+  `epic:self-sourced-work`'s authoring surface) sequence around this one, since each is cheaper after it and blocked
+  waiting for it.

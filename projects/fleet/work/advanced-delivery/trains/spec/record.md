@@ -1,5 +1,7 @@
 # The train's record
 
+Paths are relative to `blizzard/src/blizzard/`.
+
 ## The tables
 
 Every table here is tenant-owned and written through `ScopedConnections`, beside the flows epic's tables in
@@ -42,6 +44,21 @@ or `member-left`, when a member's ejection elsewhere or its withdrawal took it o
 state — building, proving, landed, split, abandoned — is derived from its facts and its member rows
 (`bzh:facts-not-status`), never stored, and so is a flow's hold: the newest `train-held` or `train-released`. A member's
 verdict is the newest `landed` or `ejected` fact naming its submission.
+
+## Migration
+
+One manual migration (`bzh:manual-migrations`) under `hub/store/migrations/versions/`, chained after the policies
+epic's, frozen once released (`bzh:frozen-revisions`), inside the portable surface (`bzh:sql-portable`), and proven on
+Postgres as on SQLite with every name inside Postgres's 63 characters. It:
+
+1. Adds `repositories.batch_size`, filled 1; `batch_wait_seconds`, filled 60; `train_prefix`, filled `blizzard-train/`;
+   and `staging_prefix`, filled `blizzard-staging/`; each then tightened to `NOT NULL`.
+2. Creates `flow_batches` and `flow_batch_members`, empty, with their indexes.
+3. Adds `flow_facts.batch_id`, null for every row, relaxes `flow_facts.submission_id` and `chunk_id` to nullable, and
+   adds the fact-subject check.
+4. Adds `hub_turns.batch_id`, null, then relaxes `hub_turns.submission_id` to nullable and adds the one-subject check.
+
+No repository changes revision and no `config_changes` row is written.
 
 ## The train turn
 

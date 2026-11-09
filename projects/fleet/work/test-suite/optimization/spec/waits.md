@@ -1,9 +1,6 @@
 # Waits that end when the thing has happened
 
-A fixed wait is either too long, and every run pays for it, or too short, and the test is flaky on a slow machine. The
-fixed waits outside the service tier that this epic owns are three, in two files, and each is replaced by a wait on the
-event it stood for. E2E's tick spacing, its `poll_until` intervals, and its termination allowance move with their
-scenarios under `epic:test-suite/fleet-tier`, and the crash sweep's are untouched.
+Three fixed waits, in two files, each replaced by a wait on the event it stood for (`engineering:event-driven-waits`).
 
 ## `tests/unit/cli/test_cli.py`
 
@@ -32,10 +29,3 @@ returns, the recorded process is gone, checked with `os.kill(pid, 0)` raising `P
 descendant is the test's own child, `os.waitpid` reporting it. The check polls with a bound of five seconds, as the
 file's other bounds are, and returns the moment it holds. The marker and the half-second sleep go, since the descendant
 no longer has to live long enough to be caught misbehaving.
-
-## The rule going forward
-
-`blizzard-context`'s `verification/blizzard/tier-rules.md` already asks the service tier for waits that end when the
-system speaks, through the foundation's companion. This epic extends the same rule, `bzh:service-waits-on-the-system`,
-to every tier by name, in the change that lands the last of the three: a test waits on an event, a state, or a process
-it can observe, and a bounded poll is its upper limit, never its duration.

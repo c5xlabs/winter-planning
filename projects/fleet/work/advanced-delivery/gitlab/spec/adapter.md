@@ -1,5 +1,7 @@
 # The GitLab adapter
 
+Paths are relative to `blizzard/src/blizzard/`.
+
 ## A second kind
 
 `KNOWN_FORGE_KINDS` becomes `{"github", "gitlab"}`, so a forge record may name `gitlab`. A work source still cannot name

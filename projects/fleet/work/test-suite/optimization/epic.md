@@ -4,65 +4,55 @@ refinement: final
 status: planned
 ---
 
-# Plan — `epic:test-suite/optimization`
+# Optimization
+
+Part of `initiative:test-suite`; the product requirements are below.
+
+## The problem
 
 Every chunk the fleet lands waits on the gate. The unit and component tier, already split into four parallel shards,
-takes 11–17 min per shard, and a PR waits on the slowest of them, about 17 min. The goal is to cut that time without
-weakening any assertion, and to close the coverage gaps in the PR gate.
+takes 11–17 min per shard, and a pull request waits on the slowest of them, about 17 min. Meanwhile the gate a pull
+request passes does not build the board ahead of time, so a template error only the full build would catch first fails
+on `master`.
 
-| Where                       | Read when                                                                                                           |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| [spec/](./spec/overview.md) | Provisional until the tier epics before it land — reading where the epic's contract is headed, not building from it |
+## The outcome
 
-## Baseline
+A pull request waits less on the gate, without any assertion weakened, and the gate catches what today only `master`
+catches.
 
-Successful pushes to `master`, 18 October 2026:
+## What this epic is not
 
-| Job                            | Duration                | Shape                                                                    |
-| ------------------------------ | ----------------------- | ------------------------------------------------------------------------ |
-| pytest unit + component        | 11.0–16.9 min per shard | 4 shards split by a hash of each test's id, `-n auto` on 4 vCPU each     |
-| crash sweep, CI profile        | 7.0–7.2 min             | 43 tests, `-n auto` on 4 vCPU                                            |
-| service tier                   | 3.2–5.8 min per shard   | 237 tests in 3 shards, `-n auto` on 4 vCPU, each test with its own stack |
-| dev hub image                  | 3.0–4.5 min             | multi-arch QEMU build on every push to `master`                          |
-| eslint + vitest + client drift | 1.9–2.2 min             | three `ng test` projects run one after another                           |
+The service tier's cost is not this epic's: the initiative's other epics replace a stack per test with a tenant per test
+on a shared hub, under the initiative's guard that the tier never becomes the gate's slowest job, so nothing here
+shortens a stack the initiative is retiring. Making tests implementation-independent belongs to the initiative's other
+epics too, and where speed conflicts with it, the black-box line wins (`decision:test-suite/black-box-wins`).
 
-Every check starts at once, so the PR critical path is the slowest single job, a pytest unit + component shard, and the
-crash sweep is next behind it. Queue time is negligible, about 2 s.
+## Requirements
 
-## Work areas
+### A shorter wait on the gate (product:shorter-gate)
 
-### 1. Pipeline
+A pull request's slowest required job finishes sooner, and every test still asserts what it asserted before.
 
-- **Balance the shards by duration.** A hash of each test's id spreads tests evenly by count but not by time, so one
-  shard runs six minutes longer than another. Splitting by recorded durations brings every shard toward the mean, which
-  shortens the critical path with no test touched.
-- **Build arm64 only for releases.** `dev-image` becomes `linux/amd64` only, saving most of its QEMU time on every push.
-  This requires the hosted hub, which follows `edge`, to be on amd64 first; `blizzard-infra` owns that answer.
+Acceptance:
 
-### 2. PR gate coverage
+- The gate's critical path, the slowest required job on a `push` to `master`, is recorded against the baseline of 18
+  October 2026.
+- No test asserts less than it did before.
 
-- **Angular AOT build on every PR.** Run `npm run build` in the frontend job, which today first runs on push or tag.
-  Hand the output to the UI job.
-- **UI tests on the shared build.** `epic:test-suite/fleet-tier` lands the UI tests with a required job of their own in
-  `upper-tiers.yml`, building the board itself as e2e does today. Move that job beside the frontend job, onto its build,
-  so the board is built once, once its runtime is measured to fit inside the gate's critical path.
+### The board built on every pull request (product:board-build-on-pr)
 
-### 3. Event-driven waits
+A template error in either board fails the pull request that introduced it, rather than the first push to `master` after
+it.
 
-The fixed waits outside the service tier get the treatment the hub-tier epic gives `sse_tap` as it ports those tests:
-waits that return when the expected thing has happened, and a barrier event where an assertion is negative. That covers
-the unit-tier sleeps in `test_cli.py` and `test_runner_harness_opencode_diagnostic.py`. E2E's `sleep(0.5)` tick spacing,
-`poll_until` intervals, and 10 s termination allowance are not this epic's: they are rewritten as their scenarios move,
-as the service tier's are.
+Acceptance:
 
-### 4. Slow unit outliers
+- A pull request with a template error the runner's board alone would catch fails its gate.
+- The UI tests run on the board that build produced, so the board is built once per pull request.
 
-`test_runner_harness_opencode_diagnostic.py` takes ~164 s of CPU: one 35 s test and ~30 tests at 4–5 s, all spawning
-subprocesses. Decide per test whether the subprocess is what's under test. Share one fake binary per module where \1
+### Releases still ship for arm64 (product:arm64-releases)
 
-## Out of scope
+Building only amd64 on every push to `master` changes nothing for people running a release on arm64.
 
-The service tier's cost is not this epic's: the foundation and the two tier epics replace a stack per test with a tenant
-per test on a shared hub, under the initiative's guard that the tier never becomes the gate's slowest job, so nothing
-here shortens a stack the initiative is retiring. Making tests implementation-independent belongs to the initiative's
-other epics, and where speed conflicts with it, the black-box line wins.
+Acceptance:
+
+- Every release is published for both amd64 and arm64.
