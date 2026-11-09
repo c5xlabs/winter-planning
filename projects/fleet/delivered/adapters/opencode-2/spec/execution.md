@@ -1,0 +1,192 @@
+# OpenCode 2 execution specification
+
+## Composition
+
+The OpenCode 2 adapter is a new binding beside the OpenCode 1 adapter, not a branch inside it. It implements the same
+harness seam, returns harness-neutral values, and keeps model and variant mapping, driver composition, permission
+translation, usage translation, and transcript access inside itself. It shares no parsing code with OpenCode 1: the two
+versions' shapes are fixture-proven separately and may drift separately. Harness selection, the choice of binding by
+observed version, and retry policy remain outside both.
+
+The adapter's client is a small typed client over the `/api/*` operations the proof admits. It does not depend on
+OpenCode's JavaScript SDK, and it calls no `/api/experimental/*` operation for any behavior a turn needs to finish.
+OpenCode labels its whole HTTP API experimental; that path is the line the binding draws.
+
+## The operator's OpenCode service
+
+OpenCode 2 runs one managed background service per user, and Blizzard works through it: every session the fleet runs is
+a session on the operator's own service, in the operator's own store, under the operator's own authentication and
+configuration. The runner never runs a private server, never isolates a store, and never injects configuration into
+OpenCode. Everything Blizzard controls about a session it sets through the API on that session. Blizzard never tracks,
+signals, or kills an OpenCode process; the API is the only way it stops or interrupts work.
+
+The runner keeps the service up; a driver never starts it. At every capability probe and before every launch, the runner
+checks the service through `GET /api/info`, and when none is running it runs `opencode service start` itself, under the
+runner's tool profile — the allowlist alone, never a lease identity, lease token, or the worker profile's per-spawn
+variables — so nothing of a lease can leak into the service or into the operator's own sessions on it. It launches the
+command detached, in a session of its own, so no lease's group kill and no launch-timeout kill reaches the service,
+though `opencode service start` already detaches the service by itself. The runner never stops or restarts the service.
+A managed service the operator has disabled, under which OpenCode clients fall back to private servers, makes the
+capability unavailable by name. A service that cannot be reached within a bound fails the turn as a spawn failure.
+
+The operator's configuration — global and project agents, MCP servers, skills, plugins, providers, and automatic
+compaction — applies to fleet sessions as it applies to the operator's own, as the OpenCode 1 binding's ambient
+configuration already does. Where the runner needs something narrower, it says so in the session's own rules: a session
+can deny an MCP server's tools as it denies any tool. What the operator does to a fleet session directly, on their own
+service, is theirs to do; the binding does not guard against it.
+
+## The driver
+
+Every OpenCode 2 spawn, resume, judgement, and nudge launches one `blizzard runner opencode drive` process, and that
+process is the worker the seam records: its exit is the end of the turn, and its stdout, or the judgement's
+`output_path`, carries the turn's result. The seam's contract that a worker's exit declares its turn done is unchanged;
+nothing in the runner loop, judgement, or selftest learns that a service exists, and what the runner does on the service
+itself goes through the seam additions under [stopping a turn](#stopping-a-turn). The driver is Blizzard's own API
+client, launched through the runner's ordinary process launcher and held behind its trampoline until the provisional
+spawn is durable. It starts no OpenCode process of its own.
+
+## Session lifecycle
+
+**Mint.** The adapter generates the session id — `ses_` followed by a ULID, accepted by OpenCode though it sorts
+differently from native ids, which nothing in Blizzard depends on — and returns an identified handle at spawn, the path
+the seam already provides for a harness that names its session at launch. The driver creates the session after the
+launcher has released it: `POST /api/session` with the id, the spawn's working directory as its `location`, the resolved
+model reference `{providerID, id, variant}`, the session's permission rules, and metadata naming the runner and the
+lease.
+
+**Environment.** Immediately after create, and at the start of every resumed invocation, the driver sets
+`PUT /api/session/{id}/environment` to the full allowlisted worker environment plus `BLIZZARD_*` identity. The call
+replaces the shell environment wholesale and is held only in the service's memory, so it carries everything a tool needs
+and is re-applied by every driver that opens the session. A child does not inherit it, and the driver does not apply it
+to children: a child's tools run under the service's environment, without the lease's identity — an accepted risk the
+binding declares as a degradation, revisited if a fleet workflow needs the lease's environment inside a subagent.
+
+**Prompt.** The prompt is the request body of `POST /api/session/{id}/prompt`, never a command-line argument, so it
+reaches the model verbatim. The fresh-mint prompt prefix is prepended exactly as for OpenCode 1.
+
+**Resume.** A resumed invocation opens only a session whose metadata names this runner; any other, including a 1.x
+session OpenCode 2 migrated into the store, is missing and takes the existing path for a lost conversation. It
+re-applies the session's permission rules through `PATCH /api/session/{id}`, re-applies its environment, and prompts the
+recorded id. It keeps the session's own model, except after a takeover: the operator's TUI switches the session to the
+operator's model and agent, so a resume of a taken-over session sets the lease's model and agent again through
+`session.switchModel` and `session.switchAgent` before it prompts.
+
+**Completion.** A turn is complete when the root session is idle, no descendant is running, and the root's inbox
+(`GET /api/session/{id}/inbox`) is empty, observed after the last descendant settled — a finished background subagent
+posts a message that wakes its root, so a root idle before its children finish is not yet done. The driver subscribes to
+`GET /api/event` and keeps the events for its own session tree as a trigger only: the stream is volatile by contract, so
+the driver also polls the session, its children, and its inbox on a bounded interval, and the session records are the
+truth. The turn's outcome (`succeeded`, `failed`, `interrupted`), usage, cost, and final assistant message are read from
+`GET /api/session/{id}` and its messages. The client-side `run --format json` stream is not used, because it routinely
+ends before the final step is reported.
+
+**Result.** The driver writes the turn's result to its stdout, or to the judgement's `output_path`, as Blizzard-owned
+NDJSON (`opencode-v2-driver/1`): the session id, the outcome, the final root assistant text, per-step usage for the root
+and each descendant, every permission and form decision it made, and any classified error. The adapter's verdict, usage,
+and limit parsing read that record, never OpenCode's own output.
+
+**Judgement.** Judgement is a resumed invocation whose final root assistant text yields `<Choice>` and the assessment.
+Tool output, reasoning, and child-session text are never part of it.
+
+**Nudge and answers.** A nudge or an answer delivery is a resumed invocation whose prompt uses `queue` delivery on an
+idle session; the seam resumes only sessions whose worker has exited, so there is no running session to deliver into.
+`steer` delivery is recorded as an available capability for `epic:steering` to adopt, and not used here.
+
+**Children.** Subagent sessions run on the same service and count toward the turn. When the turn is asked to stop, the
+driver interrupts every running descendant before the root.
+
+## Heartbeat and lifecycle
+
+The driver is the heartbeat. It runs `blizzard runner heartbeat` whenever it observes a tool complete in the root or a
+descendant, and it reads the root's lifecycle from the session's own state, telling root from child by `parentID`. No
+plugin is installed. Observing the root's lifecycle through the API lifts the 1.x root-hook degradation for OpenCode 2.
+
+## Stopping a turn
+
+The runner stops workers with signals. Shutdown drain and pause-park send SIGINT, and the driver interrupts each running
+descendant and then the root through `POST /api/session/{id}/interrupt`, waits a bounded grace for them to settle,
+writes its result with outcome `interrupted`, and exits. The interrupt is the stop: OpenCode ends the tools the turn
+started.
+
+Restart, cancellation, failure, preemption, and forced takeover kill the worker's process group outright, as they do for
+every harness, and a kill never reaches OpenCode. So wherever the runner kills a worker, or a worker exits without
+writing its result, the runner also stops the session tree through the API. The stop is best effort: a failed interrupt
+is logged and nothing waits on it, and a turn that keeps running anyway is one reconciliation can still stop.
+
+Two harness-neutral additions to the worker lifecycle seam carry this, and the bindings whose worker owns its turn's
+processes — Claude Code and OpenCode 1 — implement both as no-ops. The runner decides which sessions each applies to and
+passes harness-neutral session references; the binding only interrupts what it is handed, and never chooses. **Orphan**
+is called with the session of a worker the runner has just killed, or that exited without a result, except a worker
+killed for takeover, whose session the operator is about to attend. **Reconcile** is called at every daemon start with
+each session whose lease generation the runner's records hold as unfinished, that has no live worker, and that is not
+under takeover, and it completes before any restart resume is dispatched, so no resume queues behind a turn still
+running. Both read the runner's own records, never a listing of the service's sessions, so one runner never touches
+another runner's sessions or the operator's. A turn that outlives its driver is stopped, never adopted.
+
+A service that restarts or goes away mid-turn ends the turn as failed. The driver recognizes a restart by the service's
+identity, not by an outage: a restart can finish within a second, between two polls. When it opens the session it
+records the registration's `id` and the `pid` that `GET /api/info` reports, and it compares both at every poll; an event
+stream that ends, which a restart ends cleanly rather than with an error, or a request that cannot connect makes it
+compare at once. OpenCode resumes a turn its restart interrupted by itself, without the session's environment, so on a
+changed identity the driver interrupts the session tree on the new service, writes its result with outcome `failed`, and
+exits. A service that stays unreachable past the bound fails the turn the same way, and the driver interrupts the tree
+if the service returns within the grace. A restart that also ends the driver, such as a reboot, leaves the turn to
+reconcile. The session keeps its history, and the next driver re-applies its environment and prompts it normally.
+
+## Permissions
+
+Blizzard's fixed denies — the native question and form surfaces, and anything the runner forbids outright — are each
+session's own rule list, and the list holds nothing else. Every other rule is the operator's, read by OpenCode from the
+operator's own configuration, so the driver never reads or restates it, and a session rule can never widen what the
+operator's configuration denies. A session's rules do not reach the subagents it spawns, which take their agent's
+configured permissions; the driver applies the session's rule list to each child through `PATCH /api/session/{id}` as
+the child appears, which covers a child from that moment, not from its first tool call. That gap is accepted and
+declared, and closes when OpenCode lets a session's rules reach its children.
+
+Autonomy is the driver's answer to whatever the rules leave as `ask`. Over the API a permission request waits until
+something replies, so the driver replies to every one in its session tree through
+`POST
+/api/session/{id}/permission/{requestID}/reply`:
+
+| Autonomy    | Reply to a remaining `ask` |
+| ----------- | -------------------------- |
+| `normal`    | `reject`                   |
+| `auto`      | `once`                     |
+| `dangerous` | `once`                     |
+
+`auto` and `dangerous` are the same here, because nothing the operator's configuration allows or denies is the driver's
+to change. A form request (`session.form.*`) is cancelled under every autonomy. Each reply is recorded in the driver's
+result, so nothing waits on a person and every answer leaves a trace. The 1.x binding's `debug config` and `agent list`
+resolution is not ported.
+
+`blizzard runner ask` remains an ordinary shell command, reachable under every autonomy.
+
+## Models, variants, and compaction
+
+The resolved model and effort become a model reference `{providerID, id, variant}`. Effort maps to a variant through
+`[opencode.effort.aliases]`, defaulting to the identity mapping for `low`, `medium`, `high`, and `max`; the driver
+checks the variant against the model listing (`GET /api/model`) before creating the session and refuses an unknown one,
+rather than discovering `provider.no-route` mid-turn. Tiers map through `[opencode.models.aliases]`. An empty model
+leaves OpenCode's configured default in force. The CLI's `provider/model#variant` form appears only in the takeover
+command.
+
+Automatic compaction is the operator's service-wide setting, and a session cannot carry its own threshold. The lease's
+compaction window is enforced by the driver instead: it receives the window at launch, already polls the session's
+context size, and requests a compaction through `POST /api/session/{id}/compact` when the window is crossed. A window of
+`auto` leaves the operator's automatic compaction in force, and the driver requests none.
+
+## Errors and limits
+
+Provider refusal, usage limit, and overload are classified from the session's error records, using the fixture-captured
+shapes, and written into the driver's result. A usage limit carries its reset time into the resilience path exactly as
+the 1.x classification does; an overload is retryable; an unknown model or variant is a configuration error the operator
+must repair.
+
+## Takeover
+
+Takeover composes `blizzard runner opencode attend <id>` in the recorded working directory. The runner's existing
+takeover path kills the lease's worker, and calls no orphan for it. The attend command interrupts the session tree
+through the API, best effort, replaces the session's unattended rules with the attended set through
+`PATCH
+/api/session/{id}`, and opens the session in the operator's own OpenCode with `opencode --session <id>`. The next
+automated resume re-applies the unattended rules, so attended permissions never leak back into unattended work.
