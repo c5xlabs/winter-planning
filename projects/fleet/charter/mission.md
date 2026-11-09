@@ -30,10 +30,9 @@ assumes a human is involved.
 
 A human gate is opt-in configuration with two levers: a gate node inserted into the graph ("a human signs off before the
 chunk advances"), or a runner's own configuration imposing a gate on any node by node name. That is how trust is tuned:
-[`persona:senior-se`](../../../charter/personas/senior-se.md) starts with gates at every station and removes them as
-confidence grows; [`persona:application-architect`](../../../charter/personas/application-architect.md) runs the
-gateless default and steps in only on escalation; both levers are configuration, never code —
-[`persona:harness-engineer`](../../../charter/personas/harness-engineer.md)'s domain.
+`persona:senior-se` starts with gates at every station and removes them as confidence grows;
+`persona:application-architect` runs the gateless default and steps in only on escalation; both levers are
+configuration, never code — `persona:harness-engineer`'s domain.
 
 This document is the scope filter. When a "should blizzard do X?" question comes up, the answer is here — in the success
 criteria or the non-goals — or this document is wrong and must be amended first.
@@ -42,8 +41,7 @@ criteria or the non-goals — or this document is wrong and must be amended firs
 
 Blizzard succeeds when all of the following hold:
 
-1. **Unattended throughput.** The operating engineer
-   ([`persona:application-architect`](../../../charter/personas/application-architect.md)) queues work, walks away
+1. **Unattended throughput.** The operating engineer (`persona:application-architect`) queues work, walks away
    (overnight, a weekend), and returns to landed work — merged to main, or parked at exactly the human gates they
    configured — or precise escalations. Never to a wedged fleet.
 2. **Zero duplicated or clobbered work.** No two agents ever hold the same task, and no reaped-but-still-running agent
@@ -58,11 +56,10 @@ Blizzard succeeds when all of the following hold:
    different forge, harness, or workspace provider — is an adapter's worth of work, never a rewrite; the promise is
    proven the first time a seam has two live bindings (harnesses will be first: Claude Code, then OpenCode/Codex).
 6. **Supports the HITL→HOTL transition.** Not every persona can — or should — jump straight to trusting agents fully for
-   every task; [`persona:senior-se`](../../../charter/personas/senior-se.md) may never hand some categories over at all.
-   Blizzard meets each person where they are: human gates can be dialed on per workflow node — in the graph for the
-   whole fleet, or in a runner's own configuration by node name for that operator — so the platform supports any
-   persona's transition throughout their agentic-development career. Trust is earned gate by gate, never demanded as an
-   entry fee.
+   every task; `persona:senior-se` may never hand some categories over at all. Blizzard meets each person where they
+   are: human gates can be dialed on per workflow node — in the graph for the whole fleet, or in a runner's own
+   configuration by node name for that operator — so the platform supports any persona's transition throughout their
+   agentic-development career. Trust is earned gate by gate, never demanded as an entry fee.
 7. **Flexible work shapes — never 1:1:1:1.** Existing orchestrators hard-code one task = one agent = one environment =
    one repo. Blizzard treats every one of those cardinalities as flexible: a chunk wraps one or more PM items; one agent
    works a chunk, optionally fanning out to subagents; a chunk may span one or more feature environments and one or more
