@@ -17,7 +17,7 @@ the code already does: each of a chunk's commit pointers resolves to its own rep
 lands each against that record's own server, owner, base branch, and credential. A chunk spanning two GitHub servers
 lands today; this epic adds a policy per repository and the order a project lands its repositories in. GitHub is the
 only forge kind it lands on; the seam it grows is forge-neutral, and the second kind is the
-[gitlab epic](../../../../work/advanced-delivery/gitlab/spec/index.md)'s.
+[gitlab epic](../../../../work/advanced-delivery/gitlab/spec/overview.md)'s.
 
 Paths are relative to `blizzard/src/blizzard/`.
 

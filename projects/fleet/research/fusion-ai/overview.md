@@ -10,10 +10,6 @@ board, the phone, the chat window, the model picker — and works inward toward 
 the queue, the lease, the fact log, the fencing — and works outward toward the surface. That difference explains almost
 every row in the comparison, and it is why neither product's feature list reads as a subset of the other's.
 
-| File                                                   | When to read                                                                                                                                    |
-| ------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| [capability-comparison.md](./capability-comparison.md) | Weighing a capability against what Fusion ships — the two-way inventory, where the products converge, and what the differences ask us to decide |
-
 ## Reading these findings honestly
 
 Fusion is roughly a year older in the market and ships weekly against a version number in the `0.78` range, with a

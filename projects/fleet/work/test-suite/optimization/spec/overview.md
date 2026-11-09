@@ -23,11 +23,3 @@ through `scripts/build-wheel.sh`. `push.yml`'s `dev-image` builds `linux/amd64,l
 Paths are relative to the `blizzard` repo root unless a leaf says otherwise. The epic changes nothing outside
 `blizzard`: the hosted hub already runs on amd64 (`blizzard-infra`'s `terraform/application/config/prod.tfvars`, a
 `t3a.small` on an amd64 AMI), so the image's prerequisite is met.
-
-| Where                            | Read when                                                                                                      |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| [pipeline.md](./pipeline.md)     | Recording test durations, splitting shards by them, or building the dev image for one platform                 |
-| [pr-gate.md](./pr-gate.md)       | Building the board ahead of time on every pull request, or adding the UI job                                   |
-| [waits.md](./waits.md)           | Replacing a fixed wait outside the service tier with one that ends when the thing has happened                 |
-| [outliers.md](./outliers.md)     | Measuring and shortening the slow unit and component files, `test_runner_harness_opencode_diagnostic.py` first |
-| [carry-over.md](./carry-over.md) | Landing the epic — the order of changes, what each records, and what the gate is measured against              |

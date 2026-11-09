@@ -32,9 +32,9 @@ hub's settings are changed through the hub's API; a runner's are changed through
 runner. Neither daemon holds the other's, and neither file is a way to change a running daemon. The runner half is where
 a restart hurts, and it lands first; the hub half follows. The epic is delivered when both have landed.
 
-| Where                    | Read when                                                             |
-| ------------------------ | --------------------------------------------------------------------- |
-| [spec/](./spec/index.md) | Implementing any part of the epic, or looking up a setting's lifetime |
+| Where                       | Read when                                                             |
+| --------------------------- | --------------------------------------------------------------------- |
+| [spec/](./spec/overview.md) | Implementing any part of the epic, or looking up a setting's lifetime |
 
 ## Lifetimes
 

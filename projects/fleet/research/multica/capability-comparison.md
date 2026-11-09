@@ -1,8 +1,8 @@
 # Multica and blizzard, capability by capability
 
 A two-way inventory: what Multica can do that blizzard cannot, what blizzard can do that Multica cannot, and the ground
-the two products already share. Parent: [index.md](./index.md), which owns why Multica is worth a folder and how to read
-a gap.
+the two products already share. Parent: [overview.md](./overview.md), which owns why Multica is worth a folder and how
+to read a gap.
 
 ## The shape of each product
 
@@ -255,8 +255,8 @@ proposal.
 [Soleur comparison](../soleur/capability-comparison.md#what-the-differences-ask) asked for one, and Multica sharpens the
 question. Its agent merges unreviewed onto an unprotected branch and keeps that branch greener than blizzard keeps
 `master` through a strict queue. Some of the gap will be what each suite tests, and how much of each suite runs on a
-push. Some may be the merge skew the [field survey](../factory-field/index.md) named. The asymmetry is large enough to
-settle before `initiative:advanced-delivery` designs its train.
+push. Some may be the merge skew the [field survey](../factory-field/overview.md) named. The asymmetry is large enough
+to settle before `initiative:advanced-delivery` designs its train.
 
 The remaining differences are the design working. A tracker in its own right, an agent that drives its own record, and a
 per-seat cloud are positions the mission already takes. Multica's customer, the small team hiring its first agents, will

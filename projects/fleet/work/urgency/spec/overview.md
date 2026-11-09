@@ -41,11 +41,3 @@ domain spokes on routines and scopes, on cadences, and on tenancy gain a routine
 new tenant's `standard`; and the chunk spoke gains the urgency among a chunk's operator-editable properties. Blizzard's
 operator documents gain a page on urgencies, and the pages on the board, the config document, routines and scopes, and
 cadences each gain what touches them.
-
-| Where                              | Read when                                                                                                                                                                   |
-| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [record.md](./record.md)           | Shaping an urgency or the tenant's settings — every field and its validation, the tables, the verbs, the set's order, retiring with work moved, and the config document     |
-| [chunk.md](./chunk.md)             | Giving a chunk its urgency — the column, the chain every mint path resolves, the routine's default and the chore's and run's override, editing, grouping, and finished work |
-| [claim-order.md](./claim-order.md) | Ordering what a runner reaches for — claim order, the peeks that walk it, hold and pass-over, prerequisites, and the next-claim explanation                                 |
-| [surfaces.md](./surfaces.md)       | Showing urgency — the views, the administration screen, the pill on cards and list rows, a chunk's urgency control, a runner's next claim, and the CLI                      |
-| [carry-over.md](./carry-over.md)   | Landing the epic — the order of its pieces and their proof, the revision that gives every tenant `standard`, versions in the field, and what the epic leaves to tagging     |

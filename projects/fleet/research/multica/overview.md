@@ -8,18 +8,14 @@ result back for review. A daemon on any machine the team controls drives whichev
 list of twenty-six, and the same workspace is reachable from a web app, a desktop app, an iPhone build, a CLI, and five
 chat platforms.
 
-It earns a folder because it is the product the market has chosen. [Fusion](../fusion-ai/index.md) is the nearest design
-to blizzard, and [Soleur](../soleur/index.md) the nearest to the methodology layer beneath it. Multica is the nearest to
-blizzard's *surface*, the board where a human watches agents work, and it has found an audience on a scale nothing else
-in the [field survey](../factory-field/index.md) approaches. It takes the opposite answer to the question blizzard's
-[mission](../../charter/mission.md) settles first. Blizzard refuses to be the project-management system and treats the
-backlog as a seam a tracker plugs into. Multica is the tracker, and the fleet is a feature of it. Reading it shows what
-a team gets when the agents are added to the place where work is already tracked, and what it gives up by having nothing
-beneath the board but the agents' own good behaviour.
-
-| File                                                   | When to read                                                                                                                                                 |
-| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| [capability-comparison.md](./capability-comparison.md) | Weighing a capability against what Multica ships — the two-way inventory, the ground the products already share, and the decisions the differences ask of us |
+It earns a folder because it is the product the market has chosen. [Fusion](../fusion-ai/overview.md) is the nearest
+design to blizzard, and [Soleur](../soleur/overview.md) the nearest to the methodology layer beneath it. Multica is the
+nearest to blizzard's *surface*, the board where a human watches agents work, and it has found an audience on a scale
+nothing else in the [field survey](../factory-field/overview.md) approaches. It takes the opposite answer to the
+question blizzard's [mission](../../charter/mission.md) settles first. Blizzard refuses to be the project-management
+system and treats the backlog as a seam a tracker plugs into. Multica is the tracker, and the fleet is a feature of it.
+Reading it shows what a team gets when the agents are added to the place where work is already tracked, and what it
+gives up by having nothing beneath the board but the agents' own good behaviour.
 
 ## Reading these findings honestly
 
@@ -27,7 +23,7 @@ The products are not for the same person, though they look it from a distance. M
 humans first, that wants to hire agents into the way it already works: "two engineers and a fleet of agents can move
 like twenty," in its own vision's words. Blizzard's customer is an engineer who queues work, walks away, and wants to
 come back to landed work. A Multica feature blizzard lacks is therefore read the way the
-[Fusion folder](../fusion-ai/index.md#reading-these-findings-honestly) set out: a *schedule difference* blizzard has
+[Fusion folder](../fusion-ai/overview.md#reading-these-findings-honestly) set out: a *schedule difference* blizzard has
 already placed in a plan, a *position difference* its mission already takes, or a *genuine gap* that has not yet had a
 decision.
 

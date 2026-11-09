@@ -18,9 +18,9 @@ agent only for a conflict no machine can settle or a failure the proof pins on o
 what reaches the branch is exactly the tree that was proven, so two changes that each passed alone cannot land a break
 together.
 
-| Where                    | Read when                                                             |
-| ------------------------ | --------------------------------------------------------------------- |
-| [spec/](./spec/index.md) | Implementing any part of the epic or resolving its technical contract |
+| Where                       | Read when                                                             |
+| --------------------------- | --------------------------------------------------------------------- |
+| [spec/](./spec/overview.md) | Implementing any part of the epic or resolving its technical contract |
 
 ## What to build
 

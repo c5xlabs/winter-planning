@@ -69,6 +69,6 @@ transcript.
 
 | Where                                          | Read when                                                                   |
 | ---------------------------------------------- | --------------------------------------------------------------------------- |
-| [spec/](./spec/index.md)                       | Implementing any part of the epic or resolving its technical contract       |
+| [spec/](./spec/overview.md)                    | Implementing any part of the epic or resolving its technical contract       |
 | [sample](../assets/model-resolution.txt)       | Seeing what the operator reads at the terminal, on one worked configuration |
 | [sample JSON](../assets/model-resolution.json) | Seeing the same answer as a script or an agent reads it                     |

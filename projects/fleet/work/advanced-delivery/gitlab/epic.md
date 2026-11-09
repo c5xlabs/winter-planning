@@ -16,9 +16,9 @@ names a policy as any repository does, and the hub lands into it through merge r
 a graph, or the combining step learning which forge it holds. A chunk whose work spans a GitHub repository and a GitLab
 one lands into both, each through its own forge, in its project's order.
 
-| Where                    | Read when                                                             |
-| ------------------------ | --------------------------------------------------------------------- |
-| [spec/](./spec/index.md) | Implementing any part of the epic or resolving its technical contract |
+| Where                       | Read when                                                             |
+| --------------------------- | --------------------------------------------------------------------- |
+| [spec/](./spec/overview.md) | Implementing any part of the epic or resolving its technical contract |
 
 ## What to build
 

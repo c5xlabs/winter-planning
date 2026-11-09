@@ -1,8 +1,8 @@
 # Soleur and blizzard, capability by capability
 
 A two-way inventory: what Soleur can do that blizzard cannot, what blizzard can do that Soleur cannot, and the ground
-the two products already share. Parent: [index.md](./index.md), which owns why Soleur is worth a folder and how to read
-a gap.
+the two products already share. Parent: [overview.md](./overview.md), which owns why Soleur is worth a folder and how to
+read a gap.
 
 ## The shape of each product
 
@@ -262,7 +262,7 @@ dropped into a repository blizzard drives.
 
 **The landing's red rate is worth a second look.** After adopting a merge queue that lands one green entry at a time,
 Soleur's default branch failed 8 of its last 100 CI runs, a short window, and its bot fixes revert themselves when they
-turn the branch red. The [field survey](../factory-field/index.md) puts blizzard at about one landing in five turning
+turn the branch red. The [field survey](../factory-field/overview.md) puts blizzard at about one landing in five turning
 `master` red, through a strict single-file queue. The cause is not settled by this comparison, but the asymmetry is
 large enough to examine before `initiative:advanced-delivery` designs its train, because the train is where the lesson
 would land. Whether delivery owns a revert path belongs in the same conversation.

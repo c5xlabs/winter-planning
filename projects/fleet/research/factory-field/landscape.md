@@ -1,8 +1,8 @@
 # The factory field, repository by repository
 
-Every factory-built repository measured, grouped by the bucket it landed in. Parent: [index.md](./index.md), which owns
-how the field was found, what each column means, and how the buckets were drawn. Within each table, repositories run
-from the highest throughput down. *Guardrails / health* is the two-axis score, and *Evidence* names the signals that
+Every factory-built repository measured, grouped by the bucket it landed in. Parent: [overview.md](./overview.md), which
+owns how the field was found, what each column means, and how the buckets were drawn. Within each table, repositories
+run from the highest throughput down. *Guardrails / health* is the two-axis score, and *Evidence* names the signals that
 moved it most.
 
 ## Well-structured autonomous systems

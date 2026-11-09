@@ -25,14 +25,3 @@ The epic reaches beyond `blizzard`'s source. In `blizzard-context`, `bzh:config-
 `bzh:settings-snapshot-per-pass` states the evaluation every pass makes, the domain's bindings stop halting a runner for
 a retired workspace, and the runner's crash-correctness record gains the add's window. Blizzard's operator pages on the
 runner host and the hub's configuration gain lifetimes, entries, the seed, and the API.
-
-| Where                                | Read when                                                                                                                                                                       |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [settings.md](./settings.md)         | Looking up a setting — every hub and runner setting with its lifetime and the reader that holds it today, the one new setting, environment variables, and seeding from the file |
-| [lifetimes.md](./lifetimes.md)       | Declaring a lifetime — the registry's two new fields, the contract documents, entries, and the evaluation every pass makes at its start                                         |
-| [runner-store.md](./runner-store.md) | Storing a runner's settings — the tables, a write and its validation, the seed's order, and the reader a pass resolves its configuration through                                |
-| [runner-api.md](./runner-api.md)     | Changing a runner's settings — who may write, the routes, a view and a write, apply and export, the CLI, and the local page                                                     |
-| [passes.md](./passes.md)             | Making a runner's pass evaluate its settings — the tick's rebuild, the trace sweep, the host tick's reconcile, the live interval, and what a session takes with it              |
-| [host-records.md](./host-records.md) | Adding or retiring a runner on a running host, or shaping a workspace or subscription as a record — its verbs, what each change does, and the add's crash window                |
-| [hub.md](./hub.md)                   | Changing the hub's settings — the hub-wide record, its permission, routes, apply, every holder read per pass, and the board                                                     |
-| [carry-over.md](./carry-over.md)     | Landing the epic — the order of its pieces and their proof, version skew, what an operator does once, and what is left for later                                                |

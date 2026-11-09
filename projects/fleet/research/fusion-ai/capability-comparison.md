@@ -1,7 +1,7 @@
 # Fusion and blizzard, capability by capability
 
 A two-way inventory: what Fusion can do that blizzard cannot, what blizzard can do that Fusion cannot, and the ground
-the two products already share. Parent: [index.md](./index.md), which owns how to read a gap.
+the two products already share. Parent: [overview.md](./overview.md), which owns how to read a gap.
 
 ## The shape of each product
 

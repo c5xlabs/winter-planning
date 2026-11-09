@@ -7,13 +7,13 @@ registry that hands them out, and the capabilities by the
 [forges epic](../../../../delivered/advanced-delivery/forges/spec/index.md); and the repository's policy, the order a
 project lands its repositories in, the reserved waits, and the rate budget by the
 [policies epic](../../../../delivered/advanced-delivery/policies/spec/index.md); and the GitLab adapter, its vocabulary,
-and the mock's GitLab face by the [gitlab epic](../../gitlab/spec/index.md). This spec teaches a flow to land many
+and the mock's GitLab face by the [gitlab epic](../../gitlab/spec/overview.md). This spec teaches a flow to land many
 submissions at once, and to hand its line to a forge that keeps one of its own.
 
 This spec assumes the [actions](../../../../delivered/advanced-delivery/actions/spec/index.md),
 [forges](../../../../delivered/advanced-delivery/forges/spec/index.md),
 [flows](../../../../delivered/advanced-delivery/flows/spec/index.md),
-[policies](../../../../delivered/advanced-delivery/policies/spec/index.md), and [gitlab](../../gitlab/spec/index.md)
+[policies](../../../../delivered/advanced-delivery/policies/spec/index.md), and [gitlab](../../gitlab/spec/overview.md)
 epics have landed: an action is pure under `bzh:hub-action-purity`, receiving a frozen input and handing its effects to
 an `IEffectSink` the driver persists; `land` runs each repository's policy a pass at a time; every forge is spoken
 through the async roles `ForgeRegistry` hands out — `IForgeRefs`, including `merge_into` and the compare-and-swap
@@ -33,12 +33,3 @@ on batching — the CI a repository must run on its train branches and must not 
 repository chooses which checks those are — and on handing the line to a forge's queue, including the `merge_group`
 trigger GitHub's merge queue needs. `blizzard-mock`'s forge grows what the proofs need
 ([carry-over.md](./carry-over.md#the-mock)).
-
-| Where                                | Read when                                                                                                    |
-| ------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| [capabilities.md](./capabilities.md) | Narrowing a forge's capabilities to one repository, probing what its forge has in force, and batch settings  |
-| [batches.md](./batches.md)           | Building the flow's own train — readiness, forming, building, proving, holding, landing, splitting, ejecting |
-| [queue.md](./queue.md)               | Building the `forge-queue` policy — joining GitHub's merge queue or GitLab's merge train, and its fallback   |
-| [record.md](./record.md)             | Shaping the batch tables, the train turn, the `awaiting-queue` wait, facts, events, crash points, invariants |
-| [surfaces.md](./surfaces.md)         | Building the API, CLI, live channel, and the board's batch on a flow's lane                                  |
-| [carry-over.md](./carry-over.md)     | Writing the migration, the mock forge's new faces, and the proof                                             |

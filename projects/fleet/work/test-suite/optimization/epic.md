@@ -10,9 +10,9 @@ Every chunk the fleet lands waits on the gate. The unit and component tier, alre
 takes 11–17 min per shard, and a PR waits on the slowest of them, about 17 min. The goal is to cut that time without
 weakening any assertion, and to close the coverage gaps in the PR gate.
 
-| Where                    | Read when                                                                                                           |
-| ------------------------ | ------------------------------------------------------------------------------------------------------------------- |
-| [spec/](./spec/index.md) | Provisional until the tier epics before it land — reading where the epic's contract is headed, not building from it |
+| Where                       | Read when                                                                                                           |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| [spec/](./spec/overview.md) | Provisional until the tier epics before it land — reading where the epic's contract is headed, not building from it |
 
 ## Baseline
 

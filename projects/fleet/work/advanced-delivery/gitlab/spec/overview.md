@@ -25,10 +25,3 @@ scenarios; and blizzard's verifiability matrix declares the GitLab contract suit
 ([carry-over.md](./carry-over.md#the-contract-suite)). `docs/deployment/forges.md` describes declaring a GitLab forge,
 the minimum version, and the policies a GitLab repository may choose. `blizzard-mock`'s forge gains a GitLab face
 ([carry-over.md](./carry-over.md#the-mock)).
-
-| Where                            | Read when                                                                                                          |
-| -------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
-| [adapter.md](./adapter.md)       | Building the GitLab adapter — its operations, capabilities, vocabulary, failures, and what its rate headers teach  |
-| [landing.md](./landing.md)       | Running the policies on GitLab — the head gate for a rebased change, what each policy proves, landing across kinds |
-| [namespaces.md](./namespaces.md) | Letting a repository live in nested groups — the owner, `RepoRef`, and GitLab's web addresses                      |
-| [carry-over.md](./carry-over.md) | Shipping the epic — the runner and hub together, the mock's GitLab face, the contract suite, and the proof         |
