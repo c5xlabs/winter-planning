@@ -1,6 +1,7 @@
 # `persona:application-architect` — the application architect
 
-**The primary persona.** The agentic-native engineer this product is built by and for.
+**The primary persona.** The agentic-native engineer this product is built by and for, who queues work, walks away, and
+expects to return to landed work.
 
 ## Who they are
 
@@ -26,7 +27,8 @@ never expect to find is a wedged fleet or a mystery.
 - **Zero duplicated or clobbered work** — a structural guarantee, not a probabilistic one.
 - **Polyrepo end to end** — their unit of work spans repositories, and the platform treats that as normal.
 
-In short: the [mission](../mission.md)'s success criteria are this persona's needs, written down.
+In short: the [mission](../../projects/fleet/charter/mission.md)'s success criteria are this persona's needs, written
+down.
 
 ## What serves them
 

@@ -1,5 +1,7 @@
 # `persona:harness-engineer` — the harness engineer
 
+The fleet's mechanic, tuning parameters and reading outcomes across many runs.
+
 ## Who they are
 
 The fleet's mechanic. They care less about any single task's output than about the *ecosystem of outputs*: the

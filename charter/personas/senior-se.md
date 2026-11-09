@@ -1,5 +1,7 @@
 # `persona:senior-se` — the senior software engineer
 
+A strong engineer who does not yet trust agents, and needs the fleet to earn that trust gate by gate.
+
 ## Who they are
 
 They can absolutely code — that has never been the question. What they are not, yet, is an orchestrator of fleets. They

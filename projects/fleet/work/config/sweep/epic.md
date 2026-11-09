@@ -1,0 +1,34 @@
+---
+epic: config/sweep
+refinement: outline
+status: planned
+---
+
+# Plan — `epic:config/sweep`
+
+The rest of the configuration surface `initiative:config` promises: every operational constant beyond the model a
+session runs on, inventoried and promoted under one resolution order.
+
+## What to build
+
+- **The inventory.** A deliberate sweep for operational constants across hub, runner, and graph execution, each one
+  named and located. The sweep is the work; the plumbing after it is mechanical.
+- **Every constant promoted.** Each becomes configuration with the current value as its declared default and a written
+  account of what moving it does, so a reader can tell a tuning knob from a load-bearing invariant.
+- **One resolution order.** Where a value may be stated in more than one place, the precedence is declared once and
+  holds everywhere, so the answer to "what is this fleet actually running with" is a lookup rather than an
+  investigation.
+- **A worker's environment stated in the runner's own config.** Environment variables a worker should see are set in the
+  runner's toml or an env file it names. Today `worker_env_passthrough` only passes through what is already set outside
+  the runner, so tuning worker behavior — test parallelism through `PYTEST_XDIST_AUTO_NUM_WORKERS`, say — means
+  scattered setup across systemd, a shell profile, and the runner config.
+- **The comparable run.** The harness engineer changes one constant, runs the same chunk again, and can attribute the
+  difference — which means the values a run used are recoverable after the fact, not only before it.
+
+## Open questions
+
+- Which constants belong to the hub, which to the runner, and which to a graph node — and the few that must stay fixed
+  because correctness rests on them.
+- Whether the resolved configuration of a run is recorded as a fact, which is what makes comparison across nights
+  trustworthy and is also a new row on every run.
+- How far the sweep reaches into the harness adapters, whose own knobs are not blizzard's to redefine.
