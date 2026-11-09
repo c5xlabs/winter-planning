@@ -19,6 +19,12 @@ This epic adds a second adapter behind the landing seam and changes no policy. I
   the order a project lands its repositories in, the combining step, and the rate budget are the policies epic's
   ([policies spec](../../../delivered/advanced-delivery/policies/spec/index.md)). `ForgeBudgets` keys each forge's rate
   budget by forge, secret, and bucket ([budget.md](../../../delivered/advanced-delivery/policies/spec/budget.md)).
+- What each policy proves holds on GitLab
+  ([policies' landing.md](../../../delivered/advanced-delivery/policies/spec/landing.md#what-each-policy-proves)). A
+  GitLab project merging fast-forward or semi-linear refuses a merge request not up to date with its base, so there
+  `merge-on-checks` merges only a change whose checks ran on the base it lands on; the forge closes the gap a
+  merge-commit project leaves open. A project running merged-results pipelines proves the merge GitLab builds rather
+  than the head, with no change to what the hub does.
 
 ## GitHub landing unchanged (engineering:github-unchanged)
 

@@ -59,8 +59,9 @@ Acceptance:
 
 ## Mechanical joins (engineering:mechanical-joins)
 
-A member is never brought up to its base on its own branch; the train merges it onto the base. Serves
-`product:mechanical-first`.
+A member is never brought up to its base on its own branch; the train merges it onto the base. A repository that does
+not batch keeps the policies epic's mechanical updates: a change brought up to its base, a fast-forwarding branch merged
+onto its base. Serves `product:mechanical-first`.
 
 Acceptance:
 
@@ -149,6 +150,8 @@ Acceptance:
   is dequeued.
 - With the queue switched off, the repository lands by `merge-on-checks`, unbatched, and records
   `forge-capability-fallback`.
+- GitLab's merge-train routes, car states, and system-note phrasings are proven against fixtures recorded from a Premium
+  instance as well as against the mock, since merge trains are not in GitLab's free tier.
 
 ## Trains documentation (engineering:trains-docs)
 

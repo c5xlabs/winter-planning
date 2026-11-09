@@ -1,178 +1,253 @@
 # The flow's own train
 
-Paths are relative to `blizzard/src/blizzard/`.
+Paths are relative to `blizzard/src/blizzard/`. The train runs on a repository whose `batch_size` is above one
+([capabilities.md](./capabilities.md#the-batching-settings)); its record is [record.md](./record.md).
 
-A repository whose `batch_size` is above one lands through a train: its flow gathers the submissions ready on its
-branch, merges them onto the base on a branch of its own, proves that one tree with the repository's checks, and
-advances the base to exactly that tree. Every step is a short pass the flow driver takes as a turn on the flow, as a
-visit's pass is ([record.md](./record.md#the-train-turn)), so a train never holds a process or a long request, and a hub
-that restarts mid-train picks it up at the step its record says it reached.
+## System
 
-`hub/delivery/trains/` holds it: `readiness.py`, `train.py`, `split.py`, and `eject.py`. A train step is an action under
-`bzh:hub-action-purity`, as `land` is — the import allowlist
+| Module                                       | Holds                                                                      |
+| -------------------------------------------- | -------------------------------------------------------------------------- |
+| `hub/delivery/trains/readiness.py`           | Whether a submission is ready on a batching flow ([Readiness](#readiness)) |
+| `hub/delivery/trains/train.py`               | Forming, building, proving, holding, and landing a batch                   |
+| `hub/delivery/trains/split.py`               | Splitting a failed batch                                                   |
+| `hub/delivery/trains/eject.py`               | Ejecting a member, and a member leaving every other batch                  |
+| `hub/delivery/actions/landing/combine.py`    | Folds `Queued` into a visit's pass                                         |
+| `hub/delivery/flow_driver.py` (`FlowDriver`) | Takes the train turn ([record.md](./record.md#the-train-turn))             |
+
+`hub/delivery/trains/` is under `bzh:hub-action-purity`, as `hub/delivery/actions/` is: the import allowlist
 (`tests/guards/test_layering.py::test_hub_actions_import_only_their_allowlist`) and the frozen-input check
-(`tests/unit/hub/delivery/test_action_registry.py`) walk `hub/delivery/trains/` beside `hub/delivery/actions/` — and
-runs on the `ActionLoop`: `step(batch, forge, effects)` receives the batch as a frozen value — its members, their
-revisions, its facts so far, the flow's repository and settings — the flow's repository's `RepositoryForge`, and an
-`IEffectSink` through which it hands over each fact it records; the driver persists each before the step continues, so a
-forge write and its record are never further apart than one crash point ([record.md](./record.md#crash-points)). A step
-that needs more than its batch carries declares it as an input the driver loads; it never reads the store.
+(`tests/unit/hub/delivery/test_action_registry.py`) walk both.
 
-## Mechanical first
+| Bound                       | Value                                   | Read from                                          |
+| --------------------------- | --------------------------------------- | -------------------------------------------------- |
+| `TRAIN_POLL_SECONDS`        | 30 s                                    | The driver's clock; a proof read, or a hold's read |
+| `TRAIN_PROOF_START_SECONDS` | 600 s, from the train branch's creation | The driver's clock                                 |
+| `TRAIN_PROOF_TIMEOUT`       | 3 h, from the train branch's creation   | The driver's clock; equals `DEFAULT_POLL_TIMEOUT`  |
+| Rebuilds before fallback    | 3                                       |                                                    |
+| Re-runs per failing check   | 1, per proof                            |                                                    |
 
-A train is what keeps a chunk from paying a run of checks, or an agent, for a branch that merely moved. A member is
-never brought up to its base on its own branch: the train merges its revision onto the base and proves the result, so
-the base moving under it costs a merge the forge makes. Only a conflict against the base itself goes back to the chunk's
-graph. The policies epic's mechanical updates — a change brought up to its base, a fast-forwarding branch merged onto
-its base — still serve a repository that does not batch.
+Every bound reads the clock the driver hands the step, so tests set it.
 
-A member's own checks need not have finished for it to join, since the train proves it again in combination. One whose
-own checks have already failed is not ready: its visit answers as `merge-on-checks` answers a failing change — `failure`
-with findings, or `inherited-failure` when the base shares every failure after the one re-run — rather than carrying a
-known failure into a batch and costing every other member a split.
+## Domain
+
+```python
+# hub/delivery/actions/landing/repo.py
+@domain_model
+@dataclass(frozen=True)
+class Queued:
+    """Prepared and handed to a train — the flow's own or a forge's queue — which lands it."""
+
+
+type RepoState = (
+    Landed | NoCode | Ready | Waiting | Held | AwaitingMerge | Queued | Conflict | Failure | Inherited | NeedsPerson
+)
+```
+
+```python
+# hub/delivery/trains/train.py — one train step; runs on the ActionLoop as an action does.
+class ITrainStep(Protocol):
+    async def step(self, batch: Batch, forge: RepositoryForge, effects: IEffectSink): ...
+    # batch: frozen (record.md#domain) — its members, their revisions, its facts so far, the flow's repository and
+    #   settings. Anything more is declared as an input the driver loads; a step never reads the store.
+    # forge: the flow's repository's RepositoryForge.
+    # effects: each fact is handed over and made durable by the driver before the step continues, so a forge write
+    #   and its record are never more than one crash point apart (record.md#crash-points).
+```
+
+```mermaid
+stateDiagram-v2
+    [*] --> building: formed
+    building --> proving: every member merged; train branch created
+    building --> building: a member left (merged onto base, not onto members ahead)
+    proving --> landed: green, advance_ref accepted
+    proving --> building: advance stale (rebuild on the new tip, up to 3)
+    proving --> split: a failure the base does not share
+    proving --> abandoned: unproven | outpaced | advance-refused | proof-timed-out | member-left
+    building --> abandoned: member-left
+    landed --> [*]
+    split --> [*]
+    abandoned --> [*]
+```
+
+A batch's state is derived, never stored ([record.md](./record.md#data)).
 
 ## Readiness
 
-A member's own visit does what belongs to one chunk. When a visit's `land` pass reaches a repository that batches, the
-repository's policy does only its preparation: `merge-on-checks` finds or opens the change and writes its
-`delivery-pr/<repo>/<n>`, so a reviewer and the board can see it, and both policies gate the head as before. Prepared,
-the repository's state is `Queued` — a `RepoState` this epic adds — and the visit writes `train-ready/<repo>` at the
-submitted revision. Each later pass of the visit reads the flow's verdict on it from the flow's record
-([record.md](./record.md)): `Landed` once a batch carried it in, the ejection's verdict once it was ejected, and
-`Queued` until then. Routing stays the visit's own, through `_route`, exactly as for a submission landed alone.
+```python
+# hub/delivery/trains/readiness.py — engineering:mechanical-joins, engineering:train-order
+def ready(submission, repo) -> bool:
+    return (
+        visit_wrote(f"train-ready/{repo}")  # at the submitted revision, by the visit's land pass
+        and chunk.status == "delivering"
+        and open_on_every_flow_it_holds(submission)
+        and not own_checks_failed(submission)  # failed: answered as merge-on-checks answers, never joins
+        # Strict order: unranked after ranked, ties by slug (landing_sort_key), from the landing terms fixed at the
+        # visit's first turn. A chunk reaching two batching repositories joins their trains one after the other.
+        and every_earlier_repository_landed(chunk, before=repo)
+    )
+```
 
-`combine.py` folds `Queued` as follows. For the chunk atomicity the policies epic keeps — nothing lands until every
-repository the hub lands itself is prepared — `Queued` counts as prepared, as `Ready` does. For the order a project
-lands its repositories in, `Queued` is unlanded, so every repository after it waits for its `Landed`. And for the pass's
-answer, a visit whose every unlanded repository is `Queued`, or waits behind one, answers `awaiting-queue`
-([record.md](./record.md#awaiting-the-queue)), never `pending`, so its node's poll timeout does not turn back a chunk
-whose work is sound while its train proves; `awaiting-merge` takes precedence when a parked change is among them.
+A member's own checks need not have finished for it to join. One whose own checks failed answers as `merge-on-checks`
+answers a failing change: `failure` with findings, or `inherited-failure` when the base shares every failure after the
+one re-run.
 
-A submission is **ready** on a batching flow when its `train-ready` marker is written, its chunk is `delivering`, it is
-open on every flow it holds, its own checks have not failed, and every repository its chunk reaches that comes before
-this one in its project's landing order — the `landing_position` the policies epic fixes in the visit's landing terms at
-its first turn, unranked repositories after ranked ones and ties broken by slug — has landed for its chunk. That order
-is strict, so a chunk reaching two batching repositories joins their trains one after the other, each once the one
-before it has landed, and no repository's readiness waits on another's that waits on it.
+A visit's `land` pass on a batching repository runs only its policy's preparation, then hands the repository to the
+train:
 
-## Forming
+| Policy            | Preparation                                                            | Then                                 |
+| ----------------- | ---------------------------------------------------------------------- | ------------------------------------ |
+| `merge-on-checks` | Find or open the change; write `delivery-pr/<repo>/<n>`; gate the head | `Queued`; write `train-ready/<repo>` |
+| `fast-forward`    | Gate the head                                                          | `Queued`; write `train-ready/<repo>` |
 
-The driver forms a batch on a flow with no batch in progress and no hold ([Holding](#holding)) when its ready
-submissions number `batch_size`, or the oldest of them has been ready `batch_wait_seconds`. A batch takes the oldest
-ready submissions in arrival order, up to `batch_size`. There is at most one batch in progress on a flow.
+Each later pass reads the flow's verdict from the flow's record and routes through the visit's own routing, as for a
+submission landed alone:
 
-A batch of one whose member's revision already holds the base's tip, and is green on its own revision with the shared
-reading, needs no train: the flow lands it with
-`advance_ref(base, expected=<the tip>, revision=<the member's
-revision>)`, whichever of the two policies it is under, so
-the base takes exactly the revision whose checks passed, with no train branch and no second run. A quiet repository
-lands a lone chunk as promptly as it did before batching, and the combination is still what lands. A refused advance
-sends the member to the train like any other.
+| Flow's record says          | `RepoState`                          |
+| --------------------------- | ------------------------------------ |
+| A batch carried it in       | `Landed` at the batch's revision     |
+| Ejected                     | The ejection's verdict               |
+| Neither                     | `Queued`                             |
+| `train-fallback/<repo>` set | The policy's own path, landing alone |
 
-## Building
+```python
+# hub/delivery/actions/landing/combine.py — how Queued folds
+# Chunk atomicity: Queued counts as prepared, as Ready does; nothing lands until every repository the hub
+#   lands itself is prepared.
+# Landing order: Queued is unlanded; every repository after it waits for its Landed.
+# Answer: every unlanded repository Queued, or waiting behind one -> "awaiting-queue" (record.md#awaiting-the-queue),
+#   never "pending"; "awaiting-merge" wins when a parked change is among them.
+```
 
-A train is assembled on a staging branch, `<staging_prefix><flow_id>/<batch_id>`, created at the base's tip with
-`create_ref`; the batch records that tip as its base revision. Each member's revision is merged in, in arrival order,
-with `merge_into`, each merge recorded against its member as it lands on the staging branch. Once every member is in,
-the train branch, `<train_prefix><flow_id>/<batch_id>`, is created at the staging branch's tip with one `create_ref`,
-and the staging branch is deleted. The repository's checks therefore run once per batch, on its finished tree, rather
-than once for every member merged along the way.
+## Flows
 
-A member that will not merge is not, by that alone, in conflict. If it was the first to merge — onto the bare base — it
-conflicts with the base, and it is ejected `conflict`. If it merged onto the base but not onto the members ahead of it,
-it leaves the batch and keeps its place in the line: once the members ahead of it land it will meet them as part of the
-base, and conflict, if it still does, as the first member of a later batch. Every batch's first member therefore either
-merges or is ejected, so the line always moves.
+### Forming and a lone member
 
-## Proving
+```python
+# FlowDriver, on a flow with no batch in progress and no hold — at most one batch in progress per flow
+due = len(ready) >= batch_size or now - oldest(ready).ready_at >= batch_wait_seconds
+batch = ready_in_arrival_order[:batch_size]
 
-The batch's revision is the train branch's tip. The driver reads its checks each pass on the `TRAIN_POLL_SECONDS`
-cadence, thirty seconds, with the same reading every policy uses — at least one check, every one passed or neutral — and
-the same rule for failures the base shares:
+# engineering:one-proof-per-batch — a batch of one needs no train when its member's revision holds the base's tip
+# and is green on its own revision with the shared reading (at least one check, each passed or neutral), under
+# either policy:
+await forge.refs.advance_ref(base, expected=tip, revision=member.revision)
+# Refused (stale or protected): the member goes to the train like any other.
+```
 
-- **Green** — the batch lands ([Landing](#landing)).
-- **Still running** — nothing changes; the next pass reads again.
-- **A failure the base does not share** — the batch is split ([Splitting](#splitting)).
-- **Only failures the base shares** — each is re-run once, as a lone landing's are. Still red, the oldest member is
-  ejected `inherited-failure`, the rest return to the head of the line, and the flow holds ([Holding](#holding)), so one
-  agent repairs the base and no other chunk is ejected for it.
-- **No check at all** after `TRAIN_PROOF_START_SECONDS`, ten minutes — the repository's CI is not running on its train
-  branches. The batch is abandoned with a `train-unproven` event naming the repository and the train, and its members
-  fall back, for this submission, to landing alone through their policy, written as `train-fallback/<repo>` so their
+### Building, proving, landing
+
+```mermaid
+sequenceDiagram
+    participant D as FlowDriver (train turn)
+    participant F as Forge
+    D->>F: create_ref(<staging_prefix><flow_id>/<batch_id>, base tip)
+    Note over D: batch-formed; base_revision = tip
+    loop each member, arrival order
+        D->>F: merge_into(staging, member.revision)
+        alt merged
+            Note over D: member merged_revision recorded
+        else conflict, first member (bare base)
+            Note over D: ejected conflict
+        else conflict onto members ahead only
+            Note over D: leaves the batch, keeps its place in the line
+        end
+    end
+    D->>F: create_ref(<train_prefix><flow_id>/<batch_id>, staging tip)
+    D->>F: delete_ref(staging)
+    Note over D: batch-built; revision = train tip
+    loop every TRAIN_POLL_SECONDS
+        D->>F: checks(revision)
+    end
+    alt green
+        D->>F: advance_ref(base, expected=base_revision, revision)
+        alt accepted
+            Note over D: record_batch_landed (record.md#the-landed-event)
+            D->>F: close_change(n, comment) for each merge-on-checks change still open
+            D->>F: delete_ref(train)
+        else ForgeRejected("stale")
+            Note over D: rebuild on the new tip, same members; 4th time: fallback, train-outpaced
+        else ForgeRejected("protected")
+            Note over D: abandoned advance-refused; train-advance-refused (critical);<br/>probe records advance_refused_at; fallback
+        end
+    else a failure the base does not share
+        Note over D: split (below)
+    else only failures the base shares
+        D->>F: rerun_check(id) once each
+        Note over D: still red: eject oldest inherited-failure,<br/>rest to head of line, hold
+    else no check after TRAIN_PROOF_START_SECONDS
+        Note over D: abandoned unproven; train-unproven; fallback
+    else unfinished at TRAIN_PROOF_TIMEOUT
+        D->>F: rerun_check(id) for each unfinished; bound restarts
+        Note over D: still unfinished: abandoned proof-timed-out;<br/>train-proof-timed-out naming the checks; members to head of line
+    end
+```
+
+- A conflict onto members ahead only is not a conflict: once they land the member meets them as base, and conflicts, if
+  it still does, as the first member of a later batch. Every batch's first member merges or is ejected, so the line
+  always moves.
+- Checks run once per batch, on the train branch's finished tree; none run on the staging branch.
+- Fallback: each member lands alone through its policy for this submission; `train-fallback/<repo>` is written so its
   next passes take the policy's own path.
-- **Still not finished** after `TRAIN_PROOF_TIMEOUT`, three hours from the train branch's creation, the hub's default
-  poll timeout — a check stuck queued for a runner that never comes, or cancelled by a concurrency group and never run
-  again. Every unfinished check is re-run once with `rerun_check` and the bound starts again; still unfinished, the
-  batch is abandoned with a `train-proof-timed-out` event naming the checks, and its members return to the head of the
-  line to be formed afresh. Both bounds read the clock the driver is given, so tests set them.
+- The base after a landing holds exactly the proven tree; nothing assembled after the proof reaches it.
+- Each `merge-on-checks` member's change is read back: GitHub marks it merged once its head is reachable from the base;
+  one still open is closed with `close_change`, its comment naming the revision that carried it in.
+- A rebuilt, split, or abandoned batch deletes its staging and train branches as it leaves them; a rebuild recreates
+  both at the new tip. No branch outlives its batch.
+- `train-unproven` names the repository and the train; `train-advance-refused` names the repository.
 
-## Holding
+### Splitting
 
-A flow whose last batch ejected a member `inherited-failure` holds: it forms no batch, and lands no lone member, until
-the base's checks are green again. Each `TRAIN_POLL_SECONDS` the driver reads the checks on the base's current tip with
-the shared reading; once they pass — on the tip that failed, re-run by someone, or on a newer one that repaired it — the
-hold ends and the line moves. The hold is a `train-held` fact and event when it begins and `train-released` when it
-ends, and the flow's lane says why it is still. The members waiting meanwhile answer `awaiting-queue`, so the hold costs
-them time, not bounces.
+```python
+# hub/delivery/trains/split.py — engineering:split-bound, decision:advanced-delivery/trains/split-by-arrival-order
+# Only a prefix ever lands. Each halving costs at most two proofs; a batch of 8 with one bad member lands 7 in <= 7.
+async def on_failure(batch):
+    if len(batch.members) == 1:
+        rerun_failing_checks_once()  # a flaky check costs no place
+        if still_red:
+            eject(member, "failure", findings=failing_checks_on(batch.revision))  # also delivery-findings
+            return_to_head_of_line(other_members_of(batch.split_from))
+        return
+    first, second = halves_by_arrival(batch)
+    half = form(first, base=batch.base_revision, split_from=batch.batch_id)  # batch-split fact, then built and proven
+    # half passes: it lands; `second` returns to the head of the line and the next batch proves it on the new base.
+    # half fails: on_failure(half).
+```
 
-## Landing
+### Holding
 
-A proven batch lands with one write: `advance_ref(base, expected=<the batch's base revision>, revision=<its
-revision>)`.
-The base then holds exactly the tree that was proven, and nothing assembled after the proof reaches it.
+```python
+# engineering:train-bounds — a flow holds after its last batch ejected a member inherited-failure.
+while held:  # forms no batch and lands no lone member
+    await sleep_until(TRAIN_POLL_SECONDS)
+    if green(await forge.checks.checks(base)):  # base's current tip: the tip that failed re-run, or a newer repair
+        release()  # train-released fact and event
+# Held members answer awaiting-queue: the hold costs them time, not bounces.
+```
 
-- **The base moved** — the advance is refused as stale. The batch is rebuilt on the new tip with the same members and
-  proven again; after three rebuilds without landing, its members fall back to landing alone as above, with a
-  `train-outpaced` event, since something other than the flow keeps moving the branch.
-- **The base is protected** — the advance is refused as protected, which the probe could not see. The batch is abandoned
-  with a `train-advance-refused` event, critical, naming the repository; the probe records `advance_refused_at`, which
-  leaves `refs.advance` out ([capabilities.md](./capabilities.md)), and its members fall back to landing alone.
+`train-held` is written as a fact and an event when the hold begins; the lane says why the flow is still.
 
-Once the advance lands, the flow records the landing itself, keyed by the flow's repository and written in one
-transaction: for each member, its `merged/<repo>` marker at the batch's revision on its chunk, its
-`delivery_repo_landed` row, and the flow's `landed` fact, with the batch's one `flow-landed` event
-([record.md](./record.md#the-landed-event)). It is the flow's write, not a visit's, so it does not pass through a
-visit's marker path or its fence: the branch holds the work whatever has become of the visit since, and the record says
-so. A `merge-on-checks` member's change is read back: GitHub marks a change merged once its head is reachable from its
-base; one still open is closed with `close_change`, its comment naming the revision that carried it in. The train branch
-is deleted. A hub that dies between the advance and the record finds, on the batch's next pass, a base that already
-holds the batch's revision, and writes what is missing; that the base holds the revision is the proof the batch landed,
-whatever else the record says.
+### Ejecting and leaving
 
-A rebuilt, split, or abandoned batch deletes its staging and train branches as it leaves them, and a rebuild recreates
-both at the new tip, so no branch outlives the batch that made it.
+An ejection is an `ejected` fact on the flow naming the batch, the outcome (`conflict`, `failure`, `inherited-failure`),
+and the findings, also written as the member's `delivery-findings`. The member's visit answers that outcome on its next
+pass and routes along the edge its graph authored, as if it had landed alone and failed; its submission closes on every
+flow it held.
 
-## Splitting
+| Event on a member                              | Batch still building | Batch proving                                  | After the batch's advance          |
+| ---------------------------------------------- | -------------------- | ---------------------------------------------- | ---------------------------------- |
+| Ejected from another repository's batch        | Leaves it            | Abandoned `member-left`, `left-batch`; rebuilt | The landing stands and is recorded |
+| Withdrawn by a lever (stop, restart, complete) | Leaves it            | Abandoned `member-left`; rebuilt without it    | Landed; recorded as any member     |
 
-A batch that fails is split by arrival order. Its first half is formed as a new batch on the same base — recording the
-batch it came from — built, and proven:
+A withdrawal takes its outcome from `withdrawal_for`, deferred to the end of any turn still open on it, as the flows
+epic withdraws any submission. A chunk turned back to an agent, or stopped by a person, never has that work landed by a
+proof that finished after.
 
-- **The first half passes** — it lands, as any batch does. The second half returns to the head of the line, and the next
-  batch proves it on the new base, which now holds the first half.
-- **The first half fails** — it is split again.
-- **A batch of one fails** — its failing checks are re-run once, so a flaky check does not cost a chunk its place. Still
-  red, its member is the one responsible. It is ejected `failure` with `delivery-findings` naming the failing checks on
-  the revision that proved it alone, and every other member of the batch it came from returns to the head of the line.
+## Open questions
 
-Only a prefix ever lands (`decision:advanced-delivery/trains/split-by-arrival-order`). Each halving costs up to two
-proofs — the half that is proven, then the other half proven afresh — so a batch of eight with one bad member lands the
-other seven in at most seven proofs.
-
-## Ejecting
-
-An ejection is the flow's verdict on one member: an `ejected` fact on the flow naming the batch, the outcome —
-`conflict`, `failure`, or `inherited-failure` — and the findings, which are also written as the member's
-`delivery-findings` marker. The member's visit answers that outcome on its next pass and routes along the edge its graph
-authored for it, exactly as if it had landed alone and failed; its submission closes on every flow it held. The batch it
-left moves on without it, and the flow's record says which chunk was ejected, from which batch, and why.
-
-A chunk that reaches several batching repositories may sit in a batch on one while another ejects it. Its ejection
-closes its submission everywhere, so every other batch in progress that carries it is abandoned with a `left-batch` fact
-naming the ejection and rebuilt without it, unless that batch's advance has already been made — then its landing stands
-and is recorded. A chunk turned back to an agent never has the same work landed behind the agent's back.
-
-A lever on a member — stop, restart, complete — withdraws it as the flows epic withdraws any submission, its outcome
-from `withdrawal_for` and deferred to the end of any turn still open on it, and the same rule holds: a member withdrawn
-from a batch still building simply leaves it; one withdrawn while its batch proves abandons that batch, which is rebuilt
-without it; and one withdrawn after its batch's advance was made has landed, which the flow records as it records any
-member. Work a person stopped is never landed by a proof that finished after the stop.
+- The effect types a train step hands to `IEffectSink` for its facts are not named; today's `Effect` union is `Marker`,
+  `LandingRecord`, `RecordReviewFindings`, and `RecordGardenDelivery`. Engineering.
+- What `step` answers is not stated; [record.md](./record.md#the-train-turn) gives only the turn outcomes `pending` and
+  `interrupted`. Engineering.
+- Whether `Queued` carries any field. Engineering.
+- How long a submission has been ready (`batch_wait_seconds` is measured from it) is read from the `train-ready`
+  marker's `produced_at` or elsewhere. Engineering.
