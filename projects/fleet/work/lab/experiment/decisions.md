@@ -2,9 +2,9 @@
 
 ## Trial work items (decision:lab/experiment/trial-work-items)
 
-**Open.** What a chunk that wraps nothing is. A chunk today wraps one or more work items, and a trial deliberately wraps
-none. Whether a trial is a chunk with an empty work list, or wraps a hub-authored item the experiment owns that never
-closes, decides how much of the chunk's own rules bend for the lab. It blocks `product:trial-chunks`.
+**Open.** Whether a trial, which deliberately wraps no work item where every chunk today wraps one or more, is a chunk
+with an empty work list or wraps a hub-authored item the experiment owns that never closes, which decides how much of
+the chunk's own rules bend for the lab; it blocks `product:trial-chunks`.
 
 ## One queue for trials (decision:lab/experiment/one-queue)
 

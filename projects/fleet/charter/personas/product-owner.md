@@ -1,4 +1,4 @@
-# `persona:product-owner` — the product owner
+# The product owner (persona:product-owner)
 
 Owns whether what was built is right, and answers the fleet's product questions from their phone.
 

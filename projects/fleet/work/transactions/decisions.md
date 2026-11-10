@@ -2,18 +2,15 @@
 
 ## Tenant row as a mutex (decision:transactions/tenant-row-mutex)
 
-**Open.** Whether the tenant row stays a mutex. Every write in a tenant opens by locking that tenant's row and holds it
-to commit, so on Postgres every writer in one tenant queues behind the one before it and the chunk and keyed locks
-beneath never contend. Keeping it is simple and safe and makes those finer locks a second line of defence; relaxing it
-lets writers on different chunks run side by side, but costs an existence read on every write to keep refusing a closed
-tenant and makes every finer lock load-bearing for the first time. This epic proceeds with the row kept as a mutex, and
-the call is taken when a deployment on Postgres needs the concurrency.
+**Open.** Whether the tenant row stays the mutex every write in a tenant locks until commit, or is relaxed so writers on
+different chunks run side by side; the epic proceeds with it kept, and the call is taken when a deployment on Postgres
+needs the concurrency. The trade-off is in [tenant row mutex](../../research/transactions/tenant-row-mutex.md).
 
 ## Cycle check lock scope (decision:transactions/cycle-check-lock)
 
-**Open.** Where the cycle check's store lock lives. One keyed lock per tenant serializes every dependency change in that
-tenant, as the in-process lock does today, and needs no revision; a narrower lock needs a way to name the part of the
-graph a change can close a cycle through. It is decided when the exclusions move, and it blocks
+**Open.** Whether the cycle check's store lock is one keyed lock per tenant, which serializes every dependency change in
+the tenant as the in-process lock does today and needs no revision, or a narrower lock, which needs a way to name the
+part of the graph a change can close a cycle through; it is decided when the exclusions move and blocks
 `engineering:store-held-exclusions`.
 
 ## Store judgments move first (decision:transactions/judgments-before-seam)

@@ -3,25 +3,40 @@ name: hosted-runners
 depends-on:
   - shared-sealing
   - host-settings
+code:
+  - blizzard/src/blizzard/runner/cli/runtime.py::_RunnerThreads
+  - blizzard/src/blizzard/runner/composition.py::add_runner
+  - blizzard/src/blizzard/runner/composition.py::RunnerProcess.close_runner
+  - blizzard/src/blizzard/runner/composition.py::held_hub_token
+  - blizzard/src/blizzard/runner/hub/held_token.py::HubTokenHolder
+  - blizzard/src/blizzard/runner/hub/identity_service.py::RetiredRunnerWatch
+  - blizzard/src/blizzard/runner/host_config.py::resolve_token
+  - blizzard/src/blizzard/runner/cli/runners.py::add
+  - blizzard/src/blizzard/runner/cli/runners.py::retire
+  - blizzard/src/blizzard/runner/cli/runners.py::ingest
+  - blizzard/src/blizzard/runner/composition.py::DotenvTokenFiles
 ---
 
 # Runners on a running host
 
 Makes the host's runners records added and retired through its API and reconciled by the host tick, with their hub
-tokens sealed in the store by id ([host-records.md](../spec/host-records.md) §Runners,
-[runner-store.md](../spec/runner-store.md) §Sealed tokens). Delivers `product:runners-come-and-go` and
-`product:runner-id-fixed`. Waits on `decision:config/runtime/walk-back-tokens`.
+tokens sealed in the store by id ([host-records.md](../spec/host-records.md) §Runners, §Adding a runner, §Retiring a
+runner; [runner-store.md](../spec/runner-store.md) §Sealed tokens, §The reader, §Seeding steps 4 and 6). Delivers
+`product:runners-come-and-go` and `product:runner-id-fixed`; bound by `engineering:deprecations-outlive-epic`. Waits on
+`decision:config/runtime/walk-back-tokens`.
 
 ## Change
 
-- The host-scoped hosted-runner tables and their seed.
-- The sealed token table, the host's key and its key directory, and the seed's import of every runner's token.
-- The add and retire routes; the host tick's reconcile; a runner's drain alone; `RetiredRunnerWatch` writing its fact.
-- The app's settings read from the host rather than its first runner.
-- `runner add` and `retire` reach a running host and write the store on a stopped one.
-- `.env`'s runner tokens, `[hub_tokens]`, and `runners/<name>/` deprecated (`engineering:deprecations-outlive-epic`).
-- Ingest writes the destination's hosted row and re-seals the moving runner's token.
-- The operator pages on adding runners, on the host's runtime directory, and on its credentials change to match.
+- `hosted_runners` and `hosted_runner_facts`, host-scoped, and their seed.
+- `runner_hub_tokens`, the host's key and key directory, and the seed's import of every runner's token.
+- The add and retire routes; the host tick's reconcile of the set of runners; one runner's drain alone;
+  `RetiredRunnerWatch` writing the `retired` fact.
+- The app's federation, role policy, and public origins read from the host's `boot` keys, not its first runner.
+- `runner add` and `retire` reach a running host and write the store on a stopped one; neither edits `.env` or the file.
+- `.env`'s runner tokens, `[hub_tokens]`, and `runners/<name>/` deprecated and named in the upgrade note.
+- Ingest writes the destination's hosted row and `added` fact and re-seals the moving runner's token.
+- The operator pages on adding runners, the host's runtime directory, and its credentials change to match
+  (`engineering:contracts-follow-code`).
 - Context: `bzh:crash-exemptions-runner` records the add's window; `runner-scoping.md` and `crash-correctness/runner.md`
   say a runner's binding is made from `hosted_runners` (`engineering:context-rules`).
 

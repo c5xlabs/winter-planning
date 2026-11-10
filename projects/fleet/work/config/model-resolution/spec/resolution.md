@@ -1,26 +1,11 @@
-# Resolution tracing contract
+# Resolution tracing
 
-## One resolution, traced
+## Domain
 
-A session's model and effort are decided in three places today, each returning a bare value:
+### Provenance vocabulary
 
-1. **The hub merge.** `EffectiveSession.of(chunk, graph, node)` combines a declared session with the chunk's defaults,
-   field by field, and stamps the result onto the node envelope as `session_model`, `session_effort`, and
-   `session_harnesses`. The runner never sees which layer supplied a field.
-2. **Harness selection.** `HarnessSelector.select(node)` walks the acceptable harness set in order and returns the first
-   member that can serve the session, with the members it skipped.
-3. **Adapter resolution.** Each binding's `resolve_model`, `resolve_model_strict`, and `resolve_effort`, over the shared
-   left-to-right skeleton in `harness_shared`, turn authored strings into what reaches the harness process.
-
-The report is built from these same three phases, never from a copy of their rules. Each phase gains a traced form that
-returns the value together with the layer that supplied it. The existing entry points become projections of the traced
-form, so the spawn path and the report cannot disagree: `Spawner` keeps calling `SessionResolver.session_stamps`, which
-keeps its signature and takes `.value` from the traced result. The agreement is `engineering:traced-resolution`.
-
-## Provenance vocabulary
-
-Every resolved cell carries one source from a closed set. The JSON uses the kebab-case term; the terminal renders it as
-words.
+Every resolved cell carries one source from this closed set. The JSON carries the kebab-case term; the terminal renders
+it as words.
 
 | Source             | Applies to            | Meaning                                                                                            |
 | ------------------ | --------------------- | -------------------------------------------------------------------------------------------------- |
@@ -35,78 +20,175 @@ words.
 | `as-authored`      | effort                | A well-known effort passed through unchanged                                                       |
 | `dropped`          | effort                | An effort the binding does not recognize; nothing reaches the harness                              |
 
-## The hub merge
+```python
+# engineering:traced-resolution — each phase's traced form returns the value with the layer that supplied it.
+# The existing entry points are projections of these and keep their signatures.
+FieldSource = Literal["graph", "chunk", "unset"]
+ModelSource = Literal["runner-alias", "adapter-default", "native", "adapter-fallback", "unmapped"]
+EffortSource = Literal["runner-alias", "as-authored", "dropped", "unset"]
 
-`EffectiveSession` records a source for `model`, `effort`, and `harnesses` beside each value. The rule is the one
-already pinned: a declaration's `model` or `harnesses` list outranks the chunk default whenever it is nonempty, as a
-whole list and never merged, and its `effort` outranks the chunk default whenever it is not null. A node with no
-declared session — a bare `fresh`, `resume`, or `resume:<node>` lineage — takes all three from the chunk.
 
-The merge is factored so that a declared session can be resolved without a node: `EffectiveSession.of` delegates to a
-declaration-level merge over `(declaration | None, chunk defaults)`, and the report calls that same merge, with empty
-defaults when no chunk is named. The node envelope does not change shape; sources travel only on the read below.
+@dataclass(frozen=True)
+class Traced[T]:
+    value: T
+    source: FieldSource
+```
 
-## The hub read
+### The hub merge
 
-For `engineering:hub-merge-read`, the runner asks the hub for merged sessions on two new routes under `/api/fleet`,
-behind `require_runner_principal` like the rest of the fleet router. A runner token is enough; no lease is needed.
+`blizzard.hub.domain.execution.envelope`:
 
-- `GET /api/fleet/sessions?graph=<name>` answers for the effective graph of each name — the newest graph that is not
-  retired — or only for the named one. Chunk defaults are empty, so every field's source is `graph` or `unset`.
-- `GET /api/fleet/chunks/{chunk_id}/sessions` answers for the chunk's pinned graph merged with that chunk's defaults.
-  When the pinned graph has a runner-executed node on a bare lineage, the response adds one entry with a null session
-  name for it.
+```python
+@dataclass(frozen=True)
+class EffectiveSession:
+    name: str | None
+    model: list[str]
+    effort: str | None
+    rotate: RotatePolicy | None
+    compaction_window: str | None
+    harnesses: list[str]
+    sources: SessionSources  # new: one FieldSource each for model, effort, harnesses
 
-Each response entry carries the graph's id and name, the session name in authored order, and for each of the three
-fields the declaration's value, the chunk's value, the effective value, and its source. The wire model lives in
-`blizzard.wire` beside `GraphSessionView`. An older hub answers `404` on these routes; the runner treats that the same
-way as an unreachable hub (see [command.md](./command.md)) and says which it was.
+    @classmethod
+    def of(cls, chunk: Chunk, graph: Graph, node: Node) -> EffectiveSession:
+        declaration = graph.session_by_name(node.session_source) if node.session_source else None
+        return cls.merge(declaration, ChunkDefaults.of(chunk))  # signature and result unchanged
 
-## Adapter resolution
+    @classmethod
+    def merge(cls, declaration: SessionDecl | None, defaults: ChunkDefaults) -> EffectiveSession:
+        # The declaration-level merge the report calls; `defaults` is empty when no chunk is named.
+        # model, harnesses: a nonempty declared list wins whole, never merged    -> "graph"
+        #                   else a nonempty chunk default                         -> "chunk", else "unset"
+        # effort:           a non-null declared value wins                        -> "graph"
+        #                   else a non-null chunk default                         -> "chunk", else "unset"
+        # declaration None (a bare fresh, resume, or resume:<node> lineage): all three from the chunk.
+        ...
+```
 
-Model resolution is traced for each preference entry, left to right, for one harness:
+The node envelope keeps its shape (`session_model`, `session_effort`, `session_harnesses`). Sources travel only on the
+[hub read](./hub-sessions.md).
 
-- **A tier** (`blizzard:`-prefixed). The runner's alias table for this harness is consulted first — `[models.aliases]`
-  for Claude Code, `[opencode.models.aliases]` for OpenCode — and gives `runner-alias`. Then the binding's built-in tier
-  table gives `adapter-default`. Claude Code's table maps `blizzard:frontier` to `fable`, `blizzard:advanced` to `opus`,
-  and `blizzard:basic` to `sonnet`; OpenCode's table is empty. Otherwise the entry is `unmapped`, and the next entry is
-  tried.
-- **A harness-native name** (unprefixed). It passes through as the binding already passes it: `native`, or
-  `runner-alias` where the binding renames it through its alias table. OpenCode accepts only a name that parses as a
-  `provider/model` reference; any other name is unresolved for OpenCode.
-- **Nothing resolved.** The strict path returns no model, which is what makes a harness unable to serve the session. The
-  non-strict path falls back to the binding's default: Claude Code's `claude-opus-5`, or, for OpenCode, no `--model` at
-  all, leaving OpenCode's own configured model to decide. Either way the source is `adapter-fallback`.
+### Adapter resolution
 
-The trace keeps the winning entry (`via`) and each earlier entry with the reason it did not resolve.
+Each binding (`ClaudeCodeAdapter`, `OpenCodeAdapter`, `OpenCodeTwoAdapter`) gains a traced form over the shared skeleton
+in `blizzard.runner.harness.harness_shared`:
 
-Effort is traced per harness. The runner's alias table — `[effort.aliases]` for Claude Code, `[opencode.effort.aliases]`
-for OpenCode — gives `runner-alias`. Otherwise one of `low`, `medium`, `high`, or `max` passes through `as-authored`.
-Any other value is `dropped`: the binding logs it once and passes nothing, so the harness runs at its own default. A
-value that reaches the harness is rendered as the argument it becomes: `--effort` for Claude Code, and `--variant` for
-OpenCode.
+```python
+@dataclass(frozen=True)
+class ModelTrace:
+    value: str | None  # None: strict and nothing resolved, or OpenCode's fallback (no --model)
+    source: ModelSource
+    via: str | None  # the winning preference entry
+    tried: tuple[tuple[str, str], ...]  # each earlier entry, with the reason it did not resolve
 
-## Harness selection
 
-The session's effective harness set is walked exactly as `HarnessSelector.select` walks it, under the same strict gate:
-selection is strict when the model preference is nonempty and either the set has more than one member or the preference
-names a tier. The per-member check is extracted from `select` so the report can apply it to members after the winner
-too. Each member of the set receives exactly one outcome:
+@dataclass(frozen=True)
+class EffortTrace:
+    authored: str | None
+    runner_alias: str | None
+    value: str | None  # what reaches the harness
+    flag: str | None  # "--effort" | "--variant"; None when nothing reaches the harness
+    source: EffortSource
 
-| Outcome       | Meaning                                                                                                       |
-| ------------- | ------------------------------------------------------------------------------------------------------------- |
-| `selected`    | The first member that passes; the session would be minted here                                                |
-| `passed-over` | A later member that would also pass, shown with what it would run                                             |
-| `skipped`     | A member that fails, with the selector's reason: `unknown`, `unavailable`, `unhealthy`, or `no-authored-tier` |
 
-When the effective set is empty, the runner's default harness is the only candidate, and the pool records that the
-default, not an acceptable set, admitted it. When every member is skipped, there is no selection: the runner would
-escalate without spawning, and hub eligibility would not have offered it the chunk.
+def trace_model(
+    resolve_one: Callable[[str], ModelTrace | None], default: str | None, preferences: Sequence[str], *, strict: bool
+) -> ModelTrace: ...
 
-## Pools already running
+# Projections, unchanged signatures:
+#   resolve_model_strict(prefs) == trace_model(..., strict=True).value
+#   resolve_model(prefs)        == trace_model(..., strict=False).value
+#   resolve_effort(v)           == trace_effort(v).value
+```
 
-A resume never re-resolves. It replays the `resolved_model` and `resolved_effort` recorded on the lease that minted the
-session, so an alias edited after a pool was minted changes the next fresh session and leaves the current one alone.
-When a chunk is named, the report reads this runner's own store for the pool head of each session in that chunk and
-shows its recorded harness, model, and effort beside the fresh-mint answer, flagging where they differ. The read goes
-through the existing lease-session repository; the report opens no write path to the store.
+Model resolution walks the preference entries left to right, for one harness:
+
+| Entry                       | Checked, in order                                                                                | Source             |
+| --------------------------- | ------------------------------------------------------------------------------------------------ | ------------------ |
+| `blizzard:` tier            | The runner's model alias table for this harness                                                  | `runner-alias`     |
+|                             | The binding's built-in tier table                                                                | `adapter-default`  |
+|                             | Neither: the next entry is tried                                                                 | `unmapped`         |
+| Unprefixed                  | The runner's model alias table for this harness                                                  | `runner-alias`     |
+|                             | Matches the binding's supported names; for OpenCode, also parses as a `provider/model` reference | `native`           |
+|                             | Neither: unresolved, and the next entry is tried                                                 | —                  |
+| Nothing resolved, strict    | No model; the harness cannot serve the session                                                   | —                  |
+| Nothing resolved, nonstrict | The binding's default                                                                            | `adapter-fallback` |
+
+Effort is traced per harness. A value that reaches the harness is rendered as the argument it becomes.
+
+| Authored                             | Result                                                                                                | Source         |
+| ------------------------------------ | ----------------------------------------------------------------------------------------------------- | -------------- |
+| `null`                               | Nothing passed                                                                                        | `unset`        |
+| A key of the runner's effort aliases | The alias value                                                                                       | `runner-alias` |
+| `low`, `medium`, `high`, `max`       | Passed unchanged                                                                                      | `as-authored`  |
+| Anything else                        | Nothing passed; the harness runs at its own default. Claude Code and OpenCode log it once per adapter | `dropped`      |
+
+Per-harness tables:
+
+| Harness       | Model aliases               | Effort aliases              | Built-in tiers                                                                           | Default when nothing resolves                         | Effort flag |
+| ------------- | --------------------------- | --------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------- | ----------- |
+| `claude_code` | `[models.aliases]`          | `[effort.aliases]`          | `blizzard:frontier` → `fable`, `blizzard:advanced` → `opus`, `blizzard:basic` → `sonnet` | `claude-opus-5`                                       | `--effort`  |
+| `opencode`    | `[opencode.models.aliases]` | `[opencode.effort.aliases]` | none                                                                                     | No `--model`; OpenCode's own configured model decides | `--variant` |
+
+### Harness selection
+
+`blizzard.runner.lifecycle.session`:
+
+```python
+Outcome = Literal["selected", "passed-over", "skipped"]
+SkipReason = Literal["unknown", "unavailable", "unhealthy", "no-authored-tier"]  # the selector's own reasons
+
+
+@dataclass(frozen=True)
+class CandidateTrace:
+    harness_id: str
+    outcome: Outcome  # selected: the first member that passes; passed-over: a later member that would also pass
+    reason: SkipReason | None  # set only when skipped
+    model: ModelTrace | None
+    effort: EffortTrace | None
+
+
+@dataclass(frozen=True)
+class SelectionTrace:
+    basis: Literal["acceptable-set", "runner-default"]  # runner-default: the effective set was empty
+    candidates: tuple[CandidateTrace, ...]  # every set member, in set order; exactly one outcome each
+    selected: str | None  # None: every member skipped; the runner would escalate without spawning
+
+
+class HarnessSelector:
+    def select(self, node: EnvelopeNode) -> HarnessSelection: ...  # unchanged; built on the member check below
+
+    def trace(self, model: list[str], harnesses: list[str]) -> SelectionTrace:
+        # The per-member check is extracted from `select` and applied past the winner too.
+        # Strict gate is `selection_is_strict`: model preference nonempty and (more than one member, or a
+        # `blizzard:` tier in the preference). An empty set makes the runner's default harness the only candidate.
+        ...
+```
+
+`Spawner` keeps calling `SessionResolver.session_stamps(node, resume, harness_id=...)`, which takes `.value` from the
+traced results.
+
+### Pools already running
+
+```python
+@dataclass(frozen=True)
+class RecordedPool:
+    harness: str
+    model: str | None  # PoolHead.resolved_model; None means unknown
+    effort: str | None  # PoolHead.resolved_effort
+    differs: bool  # the recorded harness, model, or effort differs from the next fresh mint
+
+
+# Read only through IReadLeaseSessionRepository.pool_head(chunk_id, session_name), and only when a chunk is named.
+# The report opens no write path to the runner store.
+```
+
+## Open questions
+
+- The names `Traced`, `SessionSources`, `ChunkDefaults`, `ModelTrace`, `EffortTrace`, `CandidateTrace`,
+  `SelectionTrace`, `RecordedPool`, and `trace_model` are provisional; only their fields are settled. Engineering
+  answers.
+- The vocabulary of the reasons a `ModelTrace.tried` entry did not resolve is not settled. Engineering answers.
+- `SessionResolver.pool_head_breach` rotates a named pool's head on `model-drift` when the node now resolves to a
+  different model than the head recorded. That contradicts "a live pool keeps the model it was minted with on every
+  resume", which the `recorded-differs` finding states. Product and the runner's owners answer which holds.

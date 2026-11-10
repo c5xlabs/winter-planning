@@ -30,6 +30,6 @@ lets them act on the answer.
 Eight proposals answer a shared brief, each with a concept, working desktop and mobile mocks of the board and the fleet,
 and rendered screenshots. Three take the modern frontier, two deliberately work outside current convention, and three
 are classic SaaS: a control to measure the others against, and two variations on it drawn from other families of SaaS
-product. The brief, each concept, and a comparison of the eight sit in
-[`research/redesign-proposals/`](./research/redesign-proposals/comparison.md), the mocks in [`mockups/`](./mockups/),
-and the first design as captured from the live hub in [`assets/baseline/`](./assets/baseline/).
+product. The brief, each concept, its mocks, and a comparison of the eight sit in
+[`research/redesign-proposals/`](./research/redesign-proposals/comparison.md), and the first design as captured from the
+live hub in [`assets/baseline/`](./assets/baseline/).

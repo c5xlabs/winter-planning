@@ -300,7 +300,7 @@ when their chunk reports, then stay still. Host and runner heartbeats count up. 
 
 ## Files
 
-The mocks and their renders are in [`mockups/console/`](../../mockups/console/).
+The mocks and their renders are in [`console/`](./console/).
 
 | File                               | What                                                           |
 | ---------------------------------- | -------------------------------------------------------------- |

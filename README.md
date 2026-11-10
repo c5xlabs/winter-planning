@@ -7,23 +7,25 @@ product's own repositories.
 
 ## Contents
 
-The repository is organized by product: one folder per project under `projects/`, and inside each, one folder per epic.
+The repository is organized by project, then by initiative and epic: one folder per project under `projects/`, and
+inside each, one folder per initiative or standalone epic, with an initiative's epics inside its folder.
 
-| Path                                                  | What it holds                                                                             |
-| ----------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| `charter/`                                            | The suite's mission and the personas more than one product serves                         |
-| `projects/platform/`                                  | The platform: the `winter` launcher, distribution, and the extension contract             |
-| `projects/workspace/`                                 | Winter Workspace: repositories, feature environments, and services for agents             |
-| `projects/fleet/`                                     | Winter Fleet: a hub and its runners, running coding agents unattended                     |
-| `projects/<project>/charter/`                         | The project's mission, and the personas only that project serves                          |
-| `projects/<project>/milestones.md`                    | The project's unreached milestones, in the order they are meant to be reached             |
-| `projects/<project>/delivered.md`                     | The project's reached milestones, newest first                                            |
-| `projects/<project>/work/`                            | Live epics and initiatives, one folder each                                               |
-| `projects/<project>/delivered/`                       | Delivered epics, frozen as they shipped                                                   |
-| `projects/<project>/research/`                        | Findings that stop short of a choice, one folder per subject                              |
-| `projects/<project>/work/<initiative>/initiative.md`  | An initiative's intent                                                                    |
-| `projects/<project>/work/<initiative>/<epic>/epic.md` | An epic's intent: its problem and outcome                                                 |
-| `projects/<project>/work/<initiative>/<epic>/…`       | `requirements.md`, `mockups/`, `engineering.md`, `assumptions.md`, `spec/`, and `slices/` |
+| Path                                                  | What it holds                                                                                                          |
+| ----------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `charter/`                                            | The suite's mission and the personas more than one product serves                                                      |
+| `projects/platform/`                                  | The platform: the `winter` launcher, distribution, and the extension contract                                          |
+| `projects/workspace/`                                 | Winter Workspace: repositories, feature environments, and services for agents                                          |
+| `projects/fleet/`                                     | Winter Fleet: a hub and its runners, running coding agents unattended                                                  |
+| `projects/<project>/charter/`                         | The project's mission, and the personas only that project serves                                                       |
+| `projects/<project>/milestones.md`                    | The project's unreached milestones, in the order they are meant to be reached, then the ideas no milestone needs yet   |
+| `projects/<project>/delivered.md`                     | The project's reached milestones, newest first                                                                         |
+| `projects/<project>/decisions.md`                     | Decisions that span the project's epics or that no epic owns                                                           |
+| `projects/<project>/work/`                            | Live epics and initiatives, one folder each                                                                            |
+| `projects/<project>/delivered/`                       | Delivered epics, frozen as they shipped                                                                                |
+| `projects/<project>/research/`                        | Findings that stop short of a choice, one folder per subject                                                           |
+| `projects/<project>/work/<initiative>/initiative.md`  | An initiative's intent                                                                                                 |
+| `projects/<project>/work/<initiative>/<epic>/epic.md` | An epic's intent: its problem and outcome                                                                              |
+| `projects/<project>/work/<initiative>/<epic>/…`       | `requirements.md`, `mockups/`, `engineering.md`, `assumptions.md`, `spec.md` or `spec/`, `slices/`, and `decisions.md` |
 
 A standalone epic sits directly under `work/` without an initiative folder. A delivered epic moves to the same path
 under its project's `delivered/` and is not edited afterwards. Epics migrated from earlier planning may still carry part
@@ -57,6 +59,7 @@ external: github:c5xlabs/winter-planning#12
 ---
 initiative: adapters
 refinement: refined
+external: github:c5xlabs/winter-planning#3
 epics:
   - claude-code
   - codex
@@ -70,14 +73,14 @@ epic: adapters/codex
 ---
 ```
 
-| Key          | Meaning                                          | Values                                                                                             |
-| ------------ | ------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
-| `epic`       | The epic's id, without `epic:` or the project    | `<epic>` or `<initiative>/<epic>`                                                                  |
-| `initiative` | The initiative's id                              | Its slug, matching its folder                                                                      |
-| `refinement` | How far the intent has been worked out           | `outline` (a sketch), `refined` (ready to derive from), `final` (settled; only edited by decision) |
-| `status`     | Where the epic is                                | `planned` (not started), `in-progress` (work has started), `delivered` (it reached its users)      |
-| `external`   | The item standing for the epic in another system | One `<system>:<id>`                                                                                |
-| `epics`      | The epics an initiative holds                    | Their slugs                                                                                        |
+| Key          | Meaning                                          | Values                                                                                                       |
+| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| `epic`       | The epic's id, without `epic:` or the project    | `<epic>` or `<initiative>/<epic>`                                                                            |
+| `initiative` | The initiative's id                              | Its slug, matching its folder                                                                                |
+| `refinement` | How far the intent has been worked out           | `outline` (a sketch), `refined` (ready to derive from), `final` (the product owner has declared it complete) |
+| `status`     | Where the epic is                                | `planned` (not started), `in-progress` (work has started), `delivered` (it reached its users)                |
+| `external`   | The item standing for the epic in another system | One `<system>:<id>`                                                                                          |
+| `epics`      | The epics an initiative holds                    | Their slugs                                                                                                  |
 
 Files are Markdown, formatted to a 120-column width.
 
@@ -105,7 +108,6 @@ code:                         # where the behaviour it changes lives today
 | Prefix         | Names                                       | Defined in                                                                      |
 | -------------- | ------------------------------------------- | ------------------------------------------------------------------------------- |
 | `persona:`     | A person the suite serves                   | A card in `charter/personas/` or `projects/<project>/charter/personas/`         |
-| `job:`         | Something a person is trying to accomplish  | A row in a charter's `jobs.md`                                                  |
 | `initiative:`  | A durable investment broader than one epic  | The initiative's `initiative.md`                                                |
 | `epic:`        | A major capability a product must establish | The epic's `epic.md`, under `work/` or `delivered/`                             |
 | `product:`     | A requirement of an epic or of its owner    | A heading in the owner's `requirements.md`, or inline in `epic.md`              |
@@ -117,8 +119,9 @@ code:                         # where the behaviour it changes lives today
 An id's first segment is its project: `epic:fleet/chat`, `persona:fleet/product-owner`. Inside a project an id may drop
 that segment, and resolves in the project first, then at the program. An epic under an initiative carries it,
 `epic:fleet/adapters/codex`. A bare `product:`, `engineering:`, or `assume:` id resolves from the citing folder outward
-to the root. Ids are cited as plain text; find one by searching for the heading or file carrying it. Browse the live
-work under each project's `work/`.
+to the root; written in full, it carries its owner's epic id, `engineering:fleet/chat/one-delivery-per-answer`. Ids are
+cited as plain text; find one by searching for the heading or file carrying it. Browse the live work under each
+project's `work/`, such as [`projects/fleet/work/`](./projects/fleet/work/).
 
 ## License
 

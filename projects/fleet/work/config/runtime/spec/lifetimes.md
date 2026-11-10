@@ -1,35 +1,50 @@
 # Lifetimes in the registry
 
-How a setting declares its lifetime, how an environment variable is tied to the one kind of setting it may supply, and
-the one rule every pass follows when it evaluates its settings. The lifetimes themselves and every key's lifetime are
-[settings.md](./settings.md); this file is the machinery that carries them.
+Every key's lifetime is [settings.md](./settings.md).
 
-## The key declares it
+## Domain
 
-`ConfigKey` (`foundation/config_keys.py:49`) gains two fields:
+```python
+# foundation/config_keys.py                                                   product:declared-lifetime
+@dataclass(frozen=True)
+class ConfigKey:
+    path: str
+    type: str
+    required: bool = False
+    default: object = None
+    deprecated: bool = False
+    replaced_by: str | None = None
+    flag: str | None = None
+    # Required on every key that holds a value, OPEN_TABLE included (`hub_tokens`, `models.aliases`: the whole value
+    # is one setting). Absent on TABLE and ARRAY_OF_TABLES keys (`tracing`, `auth`, `runner`, `workspace`,
+    # `workspace[].repo`), which only group children that carry their own.
+    # A deprecated key keeps the lifetime of the key replacing it. One read only to be refused and whose
+    # replacement is a record kind, not a key, is `BOOT`: the hub's `work_source[]`, `replaced_by` the work-source
+    # records.
+    lifetime: Lifetime | None = None
+    # The environment variable that supplies the value and overrides the file. Legal only on a BOOT key.
+    env: str | None = None                                                    # product:boot-lifetime
 
-| Field      | Type               | Rule                                                                                                                                                                                                                                                |
-| ---------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `lifetime` | `Lifetime \| None` | One of `PASS`, `SESSION`, `BOOT`, `IMMUTABLE` — a `StrEnum` in `foundation/config_keys.py` whose values are the lowercase names. Required on every key that holds a value, and absent on every key that only groups others (§Which keys carry one). |
-| `env`      | `str \| None`      | The environment variable that supplies the key's value, where one does (§Environment variables). Legal only on a `BOOT` key.                                                                                                                        |
 
-### Which keys carry one
+@dataclass(frozen=True)
+class ConfigRegistry:
+    def __post_init__(self) -> None:
+        for key in self.keys:
+            groups = key.type in (TABLE, ARRAY_OF_TABLES)
+            if groups and key.lifetime is not None:
+                raise ValueError(f"{key.path}: a grouping key carries no lifetime")
+            if not groups and key.lifetime is None:
+                raise ValueError(f"{key.path}: a value key declares its lifetime")
+            if key.env is not None and key.lifetime is not Lifetime.BOOT:
+                raise ValueError(f"{key.path}: only a boot key is supplied by an environment variable")
+        ...
+```
 
-A key that holds a value carries a lifetime: every type but `TABLE` and `ARRAY_OF_TABLES`, an `OPEN_TABLE` such as
-`hub_tokens` or `models.aliases` included, since its whole value is one setting. A `TABLE` or `ARRAY_OF_TABLES` key —
-`tracing`, `auth`, `runner`, `workspace`, `workspace[].repo` — only groups its children and carries none; its children
-carry theirs. `ConfigRegistry` fails its construction on a value key with no lifetime, a grouping key with one, or a
-non-`BOOT` key with `env`, so a key cannot be added without its lifetime being decided.
-
-A `deprecated` key keeps a lifetime, since it is still read — to be honored, refused, or graduated — and it is the
-lifetime of the key that replaces it. A key read at boot only to be refused, such as the hub's `work_source[]` — read
-now only so the hub can refuse to start and name the import that moves it into records — is declared `deprecated`, with
-`replaced_by` naming the work-source records, and its lifetime is `boot`, since its replacement is a record kind rather
-than a key and boot is when it is read.
+## Interfaces
 
 ### Environment variables
 
-`env` names a variable that supplies the key's value and overrides the file, as each of these does today:
+The one list of variables that supply a setting:
 
 | Key          | Daemon | `env`           |
 | ------------ | ------ | --------------- |
@@ -38,63 +53,90 @@ than a key and boot is when it is read.
 | `port`       | hub    | `BZ_HUB_PORT`   |
 | `db_url`     | hub    | `BZ_HUB_DB_URL` |
 
-Nothing else is declared through `env`:
+`BZ_RUNNER_TICK_SECONDS` supplies `tick_seconds` only through the seed until it is removed, and is declared on no key
+(`product:tick-interval-setting`). Variables declared through no `env`:
 
-- **A key whose value names a variable** — `session_secret_env`, `egress.path_key_env`, an OAuth provider's
-  `client_secret_env` — is an ordinary `boot` key. The variable it names is read at boot, but it supplies a secret, not
-  the key.
-- **A token file's variables** keep their `EnvFile` declaration (`runner/config_keys.py:286`), which describes the
-  family `BZ_HUB_TOKEN_<NAME>` that supplies `hub_tokens`; both are deprecated, read only by the seed that imports each
-  runner's token into the store ([runner-store.md](./runner-store.md) §Sealed tokens).
-- **A variable that supplies no key** — `BZ_RUNNER_DIR`, the CLI's runtime root (`runner/cli/env.py:4`), and
-  `BZ_HUB_SECRET_KEY`, the hub's sealing key (`hub/secrets/internal/env_keys.py:13`), and `BZ_HOST_SECRET_KEY`, the
-  host's ([runner-store.md](./runner-store.md) §Sealed tokens) — and OpenTelemetry's own variables stay outside the
-  registry: they are not settings.
+| Variable                                                                                              | Why not                                                                                                                                                                                            |
+| ----------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The one named by `session_secret_env`, `egress.path_key_env`, an OAuth provider's `client_secret_env` | The naming key is an ordinary `boot` key; the variable it names is read at boot and supplies a secret, not the key                                                                                 |
+| `BZ_HUB_TOKEN_<NAME>`                                                                                 | Keeps its `EnvFile` declaration (`runner/config_keys.py`), the family supplying `hub_tokens`; both deprecated, read only by the token import ([runner-store.md](./runner-store.md) §Sealed tokens) |
+| `BZ_RUNNER_DIR` (`runner/cli/env.py`)                                                                 | The CLI's runtime root; supplies no key                                                                                                                                                            |
+| `BZ_HUB_SECRET_KEY` (`hub/secrets/internal/env_keys.py`), `BZ_HOST_SECRET_KEY`                        | Sealing keys; supply no key ([runner-store.md](./runner-store.md) §Sealed tokens)                                                                                                                  |
+| OpenTelemetry's own variables                                                                         | Not settings                                                                                                                                                                                       |
 
-This table is the one list of variables that supply a setting; [settings.md](./settings.md) §Environment variables
-points here.
+### Contract documents
 
-## The contract carries it
+`tools/config_contract.py` writes two fields on every entry of `keys[]` in `contracts/config/hub.json` and
+`contracts/config/host.json`; `contracts/config/README.md` documents them and the four values.
 
-`tools/config_contract.py` writes `lifetime` and `env` on every entry of `keys[]` in `contracts/config/hub.json` and
-`contracts/config/host.json`, beside `type` and `default`; `env` is written as `null` where a key has none. A lifetime
-changed without a regenerated document turns the `contract drift` step red, and `blizzard:config-contract` holds the
-registries to the documents. `contracts/config/README.md` gains the two fields and the four values.
+```json
+{ "path": "throttle.budget.usd", "type": "number", "default": null, "lifetime": "pass", "env": null }
+```
 
-Adding a field to every key is additive to the document (`bzh:released-surface-additive`). Moving a key's lifetime later
-in the order `pass`, `session`, `boot`, `immutable` narrows what an operator can change without a restart, and is a
-break; moving it earlier is additive. `docs/versioning.md` §What counts as breaking gains the row, and `blizzard:compat`
-gains the check: a key whose lifetime in the candidate's document comes later than in a supported release's is reported
-as a break, as a removed key is.
+A lifetime changed without a regenerated document turns the `contract drift` step red; `blizzard:config-contract` holds
+the registries to the documents. The two fields are additive (`bzh:released-surface-additive`).
 
-## Entries
+```python
+# blizzard:compat, beside the removed-key check; docs/versioning.md §What counts as breaking gains the row
+ORDER = (Lifetime.PASS, Lifetime.SESSION, Lifetime.BOOT, Lifetime.IMMUTABLE)
 
-A key whose lifetime is `pass` or `session` is an **entry** of its daemon's store, and an `immutable` key is an entry
-written once at creation. A `boot` key is never an entry. The strict accessor (`ConfigView`) keeps serving `boot` keys
-from the file; an entry is read only through its daemon's settings reader — [runner-store.md](./runner-store.md) §The
-reader for the runner, [hub.md](./hub.md) §Reading per pass for the hub — and `bzh:config-key-declared` gains the
-sentence that says so: a `pass` or `session` key read through `ConfigView` outside the seed is a finding, for each
-daemon once the last of its keys of those lifetimes is an entry.
+def lifetime_breaks(candidate: ContractKey, released: ContractKey) -> bool:
+    # Later in ORDER narrows what an operator changes without a restart: a break. Earlier is additive.
+    return ORDER.index(candidate.lifetime) > ORDER.index(released.lifetime)
+```
 
-## Evaluated at the start of a pass
+### Reading entries
 
-Every pass of either daemon evaluates its settings the same way:
+`ConfigView` keeps serving `boot` keys from the file. An entry is read only through its daemon's settings reader:
+[runner-store.md](./runner-store.md) §The reader, [hub.md](./hub.md) §Reading per pass. Once the last of a daemon's
+`pass` and `session` keys is an entry, a read of one through `ConfigView` outside the seed is a
+`bzh:config-key-declared` finding (`engineering:context-rules`).
 
-1. At its start, before any other work, the pass reads one **snapshot**: the revisions of every settings record it
-   reads, and the entries themselves when a revision has moved since the snapshot it last built from. One indexed read
-   of the revisions per pass is the steady state (`bzh:live-set-read`).
-2. Anything built from an entry — a hub client's timeout, a harness adapter's alias table, a sampler — is built from the
-   snapshot and kept under the revisions it was built from, reused while they hold, rebuilt when they move
-   (`bzh:config-read-on-use`).
-3. The pass works from that snapshot to its end. Nothing in it reads an entry again, so a write that commits while the
-   pass runs reaches the next one.
-4. A worker launched by the pass is handed the pass's snapshot of every `session` key, and keeps it for its session
-   ([passes.md](./passes.md) §Sessions).
+## Flows
 
-A hub request is a pass of its own: it takes its snapshot when it arrives. Neither daemon watches its store for changes
-and pushes them into running objects; the next pass finding a moved revision is the only way a change arrives. That is
-what keeps a cold start and a long-lived process equally correct.
+### Seed
 
-`bzh:config-read-on-use` binds entries as it binds configured records, and the new `bzh:settings-snapshot-per-pass`
-states the four steps above, its detect list naming an entry read after a pass has begun, an entry captured into an
-object at composition, and a `pass` or `session` key read from the environment (`engineering:context-rules`).
+Run at every daemon start, one entry at a time, before anything reads an entry (`product:runner-file-seeds`,
+`product:hub-file-seeds`):
+
+```python
+# The rule per entry, for both daemons' seeds.
+def seed_entry(store: SettingsStore, key: ConfigKey, file: ConfigView) -> None:
+    if store.has_entry(key.path):        # an entry `at_default` counts: an unset is never re-seeded
+        return                           # the store's value stands; the file's is ignored, with no warning
+    if not file.states(key.path):
+        return                           # resolves to the registry default; nothing is written
+    # One key's whole value: a list, an alias table, or `throttle.pace.taper[]` is one entry, never seeded element
+    # by element. Written through the same validation as an API write, with change-log door and actor `seed`; a
+    # refusal fails the start with the message the same value fails a boot with today.
+    store.write({key.path: file.value(key.path)}, door="seed", actor="seed")
+```
+
+No environment variable seeds an entry but `BZ_RUNNER_TICK_SECONDS`, and that only where neither store nor file holds
+`tick_seconds`. A per-runner entry is scoped to its runner: it is seeded from that runner's `[[runner]]` table the first
+time the runner starts, and one runner's table never seeds another's. The runner's seed order is
+[runner-store.md](./runner-store.md) §Seeding; the hub's runs in `blizzard hub serve` ([hub.md](./hub.md) §Data).
+
+### Evaluated at the start of a pass
+
+The rule `bzh:settings-snapshot-per-pass` states, for every pass of either daemon (`product:pass-lifetime`,
+`product:every-pass-evaluates`, `product:hub-pass-settings`):
+
+```python
+# The order every pass follows; the readers are RunnerSettingsReader and HubSettingsReader.
+def run_pass(reader: SettingsReader, built: BuiltCache, work: Callable[[Snapshot, Built], None]) -> None:
+    # 1. Before any other work: one indexed read of the revisions of every settings record the pass reads
+    #    (bzh:live-set-read); entries are read only where a revision moved since the last snapshot built.
+    snapshot = reader.snapshot()
+    # 2. Anything built from an entry (a hub client's timeout, an alias table, a sampler) is kept under the
+    #    revisions it was built from, reused while they hold, rebuilt when they move (bzh:config-read-on-use).
+    objects = built.at(snapshot.revisions)
+    # 3. The pass works from this snapshot to its end and reads no entry again; a write committing meanwhile
+    #    reaches the next pass. A step inside the pass takes no snapshot of its own.
+    # 4. A worker the pass launches is handed the snapshot's `session` keys and keeps them for its session.
+    work(snapshot, objects)
+```
+
+A hub request is a pass: it takes its snapshot on arrival. Neither daemon watches its store or pushes a write into a
+running object; a later pass finding a moved revision is the only way a change arrives
+(`decision:config/runtime/pull-per-pass`).

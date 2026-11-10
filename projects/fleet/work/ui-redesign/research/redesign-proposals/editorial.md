@@ -126,7 +126,7 @@ New wire lines arrive and fade in on a paper tint.
 
 ## Files
 
-The mocks and their renders are in [`mockups/editorial/`](../../mockups/editorial/).
+The mocks and their renders are in [`editorial/`](./editorial/).
 
 - `board-desktop.html`, `fleet-desktop.html`, `board-mobile.html`, `fleet-mobile.html`: self-contained mocks with inline
   CSS and JS and no network access. Append `?theme=night` for the night edition.

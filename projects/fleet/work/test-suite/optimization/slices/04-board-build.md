@@ -1,16 +1,19 @@
 ---
 name: board-build
+code:
+  - blizzard/.github/workflows/gate.yml::frontend
 ---
 
 # The board's build on every pull request
 
 Builds both boards ahead of time on every pull request and publishes the build. Delivers `product:board-build-on-pr`;
-builds `spec/pr-gate.md` §The board's build on every pull request. Independent of every other slice.
+builds `spec/pr-gate.md` §The board's build. Independent of every other slice.
 
 ## Change
 
-- `gate.yml`'s `frontend` job runs `npm run build` after `npm ci`.
+- `gate.yml`'s `frontend` job runs `npm run build` in `web/` after `npm ci`.
 - The job uploads `src/blizzard/static/` as `web-dist`, kept one day.
+- `bundle-check` keeps its own build.
 
 ## Acceptance
 

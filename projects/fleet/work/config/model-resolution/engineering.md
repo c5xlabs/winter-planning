@@ -2,6 +2,23 @@
 
 Derives from `epic:config/model-resolution`.
 
+## What already holds
+
+- The hub merge: `EffectiveSession.of(chunk, graph, node)` combines a declared session with the chunk's defaults field
+  by field and stamps `session_model`, `session_effort`, and `session_harnesses` onto the node envelope, with no record
+  of which layer supplied a field.
+- Harness selection: `HarnessSelector.select(node)` walks the acceptable set in order and returns the first member that
+  can serve the session, with the members it skipped.
+- Adapter resolution: each binding's `resolve_model`, `resolve_model_strict`, and `resolve_effort`, over the shared
+  left-to-right skeleton in `harness_shared`, turn authored strings into what reaches the harness process.
+- A resume never re-resolves: it replays the `resolved_model` and `resolved_effort` recorded on the lease that minted
+  the session, so an alias edited after a pool was minted changes the next fresh session.
+
+## Brief requirements
+
+- engineering:read-only-report — The command writes nothing to the configuration, the runner store, or the hub, and
+  opens no write path to the store. Serves `epic:config/model-resolution`.
+
 ## One resolution, traced (engineering:traced-resolution)
 
 The report is built from the same hub merge, harness selection, and adapter resolution the spawn path runs, each in a

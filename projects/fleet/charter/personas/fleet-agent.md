@@ -1,4 +1,4 @@
-# `persona:fleet-agent` — the fleet agent
+# The fleet agent (persona:fleet-agent)
 
 The worker session itself — the one persona that is not a person, and is trusted as little as possible.
 

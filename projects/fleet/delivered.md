@@ -1,6 +1,7 @@
 # Delivered
 
-The record of the destinations the fleet has reached, newest first, each with the epics that carried it there.
+The record of the destinations the fleet has reached, newest first, each with the epics that carried it there. It is a
+record of what people can now do, not a status board.
 
 ## Polyglot (milestone:polyglot)
 
@@ -19,7 +20,7 @@ carry — are set once and honoured by every harness, with no worker running wit
 
 One operator runs every project they care about from one fleet: a hub hosting many projects inside walled tenants, a
 runner host per machine working all of them, and each project landing its finished work its own declared way.
-`epic:advanced-deployment` left the milestone for `milestone:future-state` unbuilt.
+`epic:advanced-deployment` left the milestone for Future state unbuilt.
 
 | Epic                              | Notes                                                                                                                                                                                                                             |
 | --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -56,16 +57,16 @@ counted from it; gardening routines sweep the codebase along declared axes and t
 accepts into ordinary work; mutation runs prove the backend suites can fail; the queue holds a chunk until the one it
 stands on is done; and the fleet proposes product directions of its own.
 
-| Epic                                 | Notes                                                                                                                                                                                                                            |
-| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `epic:self-sourced-work`             | Work items in the hub's own store (`hub:42`), flowing through the same ingest → backlog → promote → deliver pipeline as forge-born chunks (#356).                                                                                |
-| `epic:garden`                        | Gardening routines, runs, findings, and proposals, with the board's gardening tab for finding triage and the proposal docket (#386, #387).                                                                                       |
-| `epic:transcripts`                   | Every worker conversation, from every harness on every runner, normalized and streamed to a durable home at the hub (#244).                                                                                                      |
-| `epic:analytics`                     | Fleet analytics derived from the transcripts — files read, skills fired, agents spawned, by node — beside the hub's operational numbers (#253).                                                                                  |
-| `epic:queue/dependencies`            | Dependency edges an operator declares once: a chunk that stands on another cannot be claimed until the one beneath it is done (#455).                                                                                            |
-| `epic:ideation`                      | A gardening routine that reads the product as built against the charter and proposes directions for the operator to accept or decline (#542).                                                                                    |
-| `epic:mutation-testing/diff-scoped`  | mutmut behind `mise run mutation <scope>` as the `blizzard:mutation` method, reporting surviving mutants on a change's own functions at delivery time and blocking nothing (#551). `epic:mutation-testing/angular` remains live. |
-| `epic:mutation-testing/corpus-sweep` | The `mutation-testing` gardening axis — backend scopes, a survivor-classification standard, and a measurement — run end to end on the fleet (#551).                                                                              |
+| Epic                                 | Notes                                                                                                                                                                                                                                        |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `epic:self-sourced-work`             | Work items in the hub's own store (`hub:42`), flowing through the same ingest → backlog → promote → deliver pipeline as forge-born chunks (#356).                                                                                            |
+| `epic:garden`                        | Gardening routines, runs, findings, and proposals, with the board's gardening tab for finding triage and the proposal docket (#386, #387).                                                                                                   |
+| `epic:transcripts`                   | Every worker conversation, from every harness on every runner, normalized and streamed to a durable home at the hub (#244).                                                                                                                  |
+| `epic:analytics`                     | Fleet analytics derived from the transcripts — files read, skills fired, agents spawned, by node — beside the hub's operational numbers (#253).                                                                                              |
+| `epic:queue/dependencies`            | Dependency edges an operator declares once: a chunk that stands on another cannot be claimed until the one beneath it is done (#455).                                                                                                        |
+| `epic:ideation`                      | A gardening routine that reads the product as built against the charter and proposes directions for the operator to accept or decline (#542).                                                                                                |
+| `epic:mutation-testing/diff-scoped`  | mutmut behind `mise run mutation <scope>` as the backend's mutation verification method, reporting surviving mutants on a change's own functions at delivery time and blocking nothing (#551). `epic:mutation-testing/angular` remains live. |
+| `epic:mutation-testing/corpus-sweep` | The `mutation-testing` gardening axis — backend scopes, a survivor-classification standard, and a measurement — run end to end on the fleet (#551).                                                                                          |
 
 ## Centralized hub (milestone:centralized-hub)
 
@@ -76,7 +77,7 @@ fleet.
 | Epic                        | Notes                                                                                                                                                                                                                                                                                                          |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `epic:security/runner-auth` | Runners sign in with hub-minted per-runner tokens; fleet writes answer to an authenticated router (#85 series). `epic:security/worker-security` delivered with `milestone:polyglot` below.                                                                                                                     |
-| `epic:board/remote`         | Provider login, viewer and operator roles, a capability-aware UI, runner single sign-on (#89). Its reach half was extracted to `epic:pwa`.                                                                                                                                                                     |
+| `epic:board/remote`         | Provider login, viewer and operator roles, a capability-aware UI, runner single sign-on (#89), which with the hub queue's arbitration also carried team mode: shared visibility and multi-operator policy over one fleet. Its reach half was extracted to `epic:pwa`.                                          |
 | `epic:ask-answer/remote`    | The closed answer loop: an answer from any device shows its delivery and the agent back at work, and a beaten answerer is told who won (#165).                                                                                                                                                                 |
 | `epic:hub/remote`           | The hub stands off-machine as a hosted deployment every runner reaches over the network. The plan's multi-runner proof and staged outage drill were retired by operator call: arbitration never assumed a runner count, and the reconnect-and-flush contract is exercised in production by every hub redeploy. |
 
@@ -120,4 +121,3 @@ autonomous baseline from ingest to merge.
 | `epic:forge-status`            | The fleet's hold projected onto the tracker: one-way labels from hub truth onto forge issues through the annotator seam, a per-source opt-in, reconciled by a periodic diff sweep (#197).                                                                                                                                                                     |
 | `epic:board/chunk-detail`      | Routed chunk detail page with General/Artifacts tabs; dock artifacts became links that land pre-selected in one shared renderer (#199).                                                                                                                                                                                                                       |
 | `epic:board/mobile`            | The board complete from a phone: every read and every action the operator has at a desk, present and usable at thumb size. Landed incrementally as layout and control tuning rather than from a plan, and closed on the operator's daily use of it. Closes `initiative:board` — the home-screen shell and phone notifications it once trailed are `epic:pwa`. |
-| `epic:team`                    | Team mode: shared visibility and multi-operator policy over one hub-arbitrated fleet. Carried by `epic:board/remote` — provider login, viewer and operator roles, a capability-aware UI — over the hub queue's arbitration, which never assumed a single operator any more than it assumed a runner count.                                                    |

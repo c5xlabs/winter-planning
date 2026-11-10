@@ -2,6 +2,8 @@
 name: local-page
 depends-on:
   - apply-export
+code:
+  - blizzard/web/projects/runner/src/app/shell/app.routes.ts::routes
 ---
 
 # The runner's Settings tab
@@ -11,8 +13,8 @@ local-page half of `product:runner-settings-api` and `product:settings-in-force`
 
 ## Change
 
-- The Settings tab: host and runner settings with their lifetimes, the `in_force` line, an edit dialog per key for the
-  superuser, workspaces and subscriptions, and history.
+- The Settings tab beside Board, Events, and Host: host and runner settings with their lifetimes and the `in_force`
+  line, an edit dialog per key for the superuser, workspaces and subscriptions with their six verbs, and history.
 
 ## Acceptance
 

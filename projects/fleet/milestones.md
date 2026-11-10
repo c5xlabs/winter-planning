@@ -1,7 +1,8 @@
 # Milestones
 
 Where the fleet is headed, as destinations in the operator's work, in the order they are meant to be reached. Each
-milestone names the epics needed to reach it; once it is reached, it moves to the [delivered ledger](./delivered.md).
+milestone names the epics needed to reach it; each epic's own status is the truth, so this is a plan, not a status
+board. Once a milestone is reached, it moves to the [delivered ledger](./delivered.md).
 
 ## Hardening (milestone:hardening)
 
@@ -97,9 +98,9 @@ chunks — instead of handing over ids one at a time.
 | ------------- | ------- |
 | `epic:intake` | planned |
 
-## Future state (milestone:future-state)
+## Future state
 
-Unsorted work that belongs to no major milestone underway.
+Ideas for where the fleet goes next, not yet needed by any milestone.
 
 | Epic                                      | Status  |
 | ----------------------------------------- | ------- |

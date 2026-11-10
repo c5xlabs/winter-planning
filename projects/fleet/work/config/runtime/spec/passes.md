@@ -1,128 +1,201 @@
 # Passes on the runner
 
-How each of the runner's passes evaluates its settings, how the objects built from settings are rebuilt and closed, how
-the loop's own interval becomes live, and what a session takes with it. The rule every pass follows is
-[lifetimes.md](./lifetimes.md) §Evaluated at the start of a pass; this file applies it to each of the five places a
-runner freezes its configuration today ([settings.md](./settings.md) §Runner).
+Each pass applies [lifetimes.md](./lifetimes.md) §Evaluated at the start of a pass.
 
-## The passes
+## System
 
-| Pass            | Lock today                                                       | Evaluates at its start                                                                                                                                                                                      |
-| --------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A runner's tick | `RunnerStepper._tick_lock` (`runner/loop_wiring.py:400`)         | The runner's revision and the host revision; rebuilds the runner's `LoopWiring` and context when either moved                                                                                               |
-| A trace sweep   | `RunnerStepper._trace_lock`                                      | The same revisions; rebuilds the sweep's settings when they moved                                                                                                                                           |
-| The host tick   | `HostPassStepper`'s `StepLock` (`runner/loop/step_passes.py:53`) | The host revision and the revisions of every hosted runner, workspace, and subscription record; reconciles the set of runners and rebuilds each workspace provider, sampler, and renewer whose record moved |
+Where a runner's configuration is frozen today, and what replaces each:
 
-A step inside a pass — the transcript drain, retention, the context sample — reads from its pass's snapshot and takes
-none of its own. A stepped loop (`loop = "stepped"`, `bzh:steppable-loop`) evaluates the same way at the start of each
-stepped pass, so a test that writes a setting and steps the tick sees the setting take hold in that step.
+| Frozen today                                      | Where                                                                                                                                                                                | Becomes                                                                                                                                                                                       |
+| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The file, read once                               | `runner/host_config.py::HostConfig.load`                                                                                                                                             | `boot` keys from the file; every other key resolved from the store's entries                                                                                                                  |
+| The loop's context, cached for the process's life | `runner/loop_wiring.py::RunnerStepper._context`; the runner prompt in `LoopWiring.of`                                                                                                | Rebuilt at the first tick after the runner's or host's revision moves (§A runner's tick)                                                                                                      |
+| The tick interval, fixed into the timer thread    | `BZ_RUNNER_TICK_SECONDS` (`runner/cli/runtime.py`); `PeriodicDriver`                                                                                                                 | `tick_seconds`, evaluated before each wait (§The loop's interval)                                                                                                                             |
+| Each runner's object graph                        | `runner/composition.py`: harness adapters and alias tables, subscription samplers, trace settings, the worker telemetry plan                                                         | Adapters, telemetry plan, and health probes take settings at the call; samplers and renewers rebuilt per record by the host tick; trace settings read per sweep (§The objects settings reach) |
+| The set of runners                                | One `_RunnerThreads` per `[[runner]]` at boot (`runner/cli/runtime.py`): the tick driver, the trace-sweep driver where tracing is on, the spawner executor (`runner/composition.py`) | Reconciled by the host tick ([host-records.md](./host-records.md))                                                                                                                            |
 
-## A runner's tick
+| Pass            | Lock today                                                    | Evaluates at its start                                                                   |
+| --------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| A runner's tick | `RunnerStepper._tick_lock` (`runner/loop_wiring.py`)          | The runner's and the host's revisions                                                    |
+| A trace sweep   | `RunnerStepper._trace_lock`                                   | The same revisions                                                                       |
+| The host tick   | `HostPassStepper`'s `StepLock` (`runner/loop/step_passes.py`) | The host revision and every hosted runner, workspace, and subscription record's revision |
 
-`RunnerStepper._context` (`runner/loop_wiring.py:429`) stops caching for the process's life. At the start of each tick,
-holding `_tick_lock`, the stepper reads its reader's `revisions()` ([runner-store.md](./runner-store.md) §The reader):
+A step inside a pass (the transcript drain, retention, the context sample) reads its pass's snapshot. A stepped loop
+(`loop = "stepped"`, `bzh:steppable-loop`) evaluates at the start of each stepped pass, so a test that writes a setting
+and steps the tick sees it take hold in that step.
 
-- **Unchanged:** the context the last tick built is reused.
-- **Moved:** the stepper resolves the new `RunnerConfig`, builds a new `LoopWiring` through `LoopWiring.of`
-  (`runner/loop_wiring.py:92`, which resolves the runner prompt), builds a new context from it, and swaps it in. The
-  context it replaces is closed after the swap and still under the lock, so its hub client is never closed under a
-  running tick, which `close()` (`:416`) does not guard against today. The context holds settings as data; the objects
-  it uses are not rebuilt with it (§The objects settings reach). The worker-scratch sweep `_context` runs today
-  (`runner/loop_wiring.py:437`) runs once, at the daemon's start, and never on a rebuild, since a rebuild can race a
-  spawn.
+## Interfaces
 
-The tick then records the revisions it started from as the runner's `in_force` ([runner-api.md](./runner-api.md)
-§Views), registers with the hub from the new context, and claims from it. What the runner declares at registration — its
-name, agents, gates, projects, bindings, supported models, enabled harnesses — is the snapshot's, so the hub's queue
-answers the runner's settings from the first tick after a write.
+### The loop's interval
 
-**Lowering a count stops nothing.** A runner whose `agents` falls below the sessions it is running stops claiming until
-it is under the line. A harness disabled while it runs sessions stops being advertised, and its sessions finish. A
-project removed from `projects[]` takes no further claim, and a chunk of it already held finishes under the binding it
-was claimed through (`execution/hosts.md` §Bindings: the workspace is fixed for the chunk's tenure).
+```python
+# runner/loop_wiring.py, runner/loop/periodic_pass_driver.py                 product:tick-interval-setting
+class PeriodicDriver:
+    def __init__(self, config: RunnerConfig, *, interval: Callable[[], float], process_graph: RunnerProcess,
+                 stepper: RunnerStepper | None = None, wake: threading.Event) -> None: ...
 
-**A binding whose workspace is gone stops nothing either.** Today a binding naming a workspace the host does not declare
-halts the runner before it registers. Under this epic, a runner whose binding names a workspace that has since been
-retired keeps running its other bindings and takes no claim through that one; the hub, which no longer sees the
-workspace in the host's report, flags the binding as it does today (`hub/domain/runners/bindings.py:42`). A write that
-binds a project to a workspace the host never declared, or to a retired one, is still refused by validation, as the file
-would be at boot — and since every write validates the runner's whole configuration
+class PeriodicPassDriver:
+    def __init__(self, run_pass: Callable[[], None], *, name: str, label: str, log: BoundLogger,
+                 interval: Callable[[], float], wake: threading.Event, jitter_seconds: float | None = None,
+                 stop_timeout_seconds: float = STOP_TIMEOUT_SECONDS) -> None: ...
+
+    def _run(self) -> None:
+        while not self._stop.is_set():
+            started = clock.now()
+            self._run_pass()                    # a write never interrupts a running pass
+            while True:
+                due = started + self._interval()  # from the last snapshot the pass took; jitter drawn as today
+                if clock.now() >= due or self._wait_until(due):  # _wait_until returns False when woken
+                    break                       # woken: re-evaluate the interval, counted from the pass's start
+```
+
+| Driver                 | `interval()` reads         |
+| ---------------------- | -------------------------- |
+| A runner's tick        | `tick_seconds`, host-level |
+| The host tick          | `tick_seconds`             |
+| A runner's trace sweep | `tracing.sweep_seconds`    |
+
+A committed write of `tick_seconds` or `tracing.sweep_seconds` sets the drivers' `wake` event; a woken driver runs at
+once if the new due time has passed, or waits out the rest.
+
+### Sessions
+
+```python
+# product:session-settings
+@dataclass(frozen=True)
+class SessionSettings:
+    # Built once per launch from the tick's snapshot: every `session` key a worker is handed. The adapter's launch
+    # composes the worker's command, environment, and settings from this and from nothing else; a worker never
+    # re-reads a setting, a `credentials_path` included.
+    harness: HarnessSections            # harness settings, harness.config_dir, harness.autonomy
+    model_aliases: ...                  # models.*, effort.*, opencode.models.*, opencode.effort.*
+    worker_env: ...                     # worker.env_passthrough, worker.path_prepend, worker.shell
+    tools: ...                          # tools.env_passthrough, tools.path_prepend
+    runner_prompt: str | None
+    workspace_prompt: str | None
+    transcripts_root: Path
+    telemetry: ...                      # tracing.harness_telemetry, worker_programs, worker_program_services
+    host_settings_revision: int
+    runner_settings_revision: int
+```
+
+```python
+# wire/lease.py
+class LeaseView(WireModel):
+    ...
+    host_settings_revision: int | None      # from the lease's latest lease_spawns row; null before the revision
+    runner_settings_revision: int | None
+```
+
+- Each spawn writes the two revisions and `transcripts_root` to its `lease_spawns` row
+  ([runner-store.md](./runner-store.md) §Data). A resume after a restart, or a respawn after a retry, is a new spawn
+  under the settings in force when it relaunches.
+- A session's transcript is read from the `transcripts_root` on its spawn row, so moving `transcripts_root` loses no
+  running session's transcript.
+
+### The objects settings reach
+
+| Object (`runner/composition.py`)     | Under this epic                                                                                                |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Harness registry and adapters        | Built once, never rebuilt; holds no setting. `launch(session: SessionSettings, ...)`                           |
+| Worker telemetry plan                | Built once; takes the session's telemetry keys at launch                                                       |
+| Harness health probes                | Built once; `probe(binary: Path)`                                                                              |
+| Harness version cache                | Keyed by binary path: a moved `claude_code.binary` is probed at the next health refresh, an unmoved one is not |
+| The loop's hub client                | Keyed by its timeout                                                                                           |
+| An adapter whose harness is disabled | Stays built; the harness stops being advertised                                                                |
+
+## Flows
+
+### A runner's tick
+
+```python
+# runner/loop_wiring.py                                     product:tick-lived-settings, product:runner-settings-all-live
+class RunnerStepper:
+    def _context(self) -> LoopContext:                       # called holding _tick_lock
+        revisions = self._reader.revisions()
+        if revisions == self._built_at:
+            return self._ctx                                 # unchanged: reuse the last tick's context
+        config = self._reader.resolve(revisions)
+        wiring = LoopWiring.of(config, broker=...)           # resolves the runner prompt
+        ctx = wiring.context(hub, self._graph, sweep_worker_scratch=False, tracer=...)  # settings as data only
+        old, self._ctx, self._built_at = self._ctx, ctx, revisions
+        if old is not None:
+            old.close()                                      # after the swap, still under the lock: its hub client
+                                                             # is never closed under a running tick, which
+                                                             # close() does not guard against today
+        return ctx
+
+    def _tick(self) -> None:
+        ctx = self._context()
+        self._in_force.record(self._built_at, at=clock.now())   # runner-api.md §Views
+        tick(ctx)                                            # registers, then claims, from the snapshot
+```
+
+- The worker-scratch sweep runs once, at the daemon's start, never on a rebuild, since a rebuild can race a spawn.
+- Registration declares the snapshot's name, agents, gates, projects, bindings, supported models, and enabled harnesses,
+  so the hub's queue answers a write from the first tick after it.
+
+Lowering a value stops nothing that runs (`engineering:running-session-undisturbed`):
+
+| Change                              | Effect                                                                                                                                                     |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `agents` below the running sessions | No claim until the running count is under it; no session stopped                                                                                           |
+| A harness disabled                  | Not advertised from the next registration; its sessions finish                                                                                             |
+| A project removed from `projects[]` | No further claim; a held chunk finishes under the binding it was claimed through (`execution/hosts.md` §Bindings)                                          |
+| A binding's workspace retired       | The runner keeps its other bindings and claims nothing through that one; the hub flags the binding unreported, as today (`hub/domain/runners/bindings.py`) |
+| The runner's subscription retired   | The runner runs as though it named none ([host-records.md](./host-records.md) §Domain)                                                                     |
+
+Today a binding naming an undeclared workspace halts the runner before it registers; under this epic only a write is
+refused. A write binding a project to a workspace the host never declared, or to a retired one, fails validation as the
+file would at boot, and since every write validates the runner's whole configuration
 ([runner-store.md](./runner-store.md) §A write), a runner left bound to a retired workspace has every later write
-refused until one fixes the binding. The operator fixes it in the same write as whatever else they meant to change. A
-runner naming a subscription that has since been retired runs as though it named none
-([host-records.md](./host-records.md) §Workspaces and subscriptions). The domain's statement in `execution/hosts.md`
-§Bindings changes to say both.
+refused until one fixes the binding. `execution/hosts.md` §Bindings changes to say both (`engineering:context-rules`).
 
-## The trace sweep
+### The trace sweep
 
-The lease trace sweep, built once per runner today, takes its settings — `tracing.sweep_seconds`, `settle_seconds`,
-`max_lag_seconds`, `batch_limit`, `replay_max_window` — from the snapshot at the start of each sweep, and its driver's
-interval is `tracing.sweep_seconds` as that snapshot states it.
+The lease trace sweep takes `tracing.sweep_seconds`, `settle_seconds`, `max_lag_seconds`, `batch_limit`, and
+`replay_max_window` from the snapshot at each sweep's start; its driver's `interval()` is that snapshot's
+`tracing.sweep_seconds`.
 
-## The host tick
+### The host tick
 
-At its start the host tick reads the host revision and every record revision, and before its existing work — reporting
-to the hub, sampling subscription usage, renewing credentials, watching for retired runners — it reconciles:
+```python
+# runner/loop/step_passes.py — before the tick's existing work (reporting, sampling, renewing, RetiredRunnerWatch)
+def host_tick(host: HostProcess) -> None:
+    snapshot = host.reader.revisions()
+    host.runners.reconcile(snapshot)          # 1. start each hosted runner without threads; drain each retired one
+                                              #    (host-records.md §Flows)
+    if snapshot.workspaces_moved:             # 2. any active workspace record's revision moved
+        host.workspaces.set(WorkspaceRegistry.build(
+            snapshot.active_workspaces,
+            keep=host.workspaces.unmoved(snapshot),   # an unmoved workspace keeps its provider
+            locks=host.workspace_locks,               # every workspace keeps its lock, by workspace_id
+        ))                                    # one assignment; the registry may be empty
+    for sub in snapshot.subscriptions_moved:  # 3. sampler and renewer rebuilt from the record; cadence state is in
+        host.rebuild_sampler_and_renewer(sub) #    the store (external_usage_samples, renewal claims), so nothing is lost
+    report = host_report(snapshot)            # 4. built per tick, not the functools.partial bound at composition, so a
+    ...                                       #    created or retired workspace or subscription reaches that report
+```
 
-1. **The set of runners** ([host-records.md](./host-records.md) §Runners): starts each hosted runner that has no thread
-   group, and stops each one retired.
-2. **The workspaces.** Every reader of the host's workspaces — each runner's process and loop context, the routes
-   (`app.state.workspaces`, `runner/app.py:454`), the health probes over the spawn roots (`runner/composition.py:911`) —
-   reads them through one `HostWorkspaces` holder at its use, never a `WorkspaceRegistry`
-   (`runner/environments/workspaces.py:107`) it was handed at composition. When any active workspace record's revision
-   moved, the host tick builds a new registry from the active records and sets it on the holder in one assignment. Each
-   workspace whose record did not move keeps its provider; every workspace keeps its lock, carried by its
-   `workspace_id`, so an acquisition through a replaced provider and one through its replacement still take the same
-   lock, and no environment is handed to two claims (`bzh:environment-held-once`). A replaced provider holds nothing
-   that needs closing (`runner/environments/internal/basic_provider.py:52`, `winter_provider.py:59`), and an acquisition
-   already running under it finishes under it. An environment a claim holds stays held, since what is held is read from
-   the store. The registry may be empty: a host with no active workspace serves no binding, and its runners claim
-   nothing until one is created.
-3. **The subscriptions.** The usage-sample pass and the credential-renewal pass rebuild the sampler and the renewer of
-   each subscription whose record moved, from its record; their cadence state is already in the store
-   (`external_usage_samples`, the renewal claims), so nothing is lost.
-4. **The host report** (`host_report`, `runner/composition.py:824`) is built from the snapshot each tick instead of the
-   `functools.partial` bound at composition (`:752`), so a created or retired workspace or subscription reaches the hub
-   at that tick's report.
+```python
+# runner/environments/workspaces.py
+class HostWorkspaces:
+    # The one holder every reader of the host's workspaces reads at use: each runner's process and loop context, the
+    # routes (app.state.workspaces, runner/app.py), the health probes over the spawn roots (runner/composition.py).
+    # None holds a WorkspaceRegistry handed to it at composition.
+    def current(self) -> WorkspaceRegistry: ...
+    def set(self, registry: WorkspaceRegistry) -> None: ...
+```
 
-## The loop's interval
+- Locks carried by `workspace_id` mean an acquisition through a replaced provider and one through its replacement take
+  the same lock; no environment is handed to two claims (`bzh:environment-held-once`).
+- A replaced provider holds nothing to close (`runner/environments/internal/basic_provider.py`, `winter_provider.py`);
+  an acquisition already running under it finishes under it. A held environment stays held, since what is held is read
+  from the store.
+- A host with no active workspace serves no binding; its runners claim nothing until one is created.
 
-`PeriodicDriver` (`runner/loop_wiring.py:454`) and `PeriodicPassDriver` (`runner/loop/periodic_pass_driver.py:16`) take
-an `interval: Callable[[], float]` in place of their fixed `interval`, called before each wait. A runner's tick driver
-and the host tick driver read `tick_seconds` from the last snapshot their pass took; the trace sweep reads
-`tracing.sweep_seconds`. `tick_seconds` is host-level: every runner on the host and the host tick share it.
+## Open questions
 
-A wait already begun would hold a shortened interval to the old one, so a committed write of `tick_seconds` or
-`tracing.sweep_seconds` sets a wake event the drivers wait on; a woken driver evaluates the new interval, counts it from
-the start of the pass before, and either runs at once, if that moment has passed, or waits out the rest. A write never
-interrupts a pass that is running. Jitter is drawn as today.
-
-## The objects settings reach
-
-The objects built from a runner's settings today are built once, at composition, and hold the values they were built
-with (`runner/composition.py:885`): the harness registry and its adapters, the worker telemetry plan, the harness health
-probes. Under this epic none of them holds a setting. Each takes the settings it needs as an argument at the call that
-needs them — an adapter's launch takes the session's settings ([§Sessions](#sessions)), a health probe its binary — and
-is built once and never rebuilt. The two that hold real state are cached by their input instead: the harness version
-cache by binary path, so a moved `claude_code.binary` is probed at the next health refresh and an unmoved one is not,
-and the loop's hub client by its timeout. An adapter that disabling a harness leaves unused stays built; the harness
-simply stops being advertised.
-
-## Sessions
-
-A claim decided in a tick is launched by the runner's spawner from that tick's context. The launch builds one
-`SessionSettings` from the snapshot — every `session` key a worker is handed: the harness settings, model and effort
-aliases, autonomy, the harness config directory, the worker's environment, shell, and path, the runner and workspace
-prompts, the tool profile, `transcripts_root`, the telemetry plan — and hands it to the adapter's launch, which composes
-the worker's command, environment, and settings from it and from nothing else. Each spawn records the two revisions of
-the snapshot it launched from on its `lease_spawns` row ([runner-store.md](./runner-store.md) §Tables), and the lease's
-view (`wire/lease.py:18`) gains `host_settings_revision` and `runner_settings_revision` from its latest spawn, so the
-local page and `blizzard runner status` can say which side of an edit a session fell on. A session resumed after a
-restart, or respawned after a retry, is a new spawn: it launches with the settings in force when it relaunches, and its
-row says so.
-
-A session's transcript is read from the `transcripts_root` it launched with, recorded on its spawn row, so moving
-`transcripts_root` loses no running session's transcript.
-
-A worker never re-reads a setting. A `credentials_path` a running session read at launch is the one it keeps, whatever
-the subscription's record says later.
+- `SessionSettings`' field names and grouping: the spec settles what it holds, not its shape. Engineering.
+- How the wake event reaches the drivers (a constructor argument above, or a holder the write path signals): the spec
+  settles only that a committed interval write wakes them. Engineering.

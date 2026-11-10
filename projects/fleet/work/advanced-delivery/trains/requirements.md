@@ -40,6 +40,12 @@ Acceptance:
 A repository says how many chunks a batch may carry and how long a flow waits for a batch to fill before it proves what
 it has, so a quiet repository lands a lone chunk promptly and a busy one amortises its checks.
 
+Acceptance:
+
+- A repository sets the most chunks a batch may carry and how long a flow waits for it to fill.
+- On a quiet repository, a lone chunk lands once the wait runs out rather than waiting for company.
+- On a busy repository, a batch is proven as soon as it is full.
+
 ## A train that knows when to stop (product:train-stops)
 
 A proof that never finishes is abandoned after the same three hours a poll may run, and a base whose own checks are red
@@ -57,6 +63,12 @@ Acceptance:
 A forge's capabilities narrow to the repository: whether a merge queue or a merge train is in force, or whether the base
 accepts a direct advance, is a fact the hub reads about one repository, not its whole forge, and a policy or a train
 that needs one is checked against the repository.
+
+Acceptance:
+
+- Two repositories on the same forge can differ in whether a merge queue, a merge train, or a direct advance is
+  available, and the hub tells them apart.
+- A repository given a policy or train its forge offers but the repository does not have is refused with that reason.
 
 ## Handing the line to the forge (product:forge-queue)
 

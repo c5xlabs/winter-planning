@@ -19,21 +19,28 @@ The baseline, from successful pushes to `master` on 18 October 2026:
 Every check starts at once, so the pull request's critical path is the slowest single job, a pytest unit + component
 shard, and the crash sweep is next behind it. Queue time is about 2 s.
 
+The gate as it stands on `master`, since changed from the baseline's shape:
+
 - `pr.yml` and `push.yml` each call `gate.yml` and `upper-tiers.yml` side by side, so every check starts at once, and a
   job in one workflow cannot wait on a job in the other.
-- `gate.yml`'s `python-tests` job runs `uv run pytest -n auto` in four shards, `BLIZZARD_TEST_SHARD=<shard>/4`.
-  `tests/support/suite_plugin.py`'s `pytest_collection_modifyitems` keeps a test in shard
-  `zlib.crc32(nodeid) % count + 1` (`shard_of`), so the split is even by count and blind to time. `python-tests-result`
-  reports the shards under `pytest (unit + component)`.
+- `gate.yml`'s `python-tests` job runs `uv run pytest -n auto` in six shards, `BLIZZARD_TEST_SHARD=<shard>/6` with
+  `BLIZZARD_TEST_SHARD_BY=file`: `tests/support/suite_plugin.py`'s `pytest_ignore_collect` skips, before import, every
+  test module whose repo-relative path `shard_of` hashes to another shard. Under the default
+  `BLIZZARD_TEST_SHARD_BY=test`, `pytest_collection_modifyitems` keeps a test in shard `zlib.crc32(nodeid) % count + 1`.
+  Either split is even by count and blind to time. `python-tests-result` reports the shards under
+  `pytest (unit + component)`.
+- `upper-tiers.yml`'s service tier is a pytest half, `service-tier`, in three test-hashed shards, and a Playwright half,
+  `service-playwright`, in six.
 - Nothing records a test's duration: no `--durations`, no JUnit report, no artifact.
 - The `frontend` job runs `npm run test`, which is `ng test hub && ng test runner && ng test fleet`, three projects in
-  sequence. It builds the hub only inside `bundle-check` and Storybook inside `story-render`. The full `npm run build`
-  first runs in `push.yml`'s `dev-build`, through `scripts/build-wheel.sh`.
+  sequence. It builds the hub only inside `bundle-check` and Storybook inside `story-render`. On a pull request the full
+  `npm run build` runs only in `upper-tiers.yml`'s `ui` job, through `mise run ui`'s `web-build` dependency; on `master`
+  it also runs in `push.yml`'s `dev-build`, through `scripts/build-wheel.sh`.
 - `push.yml`'s `dev-image` builds `linux/amd64,linux/arm64` under QEMU on every push.
 - The hosted hub, the only consumer of `edge`, already runs on amd64: `blizzard-infra`'s
   `terraform/application/config/prod.tfvars`, a `t3a.small` on an amd64 AMI.
-- `blizzard-context`'s `verification/blizzard/tier-rules.md` already asks the service tier for waits that end when the
-  system speaks (`bzh:service-waits-on-the-system`).
+- `blizzard-context`'s `verification/blizzard/service-tests/time.md` already asks the service tier for waits that end
+  when the system speaks (`bzh:service-waits-on-the-system`).
 
 ## Brief requirements
 
@@ -60,7 +67,10 @@ Acceptance:
 
 The unit and component shards, and the service tier's pytest half, are split by recorded durations rather than by a hash
 of each test's id, which spreads tests evenly by count but not by time and leaves one shard six minutes longer than
-another. The split changes no test. Serves `product:shorter-gate`.
+another. The split changes no test, and it lands only once ten `push` runs on `master` carry the recorder's artifacts.
+The table is refreshed by an ordinary change whenever the shards drift apart, and weekly by a scheduled refresh that
+opens a pull request when the table moves any shard's total by more than 5%
+(`decision:test-suite/optimization/committed-durations-table`). Serves `product:shorter-gate`.
 
 Acceptance:
 
@@ -69,6 +79,7 @@ Acceptance:
 - A missing or unreadable table falls back to the hash split with a warning.
 - The largest shard's total is within the longest single test of the mean.
 - A local `uv run pytest` with `BLIZZARD_TEST_SHARD` unset deselects nothing.
+- `tests/guards/test_shard_split.py`, a unit test over a synthetic collection, holds the first four.
 
 ## An amd64-only dev image (engineering:amd64-dev-image)
 
@@ -105,16 +116,12 @@ it is, the test stays, and its cost is reduced only by doing less of the same th
 still exceeds every buffer the assertion is about: a test that proves a process group is reaped must start a process
 group, but one megabyte through each pipe may prove what six do. When it is not, the slow part is replaced by the fake
 already in the file or by an in-memory double, and the test moves to the unit tier if nothing slow remains: a test whose
-subject is how the adapter parses a session's output has no business spawning the session. The decision is recorded per
-test in the commit message of the change that makes it, not in the file. Serves `product:shorter-gate`.
+subject is how the adapter parses a session's output has no business spawning the session. A fixture built identically
+per test is shared at the widest scope at which no test mutates it. The decision is recorded per test in the commit
+message of the change that makes it, not in the file. Serves `product:shorter-gate`.
 
 ## Open questions
 
-- Where the cost of `tests/component/runner/harness/opencode/compatibility/test_diagnostic.py` lies. It was recorded at
-  about 164 s of CPU, one 35 s test and some thirty at 4–5 s, all spawning subprocesses, but the file as it stands holds
-  twenty test functions, twenty-four items with one parametrized five ways, and its subprocess tests carry bounds of 5 s
-  and fixed sleeps of at most 0.7 s. The cost is either in what the tests start (the pty fork, the Landlock probe, the
-  six megabytes each pipe drains, the `CompatibilityDiagnostic` runs) or in a recent change that already cut it. The
-  measurement answers it. — engineering
-- Whether `bundle-check` can read its stats from the new build rather than building its own. The epic takes the saving
-  only if `bundle-check.js` can be pointed at it without changing what it checks. — engineering
+- Whether `engineering:blizzard-only` admits the UI check's rename in `blizzard-context`'s
+  `verification/blizzard/commands/packaging.md`, which `engineering:shared-board-build` needs beside the waits rule. —
+  engineering

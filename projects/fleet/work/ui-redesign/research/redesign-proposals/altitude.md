@@ -124,7 +124,7 @@ projection scales by runner block, and at glyph or field altitude each runner is
 
 ## Files
 
-The mocks and their renders are in [`mockups/altitude/`](../../mockups/altitude/).
+The mocks and their renders are in [`altitude/`](./altitude/).
 
 | file                                                          | what                                                                               |
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------- |

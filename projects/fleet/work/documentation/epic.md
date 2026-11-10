@@ -46,19 +46,39 @@ Acceptance:
 
 The site covers standing up a hub, running a runner, and what the operator is responsible for once both are alive.
 
+Acceptance:
+
+- An operator following the site stands up a hub and a runner without reading the repository.
+- The site says what the operator is responsible for once both are running.
+
 ### CLI and configuration reference (product:cli-reference)
 
 A browsable reference covers the CLI and configuration, generated from the source of truth wherever it can be, because a
 reference written by hand is a reference that will disagree with the software.
+
+Acceptance:
+
+- Every CLI command and configuration setting appears in the reference.
+- A change to the CLI or configuration shows up in the reference without anyone rewriting it by hand.
 
 ### Concepts for graph authors (product:graph-concepts)
 
 The site explains what a node may declare and what the platform does with it, the questions a graph author currently
 answers by reading the schema.
 
+Acceptance:
+
+- A graph author learns from the site what a node may declare and what the platform does with each declaration, without
+  reading the schema.
+
 ### The site as one file an agent can read (product:agent-readable-site)
 
 An agent reads the whole site as one file, as easily as a person reads one page.
+
+Acceptance:
+
+- The whole site is available as one file at a known address.
+- That file holds everything the site's pages say.
 
 ## Open questions
 

@@ -1,31 +1,62 @@
-# Waits that end when the thing has happened
+# Waits on events
 
-Three fixed waits, in two files, each replaced by a wait on the event it stood for (`engineering:event-driven-waits`).
+Paths are relative to the `blizzard` repo root.
 
-## `tests/unit/cli/test_cli.py`
+## The silent daemon
 
-`_serve_on` stands up a fake runner daemon on a Unix socket, and when its reply is `None` it holds the connection with
-`time.sleep(LOCAL_CLIENT_TIMEOUT * 3)`, a daemon that accepts and never answers. That sleep runs on a daemon thread and
-costs nothing. What costs is the client side: `test_an_ambiguous_liveness_answer_fails_closed[None-did not answer]`
-waits out the production client's `LOCAL_CLIENT_TIMEOUT`, five seconds (`src/blizzard/runner/cli/daemon.py`), before the
-liveness check gives up.
+```python
+# src/blizzard/runner/cli/daemon.py — engineering:event-driven-waits,
+# decision:test-suite/optimization/client-timeout-keyword
+class Door:
+    def uds_client(self, sock: Path, *, timeout: float = LOCAL_CLIENT_TIMEOUT) -> Client: ...
 
-The test's subject is that silence fails closed, not that the timeout is five seconds. `daemon_holding` takes the client
-timeout as a keyword, defaulting to `LOCAL_CLIENT_TIMEOUT`, and the silent case passes a quarter of a second. The value
-of the production constant is asserted where it is defined, if anywhere, not by every test that meets it. The fake
-daemon's hold becomes an `Event` the fixture sets on teardown, so the thread ends with the test rather than fifteen
-seconds later.
 
-## `tests/component/runner/harness/opencode/compatibility/test_diagnostic.py`
+def daemon_holding(sock: Path, door: Door, *, timeout: float = LOCAL_CLIENT_TIMEOUT) -> str | None:
+    """Unchanged behaviour: a socket that does not answer its health probe within ``timeout`` is still held."""
+```
 
-`test_timeout_kills_and_reaps_an_opencode_descendant` and
-`test_successful_run_rejects_and_reaps_a_pipe_closing_descendant` each start a launcher whose descendant sleeps half a
-second and then writes a marker, and the test sleeps `0.7` seconds before asserting the marker is absent. The absence is
-a stand-in for the claim the tests make, that the descendant was reaped, and it costs 0.7 seconds each while proving it
-only as long as the machine is fast enough to have written the marker by then.
+```python
+# tests/unit/cli/test_cli.py
+def _serve_on(sock_path: Path, reply: bytes | None, release: threading.Event) -> socket.socket:
+    """``reply is None`` accepts the connection and never answers, until ``release`` is set."""
+    # the silent branch: release.wait() replaces time.sleep(LOCAL_CLIENT_TIMEOUT * 3), which outlived the test by 15 s
 
-Each descendant writes its pid to a file as its first act, and the test asserts the reaping directly: once `run`
-returns, the recorded process is gone, checked with `os.kill(pid, 0)` raising `ProcessLookupError` and, where the
-descendant is the test's own child, `os.waitpid` reporting it. The check polls with a bound of five seconds, as the
-file's other bounds are, and returns the moment it holds. The marker and the half-second sleep go, since the descendant
-no longer has to live long enough to be caught misbehaving.
+
+# the fixture sets `release` on teardown, so the thread ends with the test
+# test_an_ambiguous_liveness_answer_fails_closed[None-did not answer]: today it waits out the 5.0 s LOCAL_CLIENT_TIMEOUT
+holding = daemon_holding(HostLayout(root).legacy_socket_path, _DOOR, timeout=0.25)
+assert holding is not None and "did not answer" in holding  # still fails closed
+```
+
+## Reaping a descendant
+
+```python
+# tests/component/runner/harness/opencode/compatibility/test_diagnostic.py — engineering:event-driven-waits,
+# decision:test-suite/optimization/reaping-asserted-by-pid
+# test_timeout_kills_and_reaps_an_opencode_descendant, test_successful_run_rejects_and_reaps_a_pipe_closing_descendant.
+# The launcher's descendant writes its pid to `pid_file` as its first act. Its 0.5 s sleep and marker go, and so does the
+# test's time.sleep(0.7) before asserting the marker absent.
+
+result = SubprocessOpenCodeProcess(children=CHILDREN).run(
+    [sys.executable, str(launcher), str(pid_file)], cwd=tmp_path, env={}, timeout=...
+)  # each test keeps its own timeout and its existing assertions on `result`
+pid = int(pid_file.read_text())
+
+
+def _gone(pid: int, *, bound: float = 5.0) -> bool:
+    """Polls until os.kill(pid, 0) raises ProcessLookupError, returning the moment it does; False after `bound`.
+    Where the descendant is the test's own child, os.waitpid reporting it counts as gone."""
+
+
+assert _gone(pid)  # no fixed sleep; 5 s matches the file's other bounds
+```
+
+## The rule
+
+`blizzard-context`'s `bzh:service-waits-on-the-system` (`verification/blizzard/service-tests/time.md`) names every tier
+(`engineering:waits-rule`):
+
+```markdown
+A test in any tier waits on an event, a state, or a process it can observe. A bounded poll is its upper limit, never its
+duration.
+```

@@ -47,7 +47,7 @@ and answering "does the fleet need me?"
 
 ## Deliverables
 
-Each proposal's mocks and renders sit in `mockups/<slug>/`, and its concept in this folder as `<slug>.md`:
+Each proposal's mocks and renders sit in this folder's `<slug>/`, and its concept beside it as `<slug>.md`:
 
 1. The concept. Give the thesis in a paragraph, then the principles, the interaction model (keyboard, pointer, touch),
    how it scales from 8 running to 80, what it deliberately drops from the baseline, and the risks.

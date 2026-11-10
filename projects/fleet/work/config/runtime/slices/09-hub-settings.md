@@ -2,28 +2,46 @@
 name: hub-settings
 depends-on:
   - runner-settings
+code:
+  - blizzard/src/blizzard/hub/config.py::HubConfig.load
+  - blizzard/src/blizzard/hub/composition.py::build_services
+  - blizzard/src/blizzard/hub/app.py::Sweep
+  - blizzard/src/blizzard/hub/app.py::_sweep_interval
+  - blizzard/src/blizzard/hub/delivery/action_pass.py::ActionPassDriver
+  - blizzard/src/blizzard/hub/domain/observability/forge_status.py::AnnotationReconciler
+  - blizzard/src/blizzard/hub/domain/observability/tracing/sweep.py::TraceExportSweep
+  - blizzard/src/blizzard/hub/domain/observability/egress/sweep.py::EgressSweep
+  - blizzard/src/blizzard/hub/auth/throttle.py::IpThrottle
+  - blizzard/src/blizzard/hub/domain/observability/transcripts.py::TranscriptCaps
+  - blizzard/src/blizzard/hub/auth/permissions.py::Permission
 ---
 
 # The hub's settings
 
-Moves the hub's operational settings into one hub-wide record, read per pass and per request, with its routes, CLI,
-apply, and export ([hub.md](../spec/hub.md)). Extends the runner's rule to the hub. Delivers
+Moves the hub's `pass` keys into one hub-wide record, read per pass and per request, with its routes, CLI, apply, and
+export ([hub.md](../spec/hub.md) §Domain, §Data, §Interfaces; [settings.md](../spec/settings.md) §Hub). Delivers
 `product:hub-settings-record`, `product:hub-pass-settings`, `product:hub-file-seeds`, and
-`product:hub-settings-document`.
+`product:hub-settings-document`; bound by `engineering:one-hub-process` and `engineering:upgrade-migration`, and shaped
+by `decision:config/runtime/hub-settings-admin-reads`. It reuses the runner's write and seed rules from
+[03-runner-settings](./03-runner-settings.md).
 
 ## Change
 
-- The hub-wide tables, `SETTINGS_ADMIN`, the seed, and the reader.
-- Every holder reads per pass or per request.
-- The routes and CLI, apply and export.
-- The operator pages on hub configuration and on config documents; the upgrade note that the file now seeds these keys.
+- `hub_settings`, `hub_setting_entries`, and `hub_setting_changes` in `GLOBAL_TABLES`; `Permission.SETTINGS_ADMIN`; the
+  seed in `blizzard hub serve`; `HubSettingsReader`; `HubConfig.load`'s section parsers factored out to validate a
+  write.
+- Each holder in [hub.md](../spec/hub.md) §Reading per pass takes its snapshot at its pass's start or its request's
+  arrival, and an interval write wakes the waiting sweep.
+- The `/api/admin/settings` routes and the `blizzard hub settings` verbs, apply and export among them.
+- The operator pages on hub configuration and on config documents; the upgrade note that the file now seeds these keys
+  (`engineering:contracts-follow-code`).
 - Context: `bzh:configured-record` gains the hub-wide record; `bzh:config-read-on-use` binds the hub's entries and
-  narrows its scope sentence on process settings to the `boot` keys; `bzh:settings-snapshot-per-pass` extends its scope
-  to the hub; `bzh:config-key-declared` gains the hub's half of its `ConfigView` sentence (`engineering:context-rules`).
+  narrows its scope sentence on process settings to the `boot` keys; `bzh:settings-snapshot-per-pass` extends to the
+  hub; `bzh:config-key-declared` gains the hub's half of its `ConfigView` sentence (`engineering:context-rules`).
 
 ## Acceptance
 
-- `blizzard:unit-test`: the permission is held by no tenant role.
+- `blizzard:unit-test`: `SETTINGS_ADMIN` is held by no tenant role.
 - `blizzard:component-test` over a sweep's interval write reaching the next pass, a transcript cap write reaching the
   next ingest in every tenant, and the throttle rebuilt.
 - `blizzard:service-test` on the controlled clock writing a sweep interval and stepping.

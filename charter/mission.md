@@ -17,8 +17,9 @@ and it is useful on its own: a person can take it without taking any other produ
 
 1. **Each product stands alone.** `persona:application-architect` can adopt Workspace without Fleet, or Fleet without
    Workspace, and get full value from either; taking both adds to each rather than unlocking it.
-2. **One front door.** Whatever a person installs, they reach it through one `winter` command, one install, and one
-   upgrade path, and two workspaces on one machine can run different versions without stepping on each other.
+2. **One front door.** Whatever `persona:application-architect` installs, they reach it through one `winter` command,
+   one install, and one upgrade path, and two workspaces on one machine can run different versions without stepping on
+   each other.
 3. **Agents get a straight answer.** Every command an agent runs on behalf of `persona:harness-engineer` gives a result
    it can parse or a reason it can act on, never a silent partial success.
 4. **Trust is earned, not demanded.** `persona:senior-se` can start with a human check at every step and remove checks

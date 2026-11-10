@@ -4,12 +4,25 @@
 
 **Decider:** owner
 
-**Open.** Once runner tokens are sealed in the host's store, a runner added through the API keeps its hub token only
-there, so a host walked back to a release that reads tokens only from `.env` or `[hub_tokens]` strands every runner
-added since the upgrade, recoverable only by retiring it from the hub and adding it again. The owner accepts this for
-now and does not like it; before the sealed-token change is filed, decide whether the store's tokens are also written
-somewhere the old release reads, or whether the walk-back is refused while such a runner exists. It blocks
-`product:runners-come-and-go`.
+**Open.** Whether the store's sealed tokens are also written somewhere an older release reads, or a walk-back is refused
+while a runner added through the API exists, since such a runner's hub token lives only in the store and a walk-back
+strands it until it is retired and added again. The owner accepts the strand for now; it is decided before the
+sealed-token change is filed, and it blocks `product:runners-come-and-go`.
+
+## Settings pulled per pass (decision:config/runtime/pull-per-pass)
+
+Neither daemon watches its store or pushes a write into a running object; the next pass finding a moved revision is the
+only way a change arrives, because that keeps a cold start and a long-lived process equally correct.
+
+## A runner's settings are the runner's (decision:config/runtime/runner-scoped-settings)
+
+A runner's settings tables are runner-scoped rather than host tables, so `blizzard runner` transfer and ingest carry a
+runner's settings with it to another host: what a runner is configured with is the runner's, not the machine's.
+
+## Hub settings reads need the permission (decision:config/runtime/hub-settings-admin-reads)
+
+Reading the hub's settings takes `SETTINGS_ADMIN` as writing does, because the hub's settings are no single tenant's
+business.
 
 ## Walking back a release (decision:config/runtime/walk-back)
 

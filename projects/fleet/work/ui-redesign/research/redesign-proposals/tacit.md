@@ -117,7 +117,7 @@ in about 14 rows.
 
 ## Files
 
-The mocks and their renders are in [`mockups/tacit/`](../../mockups/tacit/).
+The mocks and their renders are in [`tacit/`](./tacit/).
 
 - `board-desktop.html` / `.png`: the docket. Fuses burn live, and C-PTP2 lapses into the record at about 1:40. Try
   `j`/`k`, `space`, `x`, `X` then `enter`, `h`, `1`–`3`, `t`, `enter` and `u`. Append `#keys=j,j,j,j,X,Enter` to replay

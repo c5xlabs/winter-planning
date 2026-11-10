@@ -35,6 +35,11 @@ Wholesale replacement of the hand-built pieces is not the goal and would not pay
 A deliberate look at the component libraries and frontend accelerants the web surface does not yet use, judged against
 the board's real needs: the forms, tables, sheets, and pickers it already has and the ones its roadmap will ask for.
 
+Acceptance:
+
+- The survey names the libraries it looked at and judges each one against the forms, tables, sheets, and pickers the
+  board has and its roadmap asks for.
+
 ### One choice, made on evidence (product:toolkit-choice)
 
 The candidate that wins does so on a demonstration rather than a feature matrix, and the reasoning is written down where
@@ -47,6 +52,11 @@ Acceptance:
 ### Migration where the payoff is real (product:payoff-migration)
 
 Hand-built pieces move to the toolkit when the move buys something; the rest stay.
+
+Acceptance:
+
+- Each hand-built piece that moved to the toolkit has a stated reason it was worth moving.
+- Hand-built pieces with no such reason are still in place.
 
 ### A path for the next surface (product:assembled-surface)
 

@@ -2,6 +2,11 @@
 name: hub-board
 depends-on:
   - hub-settings
+code:
+  - blizzard/web/projects/hub/src/app/admin/admin.routes.ts::ADMIN_ROUTES
+  - blizzard/web/projects/hub/src/app/admin/config-record-panel.ts::ConfigRecordPanel
+  - blizzard/web/projects/hub/src/app/admin/config-revisions.ts::ConfigRevisions
+  - blizzard/web/projects/hub/src/app/admin/config-field-diff.ts::ConfigFieldDiff
 ---
 
 # The Hub settings page
@@ -11,7 +16,8 @@ Adds the Hub settings page to the hub's board ([hub.md](../spec/hub.md) §The bo
 
 ## Change
 
-- The Hub settings page, shown only to a session holding `SETTINGS_ADMIN`.
+- The Hub settings page, shown only to a session holding `SETTINGS_ADMIN`, built from the admin shell's record panel,
+  revisions, and field-diff components.
 
 ## Acceptance
 

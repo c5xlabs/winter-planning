@@ -48,6 +48,12 @@ Acceptance:
 
 An agent crossing the operator's warn line arrives as an event, the way a session's own context warning does today.
 
+Acceptance:
+
+- When an agent in a swarm crosses the warn line, the operator hears of it the way they hear of a session's own context
+  warning.
+- The warning says which chunk and which agent crossed.
+
 ## Open questions
 
 - Where a dynamic workflow's agents leave their transcripts. The runner reads the subagents a session spawns directly;

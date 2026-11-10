@@ -1,115 +1,158 @@
 # Runners, workspaces, and subscriptions on a running host
 
-The three things a host holds a set of — its runners, its workspaces, its subscriptions — become records of the host,
-created and retired through its API and taken up by its next host tick. Their tables are
-[runner-store.md](./runner-store.md) §Tables; the routes' shape and the CLI are [runner-api.md](./runner-api.md); how
-the host tick reconciles them is [passes.md](./passes.md) §The host tick.
+Tables are [runner-store.md](./runner-store.md) §Data; the host tick's reconcile is [passes.md](./passes.md) §The host
+tick; every route here takes `require_superuser` ([runner-api.md](./runner-api.md) §Who may write).
 
-## Runners
+## Domain
 
-A hosted runner is the host's while its newest `hosted_runner_facts` row is `added`. Its id is minted by the hub and
-`immutable`; everything else about it is its entries.
+```mermaid
+stateDiagram-v2
+    direction LR
+    state "Hosted runner" as R {
+        [*] --> added: add, or seed of a [[runner]] with an id
+        added --> retired: retire at the hub, or RetiredRunnerWatch
+        retired --> [*]: final; the file cannot bring it back
+    }
+    state "Workspace or subscription" as W {
+        [*] --> active: create, or seed
+        active --> retired_w: retire
+        retired_w --> active: enable
+        note right of retired_w: never deleted; history stays
+    }
+```
 
-### Adding a runner to a running host
+- A hosted runner is the host's while its newest `hosted_runner_facts` row is `added`. Its id is hub-minted and
+  `immutable`; everything else about it is its entries (`product:runner-id-fixed`).
+- A workspace or subscription is a record in the shape `bzh:configured-record` gives the hub's: an `immutable` key
+  (`workspace_id`; a subscription's `slug` and `provider`), a `revision` every write increments, a
+  `host_setting_changes` row beside every write, sparse-merge edits, retirement as an appended fact, no delete
+  (`product:host-records`).
+- No write is gated on use: a workspace every runner binds can be retired, repointed, or moved to another provider, and
+  a subscription every runner spends can be retired.
 
-`POST /api/host/runners`, body `{ "name": "...", "projects": [...], "settings": { ... } }`, superuser only:
+What each change does, taken up at the next host tick (`product:workspace-reshape`):
 
-1. The host asks the hub to add the runner with the host token, as `runner add` does today (`runner/cli/runners.py:81`),
-   and takes back the runner's id and token.
-2. In one transaction it writes the `hosted_runners` row, an `added` fact, the runner's `runner_identity` row, its
-   sealed token ([runner-store.md](./runner-store.md) §Sealed tokens), the runner's `runner_settings` row at revision
-   `1`, and an entry for `name`, `projects`, and each key `settings` states, validated as a write is
-   ([runner-store.md](./runner-store.md) §A write). The change row's op is `create`. Nothing is written to `.env`, and
-   no directory is created.
-3. It answers the runner's view with `state: "starting"`. The next host tick builds the runner — its object graph
-   through `composition.add_runner` (`runner/composition.py:645`), which today only a test calls — puts it in the
-   registry the app routes `/runners/{runner_id}` through (`app.state.runners`, `runner/app.py:453`), starts its tick
-   driver, its trace-sweep driver where tracing is on, and its spawner executor, and runs its `resume.on_startup()` and
-   takeover recovery as a boot does. Its first tick registers it.
+| Change                | Effect                                                                                                                                                                                                                                                                                                                   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Create a workspace    | The host's from the next host tick; serves work once a runner binds a project to it                                                                                                                                                                                                                                      |
+| Create a subscription | Sampled and reported from the next host tick                                                                                                                                                                                                                                                                             |
+| Edit a workspace      | Provider, root, repositories, pool, limit, base branch, or prompt: a new provider; the next environment is acquired through it. A held environment stays held and is released or resumed through the workspace as it now stands. Blizzard does not reconcile the disk                                                    |
+| Edit a subscription   | Name, credentials path, usage API base, or sample interval: sampler and renewer rebuilt. A running session keeps the credentials it launched with                                                                                                                                                                        |
+| Retire a workspace    | Not reported. Each runner binding a project to it keeps its other bindings and claims nothing through it; the hub flags the binding unreported, as today; a chunk already claimed through it finishes there                                                                                                              |
+| Retire a subscription | Not sampled or reported. A runner naming it declares none at registration from its next tick, is throttled by no subscription's usage, and is offered work as a runner paid for some other way. Its usage samples and usage-limit marks stay. Naming it again once enabled, or naming another, is the runner's own write |
+| Enable either         | The retirement reversed                                                                                                                                                                                                                                                                                                  |
 
-`settings` is validated before step 1, so a body the store would refuse never mints a runner at the hub.
+## Interfaces
 
-Nothing about the runners beside it changes, and nothing is written to `blizzard-host.toml`: the store is where the
-runner lives. An operator who wants the file to say so too exports ([runner-api.md](./runner-api.md) §Apply).
+### Runners
 
-### Retiring a runner from a running host
+```http
+POST /api/host/runners
+{ "name": "night-1", "projects": [...], "settings": { "agents": 2 } }
 
-`POST /api/host/runners/{runner_id}/retire`, body `{ "force": false }`, superuser only, retires the runner at the hub
-with the host token. The hub's refusal while the runner holds a chunk, unless forced, is the host's answer
-(`execution/retirement.md`). Once the hub has retired it, the host writes a `retired` fact, and its next tick drains the
-runner alone: stops its drivers, waits out its running tick, runs its `resume.on_shutdown()` — which, under `force`,
-stops its workers as a host shutdown does (`ShutdownDrain`, `runner/lifecycle/shutdown_drain.py:28`) — closes its
-process (`close_runner`, `runner/composition.py:375`), removes it from the app's registry, and deletes its sealed token.
-Its identity row and its settings rows stay, as a retired hub record's history stays.
+→ the runner's view with "state": "starting"
+422 settings_invalid       # `settings` validated as a write is, before the hub is asked: no mint at the hub
+```
 
-A runner the hub retires some other way — from the hub's CLI, or with its host — is noticed as today, by the hub
-refusing its token, and `RetiredRunnerWatch` (`runner/hub/identity_service.py:43`) now writes the same `retired` fact,
-so the same tick drains it. Today the watch only deletes the identity row and leaves the runner's threads running.
+```http
+POST /api/host/runners/{runner_id}/retire
+{ "force": false }
 
-### The offline verbs
+→ the runner's view
+# The hub's refusal while the runner holds a chunk, unless forced (execution/retirement.md), is the host's answer.
+```
 
-`blizzard runner add` and `blizzard runner retire` reach a running host's API, as every operator verb does. Against a
-host that is not running they write the store directly, holding the host's lock as `retire` already does
-(`store_write_guard`), through the same transaction the API runs, and say which they did; the host's next start takes
-the runner up at its first tick. Neither edits `blizzard-host.toml` or `.env` any longer. A runner retired at the hub
-while its host was down is noticed at the host's first tick, when the hub refuses its token, and drained there.
+`GET /api/host/runners` lists the hosted runners.
 
-### A crash in an add
+| CLI                      | Host running     | Host stopped                                                                                             |
+| ------------------------ | ---------------- | -------------------------------------------------------------------------------------------------------- |
+| `blizzard runner add`    | The add route    | The same transaction against the store, holding the host's lock (`store_write_guard`); says which it did |
+| `blizzard runner retire` | The retire route | As above; the host's next start takes the change up at its first tick                                    |
 
-An add crosses the hub and the store, and a crash between the hub minting the runner and the store's transaction leaves
-the runner minted at the hub with nothing on the host: no row, and no token, which was never written anywhere else.
-Nothing runs under it; the hub shows it as a runner that has never registered, and the operator retires it from the hub
-and adds again. `architecture/crash-correctness/runner.md` records the window under `bzh:crash-exemptions-runner`, since
-the hub mints the id the store's rows are keyed by and the two cannot share a transaction.
+Neither verb edits `blizzard-host.toml` or `.env`. An operator who wants the file to hold a runner exports
+([runner-api.md](./runner-api.md) §Apply).
 
-## Workspaces and subscriptions
+### Workspaces and subscriptions
 
-Each is a record in the shape `bzh:configured-record` gives the hub's: an `immutable` key — a workspace's
-`workspace_id`, a subscription's `slug` and `provider` — a `revision` every write increments, a change row in
-`host_setting_changes` beside every write, sparse-merge edits, retirement as an appended fact, and no delete.
+| Verb   | Route                                                                           | Notes                                          |
+| ------ | ------------------------------------------------------------------------------- | ---------------------------------------------- |
+| create | `POST /api/host/workspaces`, `POST /api/host/subscriptions`                     | Validated as the file is at boot               |
+| list   | `GET` the same                                                                  | `?retired=true` includes retired records       |
+| show   | `GET /api/host/workspaces/{workspace_id}`, `GET /api/host/subscriptions/{slug}` |                                                |
+| edit   | `PATCH` the same, `If-Match`                                                    | Legal on a retired record, which stays retired |
+| retire | `POST …/{key}/retire`                                                           | Of a retired record: writes nothing            |
+| enable | `POST …/{key}/enable`                                                           | Of an enabled record: writes nothing           |
 
-| Verb   | Route                                                               |
-| ------ | ------------------------------------------------------------------- |
-| create | `POST /api/host/workspaces`, `POST /api/host/subscriptions`         |
-| list   | `GET` the same; `?retired=true` includes retired records            |
-| show   | `GET /api/host/workspaces/{workspace_id}`, `…/subscriptions/{slug}` |
-| edit   | `PATCH` the same, with `If-Match`                                   |
-| retire | `POST …/{key}/retire`                                               |
-| enable | `POST …/{key}/enable`                                               |
+A create or edit is refused `422 settings_invalid` with each key's error for what the file would fail at boot: a
+provider the host cannot build, a root that is not a path, a `max_environments` below one.
 
-A retire of a retired record, or an enable of an enabled one, writes nothing; an edit of a retired record is legal and
-leaves it retired.
+### The workspace prompt
 
-**Nothing is gated on use.** A workspace bound by every runner on the host can be retired, repointed to another root, or
-moved to another provider, and a subscription spent by every runner can be retired; no write asks whether the record is
-in use. What a change does to the work running through the record is fixed by the lifetimes, and the operator owns the
-disk:
+`prompt`, `prompt_file`, and `prompt_package` are settings of the workspace record. The existing routes
+(`runner/api/workspace_prompt.py`) stay and write the record through the same write as any edit:
 
-- **Creating a workspace** makes it the host's from the next host tick; it serves work once a runner binds a project to
-  it. **Creating a subscription** samples it and reports it from that tick.
-- **Editing a workspace** — its provider, root, repositories, pool, limit, base branch, or prompt — gives it a new
-  provider at the next host tick, and the next environment acquired is acquired through it. An environment a claim holds
-  stays held; when the claim releases or resumes it, it does so through the workspace as it now stands. Blizzard does
-  not reconcile the disk: moving what is on disk to match a repointed workspace is the operator's, outside blizzard.
-- **Editing a subscription** — its name, credentials path, usage API base, or sample interval — rebuilds its sampler and
-  renewer at the next host tick. A running session keeps the credentials it launched with.
-- **Retiring a workspace** stops the host reporting it at the next host tick. Each runner binding a project to it keeps
-  running its other bindings and takes no claim through that one ([passes.md](./passes.md) §A runner's tick), and the
-  hub flags the binding as unreported, as it flags one today. A chunk already claimed through it finishes there.
-- **Retiring a subscription** stops the host sampling and reporting it. Each runner still naming it runs as though it
-  named no subscription: from its next tick it declares none at registration, no subscription's usage throttles it, and
-  the hub offers it work as it offers a runner paid for some other way. Naming the subscription again, once it is
-  enabled, or naming another, is the runner's own write. Its usage samples and usage-limit marks stay.
-- **Enabling** either reverses the retirement at the next host tick.
+| Route                                               | Writes                                                                                                |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `PUT /api/host/workspaces/{workspace_id}/prompt`    | `prompt` set; `prompt_file` and `prompt_package` to defaults, since a route-set prompt has always won |
+| `DELETE /api/host/workspaces/{workspace_id}/prompt` | All three to defaults: no standing prompt, `source` answers `default`                                 |
 
-A workspace's `prompt`, `prompt_file`, and `prompt_package` are settings of its record. The existing
-`PUT /api/host/workspaces/{workspace_id}/prompt` and its `DELETE` (`runner/api/workspace_prompt.py:56`) stay, write the
-record through the same write as every other edit, and take its superuser check ([runner-api.md](./runner-api.md) §Who
-may write). `PUT` sets `prompt` and returns `prompt_file` and `prompt_package` to their defaults, since a prompt set
-through the route has always won over the configured one; `DELETE` returns all three to their defaults, so the workspace
-is primed with no standing prompt, and its `source` answers `default`. The `workspace_prompt` table they wrote is
-deprecated, read only by the seed ([runner-store.md](./runner-store.md) §Seeding), and dropped later
-(`engineering:deprecations-outlive-epic`).
+The `workspace_prompt` table is deprecated, read only by the seed ([runner-store.md](./runner-store.md) §Seeding), and
+dropped later (`engineering:deprecations-outlive-epic`).
 
-A workspace's or subscription's create and edit are validated as the host's file is at boot — a provider the host cannot
-build, a root that is not a path, a `max_environments` below one — and refused with each key's error.
+## Flows
+
+### Adding a runner
+
+```mermaid
+sequenceDiagram
+    participant Op as Operator (CLI / page)
+    participant H as Host API
+    participant Hub
+    participant S as Host store
+    participant T as Host tick
+    Op->>H: POST /api/host/runners
+    H->>H: validate settings as a write
+    alt invalid
+        H-->>Op: 422 settings_invalid (nothing minted)
+    end
+    H->>Hub: add runner, host token (as runner/cli/runners.py does today)
+    Hub-->>H: runner_id, hub token
+    Note over H,S: crash here: minted at the hub, nothing on the host
+    H->>S: one transaction: hosted_runners, `added` fact, runner_identity,<br/>sealed token, runner_settings rev 1, entries (name, projects, settings), change op create
+    H-->>Op: view, state "starting"
+    T->>S: next host tick lists hosted_runners
+    T->>T: composition.add_runner; app.state.runners; tick, trace-sweep, spawner drivers;<br/>resume.on_startup() and takeover recovery, as a boot does
+    T->>Hub: the runner's first tick registers it
+```
+
+- Nothing is written to `.env` or `blizzard-host.toml`, and no directory is created. The runners beside it keep ticking.
+- A crash between the mint and the transaction leaves a runner the hub shows as never registered, with no row and no
+  token on the host. Nothing runs under it; the operator retires it from the hub and adds again. The hub mints the id
+  the rows are keyed by, so the two cannot share a transaction; `architecture/crash-correctness/runner.md` records the
+  window under `bzh:crash-exemptions-runner`.
+
+### Retiring a runner
+
+```mermaid
+sequenceDiagram
+    participant Op as Operator
+    participant H as Host API
+    participant Hub
+    participant S as Host store
+    participant T as Host tick
+    Op->>H: POST …/retire {force}
+    H->>Hub: retire, host token
+    alt holds a chunk and not forced
+        Hub-->>H: refused
+        H-->>Op: the hub's refusal
+    end
+    Hub-->>H: retired
+    H->>S: `retired` fact
+    T->>T: next tick drains this runner alone: stop its drivers, wait out its tick,<br/>resume.on_shutdown() (under force, stops its workers as ShutdownDrain does),<br/>RunnerProcess.close_runner, remove from app.state.runners
+    T->>S: delete the sealed token; identity and settings rows stay
+```
+
+A runner the hub retires another way (the hub's CLI, or with its host) is noticed as today, when the hub refuses its
+token. `RetiredRunnerWatch` (`runner/hub/identity_service.py`), which today deletes the identity row and leaves the
+threads running, now writes the same `retired` fact, and the same tick drains it. One retired while its host was down is
+noticed and drained at the host's first tick.

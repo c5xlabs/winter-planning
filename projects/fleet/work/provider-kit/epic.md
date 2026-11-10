@@ -60,6 +60,11 @@ Acceptance:
 
 One existing binding moves out of the tree, to prove the path is walkable by someone who is not us.
 
+Acceptance:
+
+- One binding that shipped inside blizzard is installed from its own package and works as it did before.
+- It passes the conformance suite from outside the tree.
+
 ## Open questions
 
 - **Engineering:** The discovery mechanism, and how much of the host language's packaging conventions blizzard should

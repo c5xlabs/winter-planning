@@ -24,11 +24,10 @@ threshold. That watcher was the right idea, built in the wrong place: it lived i
 ## The outcome
 
 The operator has a window into the coding harness while it works: what context the session is carrying, which agents it
-has running, and how each of them is doing. `epic:code-harness-window/agent-observer` comes first: a lane on the runner
-that reads each running session's agents and reports their vital signs to the board.
-`epic:code-harness-window/swarm-view` follows it with the swarm's structure: which runs a session has launched, the
-phase each is in, and which agents belong to which. The observer answers whether the swarm is healthy; the swarm view
-answers what it is doing.
+has running, and how each of them is doing. `epic:code-harness-window/agent-observer` is a lane on the runner that reads
+each running session's agents and reports their vital signs to the board. `epic:code-harness-window/swarm-view` adds the
+swarm's structure: which runs a session has launched, the phase each is in, and which agents belong to which. The
+observer answers whether the swarm is healthy; the swarm view answers what it is doing.
 
 ## Stance
 

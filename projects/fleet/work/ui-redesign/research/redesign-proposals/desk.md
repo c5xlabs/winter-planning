@@ -354,7 +354,7 @@ Desk adds four elements:
 
 ## Files
 
-The mocks and their renders are in [`mockups/desk/`](../../mockups/desk/).
+The mocks and their renders are in [`desk/`](./desk/).
 
 | File                               | What                                                                 |
 | ---------------------------------- | -------------------------------------------------------------------- |

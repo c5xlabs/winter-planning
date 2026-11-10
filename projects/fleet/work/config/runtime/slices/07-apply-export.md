@@ -3,18 +3,22 @@ name: apply-export
 depends-on:
   - hosted-runners
   - host-records
+code:
+  - blizzard/src/blizzard/hub/config.py::HubConfig.to_toml
+  - blizzard/src/blizzard/runner/host_config.py::decode_host_text
 ---
 
 # Apply and export
 
 Adds the runner's declarative apply and its export, and the shared TOML emitter ([runner-api.md](../spec/runner-api.md)
-§Apply). Delivers `product:runner-settings-document`.
+§Apply, §CLI). Delivers `product:runner-settings-document`.
 
 ## Change
 
-- The runner's apply and export routes and their `settings apply` and `settings export` verbs.
-- `foundation/toml_emit.py`.
-- Context: `bzh:config-apply` extends its scope to the runner's document (`engineering:context-rules`).
+- `POST /api/host/settings/apply` and `GET /api/host/settings/export`, and the `settings apply` and `settings export`
+  verbs.
+- `HubConfig.to_toml`'s emitter moved to `foundation/toml_emit.py`, the hub's export unchanged.
+- Context: `bzh:config-apply` extends to the runner's document (`engineering:context-rules`).
 
 ## Acceptance
 

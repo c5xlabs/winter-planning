@@ -1,4 +1,4 @@
-# `persona:product-manager` — the product manager
+# The product manager (persona:product-manager)
 
 Owns what gets built and in what order, and never touches anything below the board.
 

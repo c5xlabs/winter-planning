@@ -147,7 +147,7 @@ ink `#ede7da`, signal vermilion `#ff5a35`, orchid `#ee82d4`, lime `#c6f03c`.
 
 ## Files
 
-The mocks and their renders are in [`mockups/current/`](../../mockups/current/).
+The mocks and their renders are in [`current/`](./current/).
 
 - `board-desktop.html`, `fleet-desktop.html` (1600×1000), `board-mobile.html`, `fleet-mobile.html` (390×844):
   self-contained, inline CSS and JS, no network.

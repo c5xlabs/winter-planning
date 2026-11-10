@@ -371,7 +371,7 @@ This section describes the design at scale. None of it is mocked beyond the 8-ru
 
 ## Files
 
-The mocks and their renders are in [`mockups/dispatch/`](../../mockups/dispatch/).
+The mocks and their renders are in [`dispatch/`](./dispatch/).
 
 | File                               | What                                                                        |
 | ---------------------------------- | --------------------------------------------------------------------------- |

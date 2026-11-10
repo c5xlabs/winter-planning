@@ -38,6 +38,11 @@ Acceptance:
 The word arrives where the agent can act on it rather than mid-thought (`decision:steering/finished-chunk-message`,
 `decision:steering/second-message`).
 
+Acceptance:
+
+- A message sent while the agent is mid-step reaches it when that step ends, not partway through.
+- The agent's next step after the pause takes the message into account.
+
 ### Recorded in the chunk's history (product:steer-recorded)
 
 A human entry into a running chunk is part of its history like every other human entry, so the morning's account of what

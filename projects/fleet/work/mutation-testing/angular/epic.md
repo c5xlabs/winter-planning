@@ -16,6 +16,6 @@ weak frontend test is found only when a reviewer suspects it and mutates the lin
 
 ## The outcome
 
-Frontend mutation stays agent-driven through `ng test` under `bzh:mutation-review-selection` for now. Once the tooling
-can drive the builder, the frontend adopts it with a `web:mutation` verification method of its own
+Frontend mutation stays agent-driven through `ng test`, with reviewers picking which lines to mutate by hand, for now.
+Once the tooling can drive the builder, the frontend adopts it with a mutation verification method of its own
 (`decision:mutation-testing/angular/no-bypass`).

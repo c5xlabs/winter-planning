@@ -26,12 +26,11 @@ chunk. A graph may constrain a lineage to one harness or to an ordered set that 
 default where the graph is silent; and the runner supplies the final default. Order makes the choice reproducible: the
 first supported acceptable harness wins, never a random draw and never an undeclared substitute.
 
-The initiative lands one harness at a time. The delivered `epic:adapters/claude-code` is the foundation rather than
-scope to rebuild. `epic:adapters/opencode`, delivered as the second live binding, was the test of whether the seam is
-real, and it built the harness selection every later occupant inherits. `epic:adapters/codex` follows the same contract
-after two occupants have forced every Claude-shaped assumption into the binding that owns it. `epic:adapters/opencode-2`
-carries the OpenCode binding onto the harness's rewritten 2.x release, proving it afresh rather than assuming the 1.x
-contract survived.
+`epic:adapters/claude-code` is the foundation rather than scope to rebuild. `epic:adapters/opencode`, the second live
+binding, tests whether the seam is real, and it builds the harness selection every later occupant inherits.
+`epic:adapters/codex` uses the same contract once two occupants have forced every Claude-shaped assumption into the
+binding that owns it. `epic:adapters/opencode-2` carries the OpenCode binding onto the harness's rewritten 2.x release,
+proving it afresh rather than assuming the 1.x contract survived.
 
 ## Stance
 

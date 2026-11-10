@@ -2,8 +2,8 @@
 
 ## Adoption batch size (decision:adopt-di/adoption-batch-size)
 
-**Open.** How large each adoption landing is. One landing per concept package is the starting assumption; a package
-whose services form a deep chain may want splitting. It is decided when adoption begins.
+**Open.** How large each adoption landing is, decided when adoption begins: one landing per concept package is the
+starting assumption, and a package whose services form a deep chain may want splitting.
 
 ## Cutover is declared (decision:adopt-di/declared-cutover)
 
@@ -27,7 +27,6 @@ bags are the larger debt and its graph proves the shape; the runner host and the
 
 blizzard adopts dishka as its dependency-injection container, because it was the only one of six candidates that met the
 hub's hardest shapes entirely on its public interface, left the domain untouched, and checks the whole graph when the
-container is built. Its known weaknesses (resolution by type, wiring checked by a test instead of the type checker,
-unlocked child containers, ignored constructor defaults, and a pre-2.0, largely single-maintainer project) are each
-answered by a guard in this epic's engineering requirements; the candidates and how each fared are in
-`research/container-candidates.md`.
+container is built. Each of its known weaknesses is answered by a guard in this epic's engineering requirements; the
+candidates, how each fared, and the weaknesses are in
+[container candidates](research/container-candidates/candidates.md).

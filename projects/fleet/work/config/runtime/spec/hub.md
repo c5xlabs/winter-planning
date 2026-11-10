@@ -1,92 +1,135 @@
 # The hub's settings
 
-Where the hub keeps its `pass` settings, who may change them, the routes, the document an apply takes, and how each
-long-lived object built from them today reads them per pass instead. Which keys move is [settings.md](./settings.md)
-§Hub.
+Which keys move is [settings.md](./settings.md) §Hub.
 
-## One record for the hub, not for a tenant
+## System
 
-Every configured record the hub has today is a tenant's: its table carries `tenant_id`, its change rows go to
-`config_changes` (`hub/store/schema.py:703`, `tenant_id` not null), its revisions are read through `ScopedConnections`,
-its cache is the tenant's `LiveConfig` (`hub/composition.py:849`), and its routes are tenant-bound. The settings this
-epic moves are the hub's, shared by every tenant it serves — one transcript cap, one trace export, one login throttle —
-so they are kept in one hub-wide record beside the tenant records, never in them.
+Every configured record the hub has today is a tenant's: `tenant_id` on its table, change rows in `config_changes`
+(`hub/store/schema.py`, `tenant_id` not null), revisions read through `ScopedConnections`, the tenant's `LiveConfig`
+cache (`hub/composition.py`), tenant-bound routes. The hub's operational settings are one hub-wide record beside them,
+in none of them (`product:hub-settings-record`). The hub runs as one process, so a write's wake of a waiting sweep is
+in-process.
 
-| Table                 | Holds                                                                                                                               |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
-| `hub_settings`        | One row: `revision`, `updated_at`                                                                                                   |
-| `hub_setting_entries` | `key` (PK), `value` (JSON, nullable), `at_default`, `revision`                                                                      |
-| `hub_setting_changes` | Append-only: `id`, `recorded_at`, `revision`, `op` (`seed`, `edit`), `door`, `actor`, `apply_id`, `diff` (JSON `[{key, old, new}]`) |
+## Domain
 
-All three are added to `GLOBAL_TABLES` (`hub/store/schema.py:41`) in one additive revision, applied by
-`blizzard hub migrate` (`bzh:manual-migrations`), and `contracts/store/hub.json` is regenerated. A write is the runner's
-write ([runner-store.md](./runner-store.md) §A write) over these tables: `If-Match` against `revision`, the whole
-resolved configuration validated through the section parsers `HubConfig.load` runs over the file (`hub/config.py`),
-factored out so a write can run them over the resolved settings, one revision and one change row per committed write,
-`at_default` for an unset. The seed is [settings.md](./settings.md) §Seeding from the file, run by `blizzard hub serve`
-after its store check and before `build_services`.
+```python
+# hub/auth/permissions.py, beside EXPORT_ADMIN
+class Permission(StrEnum):
+    ...
+    # Operate the hub-wide settings every tenant shares. Held by a hub administrator (hub_admin_facts) and, under
+    # auth.mode = none, the implicit operator. No tenant role holds it: a tenant's superuser cannot slow another
+    # tenant's sweeps.
+    SETTINGS_ADMIN = "settings:admin"
+```
 
-`bzh:configured-record` gains the hub settings record as a kind without retire or enable — there is always exactly one —
-keyed by the entry rather than a field, and `bzh:config-read-on-use`'s scope gains the hub-wide record beside the
-tenant's.
+`bzh:configured-record` gains the hub settings record as a kind with no retire or enable (there is always exactly one),
+keyed by the entry rather than a field; `bzh:config-read-on-use`'s scope gains it beside the tenant's records.
 
-## Who may change them
+## Data
 
-A new hub-level `Permission.SETTINGS_ADMIN`, "operate the hub-wide settings every tenant shares", in
-`hub/auth/permissions.py` beside `EXPORT_ADMIN`, held only by a hub administrator (`hub_admin_facts`) and, under
-`auth.mode = none`, by the implicit operator. No tenant role holds it: a tenant's superuser cannot slow another tenant's
-sweeps. Every route below is authorized by `require_hub(Permission.SETTINGS_ADMIN)` (`hub/api/auth_session.py:355`),
-reads included, since the hub's settings are no single tenant's business.
+```python
+# hub/store/schema.py — all three in GLOBAL_TABLES, one additive revision applied by `blizzard hub migrate`
+# (bzh:manual-migrations); contracts/store/hub.json regenerated.
 
-## Routes and CLI
+hub_settings = Table(                                    # one row
+    "hub_settings", metadata,
+    Column("revision", Integer, nullable=False),
+    Column("updated_at", UtcDateTime, nullable=False),
+)
 
-| Route                             | CLI                                                | Does                                                                                                                                                                       |
-| --------------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/admin/settings`         | `blizzard hub settings show [KEY]`                 | The view: as the runner's ([runner-api.md](./runner-api.md) §Views), listing only the `pass` keys, `in_force` omitted, since every pass and request takes its own snapshot |
-| `PATCH /api/admin/settings`       | `blizzard hub settings set KEY VALUE`, `unset KEY` | A write: `set` and `unset` with `If-Match`, refused as the runner's write is                                                                                               |
-| `GET /api/admin/settings/changes` | `blizzard hub settings changes`                    | The change log, newest first, paginated                                                                                                                                    |
-| `POST /api/admin/settings/apply`  | `blizzard hub settings apply FILE [--dry-run]`     | A declarative apply (§Apply)                                                                                                                                               |
-| `GET /api/admin/settings/export`  | `blizzard hub settings export`                     | The apply document, as the store stands                                                                                                                                    |
+hub_setting_entries = Table(
+    "hub_setting_entries", metadata,
+    Column("key", String, primary_key=True),
+    Column("value", Text, nullable=True),                # JSON
+    Column("at_default", Boolean, nullable=False),
+    Column("revision", Integer, nullable=False),
+)
 
-The routes are described in `openapi/hub.openapi.json` and reach the board through its generated client; the CLI verbs
-in `contracts/cli/`. None is on the fleet wire.
+hub_setting_changes = Table(                             # append-only
+    "hub_setting_changes", metadata,
+    Column("id", Integer, primary_key=True, autoincrement=True),
+    Column("recorded_at", UtcDateTime, nullable=False),
+    Column("revision", Integer, nullable=False),
+    Column("op", String, nullable=False),                # "seed" | "edit"
+    Column("door", String, nullable=False),
+    Column("actor", String, nullable=False),
+    Column("apply_id", String, nullable=True),
+    Column("diff", Text, nullable=False),                # JSON [{key, old, new}]
+)
+```
 
-## Apply
+- A write is the runner's ([runner-store.md](./runner-store.md) §A write) over these tables: `If-Match` against
+  `revision`, the whole resolved configuration validated through the section parsers `HubConfig.load` runs over the file
+  (`hub/config.py`), factored out to run over resolved settings; one revision and one change row per committed write;
+  `at_default` for an unset.
+- The seed ([lifetimes.md](./lifetimes.md) §Seed) runs in `blizzard hub serve` after its store check and before
+  `build_services`.
 
-The hub's settings document is its own, not a section of a tenant's config document, since a tenant's document never
-reaches past its tenant (`bzh:config-apply`). It is shaped like `blizzard-hub.toml` — the same tables, the same key
-names — and states any of the hub's `pass` keys. The route takes it, and the export answers it, as JSON.
-`blizzard hub settings apply FILE` reads a TOML file and decodes it through the hub's file loader (`hub/config.py`), the
-one hub module `bzh:config-key-declared`'s ast-grep rule lets read TOML, so no new decoding seam is opened and the rule
-is unchanged; `export` emits TOML through the hand-rolled emitter `HubConfig.to_toml` already uses, moved to
-`foundation/toml_emit.py` so the runner shares it. The document is decoded by the file's loader and is not a config
-document, so `bzh:config-codec` does not bind it. An apply sets each key it states and touches nothing else, refuses a
-`boot` key with `setting_not_live`, commits in one transaction with door `apply` and one `apply_id`, and answers one
-outcome row per key; a dry run is the transaction rolled back. The export writes every entry the store holds, so
-applying it back writes nothing.
+## Interfaces
 
-## Reading per pass
+Every route takes `require_hub(Permission.SETTINGS_ADMIN)` (`hub/api/auth_session.py`), reads included
+(`decision:config/runtime/hub-settings-admin-reads`). Routes are described in `openapi/hub.openapi.json` and reach the
+board through its generated client; the CLI verbs are in `contracts/cli/`. None is on the fleet wire.
 
-`HubSettingsReader`, in `hub/settings/`, reads `hub_settings.revision` in one indexed read and answers the snapshot,
-cached under the revision, so a cold hub is correct. The hub runs as one process: a write's wake of a waiting sweep is
-in-process, and running the hub as several processes is not this epic's. Each holder below takes the snapshot at its
-pass's start, or a request's arrival:
+| Method  | Path                          | CLI                                                | Answer                                                                                                                                            |
+| ------- | ----------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/api/admin/settings`         | `blizzard hub settings show [KEY]`                 | The runner's view shape ([runner-api.md](./runner-api.md) §Views), only `pass` keys, no `in_force`: every pass and request takes its own snapshot |
+| `PATCH` | `/api/admin/settings`         | `blizzard hub settings set KEY VALUE`, `unset KEY` | `set` and `unset` with `If-Match`, refused as the runner's write is                                                                               |
+| `GET`   | `/api/admin/settings/changes` | `blizzard hub settings changes`                    | The change log, newest first, paginated                                                                                                           |
+| `POST`  | `/api/admin/settings/apply`   | `blizzard hub settings apply FILE [--dry-run]`     | §Apply                                                                                                                                            |
+| `GET`   | `/api/admin/settings/export`  | `blizzard hub settings export`                     | The apply document, as the store stands                                                                                                           |
 
-| Held today                                                                                             | Under this epic                                                                                                                                                                                                                                                              |
-| ------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| A sweep's interval, fixed into its `Sweep` at lifespan (`hub/app.py:172`, `_sweep_interval` `:254`)    | `Sweep.run` evaluates the interval before each wait, from the snapshot of the pass before; a write of an interval wakes the waiting sweep, as the runner's driver is woken ([passes.md](./passes.md) §The loop's interval). Whether a sweep is timed or stepped stays `boot` |
-| `ActionPassDriver`'s `PassBound` (`hub/composition.py:1514`)                                           | The driver takes `action_pass_seconds` from the snapshot at each pass's start, and the deadline it sets is that pass's                                                                                                                                                       |
-| `AnnotationReconciler.full_pass_floor` (`:1708`)                                                       | Computed from `annotation_interval_seconds` at each pass's start                                                                                                                                                                                                             |
-| `TraceExportSweep`'s settings, copied at construction (`hub/domain/observability/tracing/sweep.py:60`) | Read from the snapshot at each sweep's start; `TraceReplay` and `TraceStatusReader` read `replay_max_window` per request. Whether the sweep exists at all — an exporter configured — stays `boot`                                                                            |
-| `EgressSweep` and `EgressWriterSettings` (`hub/domain/observability/egress/sweep.py:92`, `:1567`)      | The `pass` keys read at each sweep's start; the writer is rebuilt when `max_rows_per_file` or `min_free_bytes` moves. The directory, the format, and whether egress is on stay `boot`                                                                                        |
-| `IpThrottle` (`:1686`)                                                                                 | Rebuilt at the first login after its keys move; its buckets start empty, which a throttle loosened or tightened by hand accepts. Turning it off drops it                                                                                                                     |
-| `TranscriptCaps`, inside each tenant's cached services (`:1021`, `:1261`)                              | Read from the snapshot per request by the ingest service, so no tenant's cached services hold them                                                                                                                                                                           |
-| `close_forge_writes_enabled`, closed over by each tenant's work-source registry (`hub/app.py:618`)     | Read from the snapshot when a closer is handed out                                                                                                                                                                                                                           |
-| `produces_mode`, `route_token_mode`, read per request from `app.state.config` (`hub/api/fleet.py:180`) | Read per request from the snapshot                                                                                                                                                                                                                                           |
+### Apply
+
+`product:hub-settings-document`. The hub's settings document is its own, never a section of a tenant's config document,
+since a tenant's document never reaches past its tenant (`bzh:config-apply`).
+
+| Aspect     | Rule                                                                                                                                                                                                                                               |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shape      | `blizzard-hub.toml`'s tables and key names; states any of the hub's `pass` keys. JSON on the route and from the export                                                                                                                             |
+| Decode     | `apply FILE` decodes TOML through the hub's file loader (`hub/config.py`), the one hub module `bzh:config-key-declared`'s ast-grep rule lets read TOML; no new seam, rule unchanged. Not a config document, so `bzh:config-codec` does not bind it |
+| Encode     | `export` emits TOML through the emitter `HubConfig.to_toml` uses, moved to `foundation/toml_emit.py` and shared with the runner                                                                                                                    |
+| Writes     | Each stated key set, nothing else touched; a `boot` key refused `setting_not_live`                                                                                                                                                                 |
+| Commit     | One transaction, door `apply`, one `apply_id`; one outcome row per key; a dry run rolls it back                                                                                                                                                    |
+| Round trip | The export writes every entry the store holds, so applying it back writes nothing                                                                                                                                                                  |
+
+### Reading per pass
+
+```python
+# hub/settings/                                                              product:hub-pass-settings
+class HubSettingsReader:
+    def snapshot(self) -> HubSettings:
+        # One indexed read of hub_settings.revision; entries re-read only when it moved; cached under the revision,
+        # so a cold hub is correct.
+        ...
+```
+
+Each holder takes the snapshot at its pass's start or its request's arrival:
+
+| Held today                                                                                               | Under this epic                                                                                                                                                                                                                                |
+| -------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A sweep's interval, fixed into its `Sweep` at lifespan (`hub/app.py::Sweep`, `_sweep_interval`)          | `Sweep.run` evaluates the interval before each wait from the pass before's snapshot; an interval write wakes the waiting sweep, as the runner's driver is woken ([passes.md](./passes.md) §The loop's interval). Timed or stepped stays `boot` |
+| `ActionPassDriver`'s `PassBound` (`hub/composition.py`)                                                  | `action_pass_seconds` from the snapshot at each pass's start; the deadline it sets is that pass's                                                                                                                                              |
+| `AnnotationReconciler.full_pass_floor`                                                                   | Computed from `annotation_interval_seconds` at each pass's start                                                                                                                                                                               |
+| `TraceExportSweep`'s settings, copied at construction (`hub/domain/observability/tracing/sweep.py`)      | Read at each sweep's start; `TraceReplay` and `TraceStatusReader` read `replay_max_window` per request. Whether the sweep exists (an exporter configured) stays `boot`                                                                         |
+| `EgressSweep`, `EgressWriterSettings` (`hub/domain/observability/egress/sweep.py`, `hub/composition.py`) | The `pass` keys read at each sweep's start; the writer rebuilt when `max_rows_per_file` or `min_free_bytes` moves. Directory, format, and on/off stay `boot`                                                                                   |
+| `IpThrottle` (`hub/composition.py`)                                                                      | Rebuilt at the first login after its keys move, its buckets empty, which a throttle changed by hand accepts; turning it off drops it                                                                                                           |
+| `TranscriptCaps`, inside each tenant's cached services                                                   | Read from the snapshot per request by the ingest service; no tenant's cached services hold them                                                                                                                                                |
+| `close_forge_writes_enabled`, closed over by each tenant's work-source registry (`hub/app.py`)           | Read from the snapshot when a closer is handed out                                                                                                                                                                                             |
+| `produces_mode`, `route_token_mode`, read per request from `app.state.config` (`hub/api/fleet.py`)       | Read per request from the snapshot                                                                                                                                                                                                             |
 
 ## The board
 
-The hub's board has no hub-administration page today; its admin shell is a tenant's. It gains one, **Hub settings**,
-shown only to a session holding `SETTINGS_ADMIN`: every key of the view with its value, source, and lifetime, an edit
-per `pass` key, and the change history, built from the admin shell's record panel, revisions, and field-diff components
-(`web/projects/hub/src/app/admin/config-*.ts`).
+The board has no hub-administration page today; its admin shell is a tenant's. It gains **Hub settings**, shown only to
+a session holding `SETTINGS_ADMIN`, built from the admin shell's record panel, revisions, and field-diff components
+(`web/projects/hub/src/app/admin/config-*.ts`):
+
+| Panel   | Shows                                                                          |
+| ------- | ------------------------------------------------------------------------------ |
+| Keys    | Every key of the view with value, `source`, `lifetime`; an edit per `pass` key |
+| History | The change log                                                                 |
+
+## Open questions
+
+- `SETTINGS_ADMIN`'s string value: the spec names the member, not its value; `"settings:admin"` follows `EXPORT_ADMIN`'s
+  `"export:admin"`. Engineering.

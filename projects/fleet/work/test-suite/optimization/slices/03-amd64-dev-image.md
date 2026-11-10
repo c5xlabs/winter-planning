@@ -1,11 +1,13 @@
 ---
 name: amd64-dev-image
+code:
+  - blizzard/.github/workflows/push.yml::dev-image
 ---
 
 # The amd64-only dev image
 
 Builds the dev image for amd64 only. Delivers `engineering:amd64-dev-image` and `product:arm64-releases`; builds
-`spec/pipeline.md` §The dev image. Independent of every other slice.
+`spec/dev-image.md`. Independent of every other slice.
 
 ## Change
 
@@ -16,5 +18,5 @@ Builds the dev image for amd64 only. Delivers `engineering:amd64-dev-image` and 
 
 ## Acceptance
 
-- `edge` and `sha-<sha>` are single-platform amd64 images, signed as before.
+- `edge` and `sha-<sha>` are single-platform amd64 images, signed and attested as before.
 - A release still publishes amd64 and arm64 images with a bill of materials per platform.

@@ -54,6 +54,11 @@ Acceptance:
 
 What the app may do while closed is decided against Apple's rules rather than discovered by rejection.
 
+Acceptance:
+
+- What the app does while closed is written down against Apple's rules before it is submitted.
+- The app is not rejected at review for its background behaviour.
+
 ## Open questions
 
 - **Product owner:** What App Store review makes of an application whose entire purpose is operating a fleet of coding

@@ -1,7 +1,7 @@
-# `persona:application-architect` — the application architect
+# The application architect (persona:application-architect)
 
-**The primary persona.** The agentic-native engineer this product is built by and for, who queues work, walks away, and
-expects to return to landed work.
+**The primary persona.** The agentic-native engineer the suite is built by and for, who hands real work to agents and
+expects it to land.
 
 ## Who they are
 
@@ -13,24 +13,21 @@ reach.
 
 ## What their work looks like
 
-Evenings and weekends are when their fleet earns its keep. They file issues during the day as ideas arrive, queue work
-before stepping away, and expect the morning to greet them with landed changes — merged to main, or waiting at exactly
-the gates they chose — and, where something went wrong, an escalation precise enough to act on immediately. What they
-never expect to find is a wedged fleet or a mystery.
+Their unit of work spans repositories, and they rarely run one agent at a time. During the day they set several agents
+going in parallel, each on its own feature, and expect none of them to trip over another's checkout, ports, or services.
+When they step away, they want work to keep moving without them and to come back to changes that landed, or to a problem
+stated precisely enough to act on at once. What they never expect to find is a wedged system or a mystery.
 
-## What they need from blizzard
+## What they need from the suite
 
-- **Unattended throughput** — file issues, walk away, return to landed work.
-- **Truthful status at a glance** — the board never says something the system cannot back.
-- **Cheap takeover** — one pasted resume command lands them in the stuck agent's full session context, not in a cold
-  reconstruction of it.
-- **Zero duplicated or clobbered work** — a structural guarantee, not a probabilistic one.
-- **Polyrepo end to end** — their unit of work spans repositories, and the platform treats that as normal.
-
-In short: the [mission](../../projects/fleet/charter/mission.md)'s success criteria are this persona's needs, written
-down.
+They need to install the suite once and add only the products they want, each useful on its own. They need a system that
+spans many repositories treated as normal at every layer, from the environment an agent works in to the delivery that
+lands its change. They need parallel agents that cannot collide, and status they can believe at a glance. And when
+something goes wrong, they need to land in the stuck agent's full session in one step, because recovering a run is what
+their trust rests on.
 
 ## What serves them
 
-Everything in the core platform — the runner's store, the supervisor loop and its crash recovery, the harness adapters
-and their takeover flows, the board.
+The platform's one-step install and per-workspace versions; Workspace's isolated, fully running feature environments and
+its commands that act across every repository at once; and Fleet's unattended execution, takeover, and board. What they
+need from Fleet in particular is set out in [the Fleet vision](../../projects/fleet/charter/vision.md).

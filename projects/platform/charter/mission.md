@@ -13,12 +13,12 @@ reach any one product: installing, upgrading, choosing a version, or extending t
 
 1. **Installed in one step.** `persona:application-architect` installs the `winter` command once and adds Workspace,
    Fleet, or both from it, with no toolchain to set up first.
-2. **Each workspace keeps its own version.** Two workspaces on one machine pin different versions of the suite, and
-   upgrading one never changes the other.
+2. **Each workspace keeps its own version.** `persona:application-architect` pins two workspaces on one machine to
+   different versions of the suite, and upgrading one never changes the other.
 3. **Extensions in any language.** `persona:harness-engineer` writes an extension in the language they prefer, and it
    keeps working across releases because the contract it speaks is versioned.
-4. **One command shape.** Whichever product a person is using, commands are found, named, and answered the same way, so
-   learning one product teaches the shape of the others.
+4. **One command shape.** Whichever product `persona:senior-se` is using, commands are found, named, and answered the
+   same way, so learning one product teaches the shape of the others.
 
 ## Non-goals
 

@@ -2,6 +2,6 @@
 
 ## Bench sessions (decision:lab/bench/bench-sessions)
 
-**Open.** How a bench shares sessions. A bench node that resumes a session begun upstream inherits a conversation the
-seed cannot reproduce. Whether the lab starts every bench session fresh, replays the upstream transcript, or refuses
-such a bench decides how faithful a trial is to the graph it came from. It blocks `product:mint-refusals`.
+**Open.** Whether the lab starts a bench session that resumes one begun upstream fresh, replays the upstream transcript,
+or refuses such a bench, since the conversation it inherits is one the seed cannot reproduce and the choice decides how
+faithful a trial is to the graph it came from; it blocks `product:mint-refusals`.
