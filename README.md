@@ -1,6 +1,6 @@
-# ❄️ C5X Winter requirements
+# ❄️ Winter requirements
 
-C5X Winter is the suite by [C5X Labs](https://github.com/c5xlabs) for building software with coding agents: **Winter
+Winter is the suite by [C5X Labs](https://github.com/c5xlabs) for building software with coding agents: **Winter
 Workspace**, **Winter Fleet**, and the platform that fronts them. This repository holds the suite's requirements content
 only — charters, milestones, epics, and the requirements and specs behind them. Code and its documentation live in each
 product's own repositories.

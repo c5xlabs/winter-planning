@@ -1,15 +1,17 @@
 # The application architect (persona:application-architect)
 
-**The primary persona.** The agentic-native engineer the suite is built by and for, who hands real work to agents and
-expects it to land.
+The agentic-native engineer who hands real work to agents and expects it to land.
 
 ## Who they are
 
-They have the technical range to describe a system in writing and work with models to produce larger technical plans and
-feature specs. They are far enough into agentic development that they more or less trust the output — not blindly, but
-because they trust themselves to recover it: when a run goes astray, they can drop into the exact session, see what the
-agent saw, and fix or redirect it. Trust, for this person, is not faith in the model; it is confidence in their own
-reach.
+They can envision ambitious solutions and reason through the code that would make them work. Their ideas have
+traditionally outpaced how quickly they could write that code. They excel at managing complexity across a codebase,
+shaping boundaries and relationships so that humans and agents can work without repeatedly untangling the whole system.
+They can turn that understanding into written designs and work with models on detailed plans and feature specs.
+
+They are far enough into agentic development that they more or less trust the output — not blindly, but because they
+trust themselves to recover it: when a run goes astray, they can drop into the exact session, see what the agent saw,
+and fix or redirect it. Trust, for this person, is not faith in the model; it is confidence in their own reach.
 
 ## What their work looks like
 

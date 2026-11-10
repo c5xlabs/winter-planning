@@ -18,12 +18,21 @@ They want to hand work to agents the way they would hand it to a new team member
 checked, responsibility extended as it is earned. A hand-off that assumes deep harness fluency — an archaeology project
 to find out what an agent was doing — would end the experiment on day one.
 
+As suitable workflows become available and their confidence grows, they want to move toward spec-driven development,
+giving agents more responsibility for carrying a written specification through to working code. They still want to work
+through the details in their own terminal, in direct conversation with an agent, when the task calls for closer
+collaboration. They expect to move between those ways of working as the work demands.
+
 ## What they need from the suite
 
 The suite's structure substitutes for orchestration skill they haven't built yet. Each command an agent runs either
 works or says exactly why it didn't, so they can watch an agent drive it and believe what they see. Commands look and
 answer the same way in every product, so what they learn in one carries to the next. When an agent needs them, the
 hand-off is the agent's full context, not a puzzle.
+
+They also need the system to get out of their way. The factory can keep running while they attend to other duties or
+work in their own terminal, without disrupting their tools or requiring them to route traditional workflows through it.
+They choose when to engage with the factory; its operation does not dictate how they do the rest of their work.
 
 Above all, they need the dial. In every product of the suite they start with a human check at every step and remove
 checks one at a time as confidence grows. The suite builds their confidence the only way that lasts: by being

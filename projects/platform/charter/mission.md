@@ -1,8 +1,8 @@
 # Mission
 
-The platform is what every C5X Winter product stands on: the `winter` command a person installs once, the way each
-product arrives and upgrades, and the contract an extension written by anyone plugs in through. It serves everyone who
-uses any product of the suite, and the people who extend it.
+The platform is what every Winter product stands on: the `winter` command a person installs once, the way each product
+arrives and upgrades, and the contract an extension written by anyone plugs in through. It serves everyone who uses any
+product of the suite, and the people who extend it.
 
 ## Scope filter
 

@@ -1,6 +1,7 @@
 # The harness engineer (persona:harness-engineer)
 
-The suite's mechanic, tuning the harness and the system around it and reading outcomes across many runs.
+**The primary persona.** The engineer the suite is built by and for, who tunes the harness and the system around it and
+reads outcomes across many runs.
 
 ## Who they are
 
@@ -11,16 +12,31 @@ what setting would have prevented the class.
 
 ## What their work looks like
 
-Tuning, mostly. They choose the coding harness and the skills, agents, and context it receives, they write extensions in
-the language they prefer, and they adjust the settings that govern how agents run. They change one thing, run the
-agents, and read the results. Their enemy is anything that makes two runs incomparable or an incident unreconstructable.
+They extend the harness and the software factory around it, adding layers of automation that let agents carry more of
+the software development lifecycle, from planning a change through verifying and delivering it. They choose the coding
+harness and the skills, agents, and context it receives, and write extensions in the language they prefer to connect
+those capabilities into a working process.
+
+They also tune the settings that govern how agents run. They change one thing, run the agents, and read the results.
+Their enemy is anything that makes two runs incomparable or an incident unreconstructable.
 
 ## What they need from the suite
 
 Every operational constant lives in configuration, changeable without touching code, because a constant buried in code
 is a dial they cannot turn. Every command an agent runs gives a result it can parse or a reason it can act on, so a
 failure is a fact they can study rather than a silence. The harness is theirs to choose, and an extension they write
-keeps working across releases. A parameter change is judged against real outcome data, never against vibes.
+keeps working across releases.
+
+They need to define agent workflows that fit their application domain, adding new workflows or changing existing ones as
+the work demands. They need to monitor those workflows as they run, seeing where work progresses or stalls so they can
+refine the process.
+
+They need to run controlled experiments, changing selected settings while holding the work and surrounding conditions
+steady. Repeatable trials and a baseline let them judge whether a change improves the system or makes it worse.
+
+They need access to detailed data across many runs in a form AI can aggregate and analyze, so they can assess whether a
+change improves outcomes and find recurring defects that individual runs would hide. Improvements are judged against
+real outcome data, never against vibes.
 
 ## What serves them
 
