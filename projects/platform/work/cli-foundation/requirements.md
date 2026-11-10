@@ -5,7 +5,7 @@ For `epic:cli-foundation`.
 ## Discover the supported interface (product:discover-help)
 
 A person can ask the executable what it does and how to use the interface it actually supports. Invoking it without
-arguments also shows help (`decision:cli-foundation/bare-invocation`).
+arguments also shows help.
 
 Acceptance:
 
@@ -51,8 +51,7 @@ Acceptance:
 ## Demonstrate a separate component (product:development-sample)
 
 A contributor can run a dev-only Rust sample through the platform CLI and observe a real handoff to a separate
-executable (`decision:cli-foundation/development-sample`). The demonstration validates the module boundary without
-installing a product or using Homebrew.
+executable. The demonstration validates the module boundary without installing a product or using Homebrew.
 
 Acceptance:
 

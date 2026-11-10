@@ -22,8 +22,7 @@ small addition turns into design work and reviewers must reconcile incompatible 
 
 The person can run the platform executable, discover its supported options, and identify its version from any directory.
 This first executable has a small, truthful surface: help and version, with an explanation when an invocation is not
-supported. It stands on its own rather than wrapping the existing Workspace CLI
-(`decision:cli-foundation/standalone-command`).
+supported. It stands on its own rather than wrapping the existing Workspace CLI.
 
 Maintainers have a repeatable development loop with automated feedback. Agents can extend the system within a documented
 architecture without making excessive project-level architectural decisions: routine work follows established patterns,
@@ -34,8 +33,8 @@ context that gives code and architecture reviews the same rules contributors use
 the executable without release credentials, published artifacts, or Homebrew setup.
 
 In development, a working Rust sample component is launched as a separate executable through the platform CLI. It
-demonstrates the module boundary with observable argument, output, and exit behavior, rather than leaving modularity
-as a diagram; normal production builds omit the sample command (`decision:cli-foundation/development-sample`).
+demonstrates the module boundary with observable argument, output, and exit behavior, rather than leaving modularity as
+a diagram; normal production builds omit the sample command.
 
 ## What this epic is not
 

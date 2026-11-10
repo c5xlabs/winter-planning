@@ -4,8 +4,8 @@ For `epic:cli-foundation`.
 
 ## What already holds
 
-The platform's implementation language is constrained by `engineering:rust-product-clis`; this epic establishes
-the Rust project, test facilities, and local verification checks rather than choosing another implementation language.
+The platform's implementation language is constrained by `engineering:rust-product-clis`; this epic establishes the Rust
+project, test facilities, and local verification checks rather than choosing another implementation language.
 
 ## Reproducible development setup (engineering:reproducible-setup)
 
@@ -24,8 +24,8 @@ Acceptance:
 ## Focused local feedback (engineering:local-check-loop)
 
 The repository exposes documented commands for formatting, linting, compilation checks, focused tests, and the routine
-verification suite, without requiring release or publishing operations. Routine development reuses incremental
-build artifacts rather than requiring clean release builds. Serves `epic:cli-foundation`.
+verification suite, without requiring release or publishing operations. Routine development reuses incremental build
+artifacts rather than requiring clean release builds. Serves `epic:cli-foundation`.
 
 Acceptance:
 
@@ -58,8 +58,8 @@ provides the common tier definitions and entry points. Serves `epic:cli-foundati
 
 Acceptance:
 
-- Unit tests exercise individual functions or types; component tests exercise cooperating platform modules through
-  their declared interfaces without launching the CLI process.
+- Unit tests exercise individual functions or types; component tests exercise cooperating platform modules through their
+  declared interfaces without launching the CLI process.
 - Service tests launch the built CLI executable as a subprocess; the term does not imply a daemon or Fleet service.
 - Each tier has an independently runnable command, and the aggregate local and CI checks include all three tiers.
 - Shared fixture/configuration builders live in test support rather than being copied into each suite; production code
@@ -94,8 +94,7 @@ Acceptance:
 
 The sample is a separate Rust test/development project, not behavior linked into the platform executable. Its explicit
 development registration exercises the process-launch boundary that the later launcher can extend. Serves
-`product:development-sample` under `decision:cli-foundation/development-sample` and
-`decision:cli-foundation/sample-process-contract`.
+`product:development-sample`; the handoff contract is specified in [spec/sample.md](./spec/sample.md).
 
 Acceptance:
 
@@ -134,8 +133,8 @@ Acceptance:
 ## Agent-facing architecture guidance (engineering:extension-guidance)
 
 The code repository's agent entry point routes contributors to its architecture, command-extension procedure, and
-verification commands. The guidance records project-level defaults rather than asking each feature author to choose
-them again. Serves `product:governed-context`.
+verification commands. The guidance records project-level defaults rather than asking each feature author to choose them
+again. Serves `product:governed-context`.
 
 Acceptance:
 
@@ -154,5 +153,5 @@ Acceptance:
   repository.
 - The verification matrix distinguishes unit, component, service, lint, architecture, and build checks with concrete
   commands and stable method identifiers; it lists only methods available in the code repository.
-- The guidance documents how to check a proposed boundary change and how to verify that ordinary changes stay within
-  the existing boundaries; reviewers need not invent project policy for each change.
+- The guidance documents how to check a proposed boundary change and how to verify that ordinary changes stay within the
+  existing boundaries; reviewers need not invent project policy for each change.
