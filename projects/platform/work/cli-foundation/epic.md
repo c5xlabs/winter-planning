@@ -17,8 +17,6 @@ depends on a product installation and setup they have not chosen yet.
 Maintainers and coding agents also need a foundation they can extend without choosing the project's architecture again
 for each change. When command structure, dependency boundaries, and verification conventions are left implicit, even a
 small addition turns into design work and reviewers must reconcile incompatible approaches instead of judging behavior.
-People trying the tool also need a published version they can install without becoming contributors or setting up a Rust
-toolchain.
 
 ## The outcome
 
@@ -32,12 +30,12 @@ architecture without making excessive project-level architectural decisions: rou
 and a change that needs a new architectural decision has a clear boundary at which to ask.
 
 The foundation includes a dedicated test project, enforced quality and architectural checks, and repository-owned
-context that gives code and architecture reviews the same rules contributors use. Maintainers can publish a versioned
-release, and users can install its prebuilt executable through Homebrew without building from source.
+context that gives code and architecture reviews the same rules contributors use. A fresh checkout can build and verify
+the executable without release credentials, published artifacts, or Homebrew setup.
 
 In development, a working Rust sample component is launched as a separate executable through the platform CLI. It
 demonstrates the module boundary with observable argument, output, and exit behavior, rather than leaving modularity
-as a diagram; the sample is absent from released installations (`decision:cli-foundation/development-sample`).
+as a diagram; normal production builds omit the sample command (`decision:cli-foundation/development-sample`).
 
 ## What this epic is not
 
@@ -45,5 +43,7 @@ as a diagram; the sample is absent from released installations (`decision:cli-fo
   component in this epic is the explicitly selected development sample.
 - A bridge to the existing Python Workspace CLI, command aliases for it, or a migration compatibility layer.
 - Workspace discovery, configuration loading, version-pin resolution, or development-source overrides.
-- Product-component installation, downloads, or self-update. Publishing and Homebrew installation cover the platform
-  executable only; development and verification do not replace the user's installed command.
+- Release automation, artifact publication, signing, Homebrew packaging, or a first public release; those belong to
+  `epic:release-automation` under `decision:release-delivery-separation`.
+- Product-component installation, downloads, or self-update. Development and verification do not replace the user's
+  installed command.

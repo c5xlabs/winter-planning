@@ -26,6 +26,19 @@ Acceptance:
 - The component's exit status reaches the caller; an unsuccessful product command is not reported as successful.
 - Interrupting or terminating a shim invocation does not leave the component running unnoticed.
 
+## Show help for the invoked entry point (product:invocation-aware-help)
+
+A person receives help and usage guidance that matches the entry point they used, without needing to know the
+underlying component executable's name.
+
+Acceptance:
+
+- Help reached through `winter workspace`, `winter hub`, or `winter runner` uses that command prefix in usage lines
+  and command examples rather than the underlying executable name or cache path.
+- Nested-command help and usage errors preserve the same entry-point prefix.
+- Invoking a component directly produces help and usage guidance appropriate to that direct invocation.
+- Changing the displayed command prefix does not change the component's identity or reported version.
+
 ## Respect the selected version (product:respect-component-version)
 
 A person can work in two workspaces that select different component versions without one changing the other's command.

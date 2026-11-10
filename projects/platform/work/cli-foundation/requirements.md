@@ -12,7 +12,7 @@ Acceptance:
 - `winter --help` identifies the Winter platform command, shows usage, and describes its help and version options.
 - `winter` without arguments displays the same help as `winter --help` and exits successfully.
 - Help does not present Workspace, hub, runner, or installation commands as available functionality.
-- Released help does not advertise the development sample.
+- Normal production-build help does not advertise the development sample.
 - Asking for help exits successfully.
 
 ## Identify this executable (product:identify-version)
@@ -46,7 +46,7 @@ Acceptance:
 - Invocations such as `winter workspace`, `winter hub`, and `winter runner` fail as unsupported commands, even when
   another Winter CLI or a matching product executable is installed.
 - An unsupported invocation does not start another command, prompt to install a component, or change workspace files.
-- A released executable rejects `winter sample`, even when a sample executable exists on PATH.
+- A normal production build rejects `winter sample`, even when a sample executable exists on PATH.
 
 ## Demonstrate a separate component (product:development-sample)
 
@@ -57,22 +57,10 @@ installing a product or using Homebrew.
 Acceptance:
 
 - A documented development setup builds the platform CLI and Rust sample, then runs it through `winter sample …`.
-- The sample runs in a separate process and exposes the received arguments and working directory, along with controlled
-  stdout, stderr, and exit status, so the contributor can see that the handoff preserved the invocation.
+- The sample runs as a separate executable and exposes the received arguments and working directory, along with
+  controlled stdout, stderr, and exit status, so the contributor can see that the handoff preserved the invocation.
 - A missing sample executable or a sample command failure produces an unsuccessful invocation with useful diagnostics.
 - The demonstration requires no existing Python CLI, Workspace/Fleet implementation, product installation, or network
   access after development dependencies have been fetched.
-- The sample command and executable are absent from release archives, the Homebrew installation, and normal installed
-  help; the sample is not a separately distributed product.
-
-## Publish an identifiable release (product:publish-platform-release)
-
-A maintainer can publish a versioned platform executable that users can identify and obtain independently of the source
-checkout. The initial supported targets are settled by `decision:cli-foundation/release-targets`.
-
-Acceptance:
-
-- A documented release procedure publishes prebuilt executables for the supported operating-system and CPU targets.
-- A downloaded release reports the version under which it was published.
-- A maintainer can identify the source revision and verification results associated with the release.
-- Publishing the platform does not require releasing or installing Workspace or Fleet.
+- The sample command is absent from the normal production build's help and supported interface; the sample executable
+  remains a development-only project, not a separately distributed product.

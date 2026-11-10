@@ -5,7 +5,7 @@ For `epic:cli-foundation`.
 ## What already holds
 
 The platform's implementation language is constrained by `engineering:rust-product-clis`; this epic establishes
-the Rust project, test facilities, and delivery checks rather than choosing another implementation language.
+the Rust project, test facilities, and local verification checks rather than choosing another implementation language.
 
 ## Reproducible development setup (engineering:reproducible-setup)
 
@@ -24,7 +24,7 @@ Acceptance:
 ## Focused local feedback (engineering:local-check-loop)
 
 The repository exposes documented commands for formatting, linting, compilation checks, focused tests, and the routine
-verification suite, with publishing and package checks available separately. Routine development reuses incremental
+verification suite, without requiring release or publishing operations. Routine development reuses incremental
 build artifacts rather than requiring clean release builds. Serves `epic:cli-foundation`.
 
 Acceptance:
@@ -47,8 +47,8 @@ Acceptance:
 - A CI failure identifies the failed check and retains its diagnostic output.
 - The lint configuration is checked in and covers production code, test code, and enabled features/targets in the
   supported build matrix; exclusions require a narrow scope and an explanation.
-- Repository-owned Markdown and release/automation files have documented, automated format or lint checks appropriate
-  to their file types, not only checks for Rust source.
+- Repository-owned Markdown and development/CI automation files have documented, automated format or lint checks
+  appropriate to their file types, not only checks for Rust source.
 
 ## Dedicated test project (engineering:test-project)
 
@@ -94,7 +94,8 @@ Acceptance:
 
 The sample is a separate Rust test/development project, not behavior linked into the platform executable. Its explicit
 development registration exercises the process-launch boundary that the later launcher can extend. Serves
-`product:development-sample` under `decision:cli-foundation/development-sample`.
+`product:development-sample` under `decision:cli-foundation/development-sample` and
+`decision:cli-foundation/sample-process-contract`.
 
 Acceptance:
 
@@ -103,11 +104,14 @@ Acceptance:
 - The platform's production modules do not depend on the sample implementation; sample outputs come from the launched
   process, not a reimplementation inside the CLI.
 - Component tests exercise the process-launch interface with controlled doubles, and service tests launch the built
-  development CLI and actual Rust sample to verify arguments, working directory, streams, and exit status.
-- A release-mode packaging check proves that the development registration is disabled and the sample binary is absent,
-  including when test environment variables or matching PATH entries are present.
-- The sample project is excluded from package publishing and Homebrew formula contents; local demonstration commands
-  do not install or replace either executable on the user's PATH.
+  development CLI and actual Rust sample to verify process-ID continuity, option-like and non-UTF-8 arguments, working
+  directory, environment, streams, exit status, and signal termination.
+- Service tests distinguish failed process replacement from a sample that starts and fails, and verify that the sample
+  does not receive the development-only sample-path variable.
+- Tests build the normal production configuration locally and prove that development registration is disabled, including
+  when test environment variables or matching PATH entries are present, without creating or publishing release archives.
+- The sample project is marked non-publishable; local demonstration commands do not install or replace either executable
+  on the user's PATH.
 
 ## Command and dependency boundaries (engineering:command-boundaries)
 
@@ -135,8 +139,8 @@ them again. Serves `product:governed-context`.
 
 Acceptance:
 
-- The canonical context uses one of the layouts in `product:governed-context` and declares its `winter-canon` governance
-  through the repository's normal context discovery chain.
+- The canonical context uses one of the layouts in `product:governed-context` and declares its shared engineering and
+  `winter-canon` governance through the repository's normal context discovery chain.
 - Guidance establishes package/module ownership, dependency wiring, argument-parsing conventions, error propagation,
   stdout/stderr ownership, version metadata, and test placement.
 - The extension procedure identifies the files and checks involved in adding a command, using the foundation's actual
@@ -148,42 +152,7 @@ Acceptance:
 - Repository-owned Rust coding standards and architectural invariants are discoverable by code and architecture reviews
   through the same routing chain used during implementation; they do not live only in a reviewer prompt or this planning
   repository.
-- The verification matrix distinguishes unit, component, service, lint, architecture, build, and release/package checks
-  with concrete commands and stable method identifiers; it lists only methods available in the code repository.
+- The verification matrix distinguishes unit, component, service, lint, architecture, and build checks with concrete
+  commands and stable method identifiers; it lists only methods available in the code repository.
 - The guidance documents how to check a proposed boundary change and how to verify that ordinary changes stay within
   the existing boundaries; reviewers need not invent project policy for each change.
-
-## Verified release artifacts (engineering:release-artifacts)
-
-The release workflow builds versioned prebuilt archives from a recorded source revision and publishes them with
-checksums after the required checks pass. Artifact targets and naming follow
-`decision:cli-foundation/release-targets`. Serves `product:publish-platform-release`.
-
-Acceptance:
-
-- A documented version/tag operation triggers or prepares the release; the tag, package metadata, executable version,
-  and artifact identifiers agree, and an inconsistent version fails the release checks.
-- Published artifacts have checksums, contain the platform executable and required distribution material, and exclude
-  development caches, credentials, and test-only executables.
-- A release smoke check extracts the archive and runs help and version on each supported execution target; compilation
-  alone is not treated as proof that a packaged binary runs.
-- The release workflow records the source revision and check results and does not silently replace an already published
-  version with different artifacts.
-- Ordinary build/test checks do not need publishing credentials; publishing permissions are scoped to the release path.
-
-## Homebrew distribution (engineering:homebrew-distribution)
-
-The Homebrew formula installs the matching verified prebuilt artifact for each supported Homebrew target, with its
-checksum and version recorded in the formula. The tap and formula are owned through
-`decision:homebrew-channel`. Serves `product:homebrew-installation`.
-
-Acceptance:
-
-- A documented release step updates the tap formula to the published version and checksums; a formula never references
-  artifacts that have not been published.
-- Formula checks and installation smoke tests verify help, version, upgrade, and uninstall using a controlled Homebrew
-  environment, not the developer's live installation.
-- Formula installation downloads prebuilt artifacts and requires no Rust compiler, Python runtime, or Winter product
-  dependency.
-- The code repository documents release prerequisites, the Homebrew update procedure, and the supported target matrix
-  so publishing is repeatable rather than a collection of machine-local steps.

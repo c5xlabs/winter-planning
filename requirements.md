@@ -2,14 +2,16 @@
 
 ## Dogfood governed context (product:governed-context)
 
-Every project in the suite dogfoods its own agent-facing context repository structure, governed by `winter-canon`, so
-contributors and reviewers use the same context conventions the suite supports (`decision:context-dogfooding`).
+Every project in the suite dogfoods its own agent-facing context structure under shared engineering governance and
+`winter-canon`, so contributors and reviewers use the same context conventions the suite supports
+(`decision:context-dogfooding` and `decision:shared-context-governance`).
 
 Acceptance:
 
 - Each product's canonical context lives either in a dedicated `{name}-context` repository or under `./context` relative
   to the application repository root.
-- That context follows `winter-canon` governance rather than an independent project-specific context structure.
+- That context follows the applicable shared engineering conventions and `winter-canon` governance rather than an
+  independent project-specific governance system, with adoption following `decision:shared-context-governance`.
 - The application repository's agent entry point routes contributors and reviewers to that canonical context, including
   its development conventions, architectural boundaries, and verification guidance.
 - The context is maintained with the product and used for implementation, code review, and architectural review; it does
