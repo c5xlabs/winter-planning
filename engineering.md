@@ -19,6 +19,6 @@ Acceptance:
 - Before 1.0, patches remain backward-compatible, breaking changes require a new minor and explicit upgrade notes, and
   removing a released capability requires deprecation in an earlier release.
 - Stable tags use `vX.Y.Z`; release-candidate tags use `vX.Y.Z-rc.N`.
-- Package metadata and executable-reported versions match the full tagged version without its leading `v`, including
-  the prerelease suffix where present.
+- Package metadata and executable-reported versions match the full tagged version without its leading `v`, including the
+  prerelease suffix where present.
 - Release cadence and readiness for 1.0 are separate product decisions, not implied by this versioning policy.

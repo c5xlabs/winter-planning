@@ -18,9 +18,9 @@ version rather than whichever binary happens to come first on PATH.
 ## The outcome
 
 The `winter` command carries the person or agent to a separately installed product executable while preserving the
-invocation they intended. The platform keeps its own commands; Workspace and Fleet keep their implementations and can
-be installed independently. The shim follows `decision:launcher-language` and is added to the foundation executable,
-not shipped as a competing command.
+invocation they intended. The platform keeps its own commands; Workspace and Fleet keep their implementations and can be
+installed independently. The shim follows `decision:launcher-language` and is added to the foundation executable, not
+shipped as a competing command.
 
 This epic extends the development-sample process boundary owned by `epic:cli-foundation` with installed-component
 discovery, compatibility checks, and version selection. Product dispatch is verified with controlled stand-in

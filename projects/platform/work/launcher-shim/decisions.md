@@ -6,8 +6,8 @@
 
 **Open.** How installed components are registered or discovered, how an executable proves its role and protocol
 compatibility, and which sources take precedence; this blocks `product:reach-component` and
-`product:explain-dispatch-failure`. Decide explicitly whether PATH discovery and third-party top-level groups belong
-in the first contract rather than executing every matching name by default.
+`product:explain-dispatch-failure`. Decide explicitly whether PATH discovery and third-party top-level groups belong in
+the first contract rather than executing every matching name by default.
 
 ## Version selection (decision:launcher-shim/version-selection)
 

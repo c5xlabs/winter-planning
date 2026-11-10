@@ -6,8 +6,8 @@ status: planned
 
 # Winter release automation
 
-Provides shared release enablement for Platform, Workspace, and Fleet under `decision:shared-release-capability`;
-its product requirements live in [requirements.md](./requirements.md).
+Provides shared release enablement for Platform, Workspace, and Fleet under `decision:shared-release-capability`; its
+product requirements live in [requirements.md](./requirements.md).
 
 ## The problem
 
@@ -22,8 +22,8 @@ publication credentials, and release-policy choices have their own delivery boun
 ## The outcome
 
 Maintainers can adopt the same governed release lifecycle across all three projects, with each product retaining its
-artifact-specific packaging and verification integration. The shared capability exercises the release governance
-through reusable tooling and procedures rather than maintaining it only as prose.
+artifact-specific packaging and verification integration. The shared capability exercises the release governance through
+reusable tooling and procedures rather than maintaining it only as prose.
 
 Rust CLI packaging uses `cargo-dist` under `decision:release-automation/release-automation`; service/container and web
 artifacts follow the same lifecycle through appropriate packaging tools. The platform executable is the first consumer,

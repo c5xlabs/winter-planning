@@ -19,8 +19,8 @@ Acceptance:
 
 ## Install through Homebrew (product:homebrew-installation)
 
-People can install the suite's released, public-facing CLI tools through the C5X Labs Homebrew tap without installing
-a compiler or building from source. This applies across the platform, Workspace, and Fleet projects under
+People can install the suite's released, public-facing CLI tools through the C5X Labs Homebrew tap without installing a
+compiler or building from source. This applies across the platform, Workspace, and Fleet projects under
 `decision:homebrew-channel`.
 
 Acceptance:

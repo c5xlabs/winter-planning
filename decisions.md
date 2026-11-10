@@ -57,7 +57,7 @@ own canonical context may live in a dedicated `{name}-context` repository or its
 
 ## Homebrew channel (decision:homebrew-channel)
 
-The suite's initial Homebrew channel is `c5xlabs/tap`, backed by `c5xlabs/homebrew-tap`, with each CLI installed
-through `brew install c5xlabs/tap/<name>` using prebuilt release artifacts rather than compiling on the user's machine.
-After verified assets are published, automation with narrowly scoped credentials submits formula-update PRs for
-maintainer approval, keeping installation updates explicitly reviewed while the release process is established.
+The suite's initial Homebrew channel is `c5xlabs/tap`, backed by `c5xlabs/homebrew-tap`, with each CLI installed through
+`brew install c5xlabs/tap/<name>` using prebuilt release artifacts rather than compiling on the user's machine. After
+verified assets are published, automation with narrowly scoped credentials submits formula-update PRs for maintainer
+approval, keeping installation updates explicitly reviewed while the release process is established.

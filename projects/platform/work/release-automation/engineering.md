@@ -34,8 +34,8 @@ Acceptance:
   development caches, credentials, and test-only executables.
 - A release smoke check extracts the archive and runs help and version on each supported execution target; compilation
   alone is not treated as proof that a packaged binary runs.
-- Packaging explicitly disables the foundation's development-sample feature and excludes the sample executable;
-  archive and Homebrew checks prove that runtime settings and PATH entries cannot enable sample dispatch.
+- Packaging explicitly disables the foundation's development-sample feature and excludes the sample executable; archive
+  and Homebrew checks prove that runtime settings and PATH entries cannot enable sample dispatch.
 - The release workflow records the source revision and check results and does not silently replace an already published
   version with different artifacts.
 - Ordinary build/test checks do not need publishing credentials; publishing permissions are scoped to the release path.
@@ -43,8 +43,8 @@ Acceptance:
 ## Homebrew distribution (engineering:homebrew-distribution)
 
 The Homebrew formula installs the matching verified prebuilt artifact for each supported Homebrew target, with its
-checksum and version recorded in the formula. The tap and formula are owned through
-`decision:homebrew-channel`. Serves `product:homebrew-installation`.
+checksum and version recorded in the formula. The tap and formula are owned through `decision:homebrew-channel`. Serves
+`product:homebrew-installation`.
 
 Acceptance:
 
@@ -54,5 +54,5 @@ Acceptance:
   environment, not the developer's live installation.
 - Formula installation downloads prebuilt artifacts and requires no Rust compiler, Python runtime, or Winter product
   dependency.
-- The code repository documents release prerequisites, the Homebrew update procedure, and the supported target matrix
-  so publishing is repeatable rather than a collection of machine-local steps.
+- The code repository documents release prerequisites, the Homebrew update procedure, and the supported target matrix so
+  publishing is repeatable rather than a collection of machine-local steps.
