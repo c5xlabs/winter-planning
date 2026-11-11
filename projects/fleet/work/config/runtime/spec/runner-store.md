@@ -149,7 +149,8 @@ Door = Literal["seed", "cli", "page", "api", "apply"]   # set by the server from
 
 ### A write
 
-Every write (an API write, a seed, an apply, an add, a retire) is one store transaction:
+Every write (an API write, a seed, an apply, an add, a retire) is one store transaction, through
+`foundation/settings_record/` ([lifetimes.md](./lifetimes.md) §The shared settings record) with the runner's validation:
 
 ```python
 def write(conn, record: SettingsRecord, change: Change, *, if_match: int | None, door: Door, actor: str) -> View:
@@ -189,9 +190,64 @@ class RunnerSettingsReader:
 
 - `HostConfig.load` (`runner/host_config.py`) still loads the file at boot and from then on supplies only the `boot`
   keys and the seed.
+- The tables land in more than one change. Until `host_settings` exists, `revisions()` reads the host revision as absent
+  and a spawn writes `host_settings_revision` null. Until the workspace and subscription tables exist, it reads no
+  record revisions and the host's workspaces and subscriptions are the file's, as today.
 - `RunnerConfig` keeps its shape; every consumer reads one the reader resolved and never learns where a value came from.
 - The app's federation, role policy, and public origins come from the host's own `boot` keys, not `runners[0].config`
   (`runner/cli/runtime.py`, `runner/app.py`), so a host whose first runner is retired at runtime keeps serving.
+
+### Which store is the host's
+
+Today every guard that refuses a foreign store judges it against the runners the host file configures: the boot
+(`runner/cli/runtime.py::host`, `_check`, through `runner/lifecycle/identity_check.py::foreign_store_reason`) and every
+CLI verb that writes the store (`runner/cli/store_guard.py::store_write_guard`, its `configured` ids from
+`configured_ids`). A runner added through the API is in no file, so judged that way the host's next start would find a
+store naming a runner no `[[runner]]` configures, call it mixed, and refuse every runner.
+
+Under this epic the host's runners are its `hosted_runners` rows, and one judgment replaces every caller's `configured`
+ids:
+
+```python
+# runner/lifecycle/identity_check.py
+def host_store_verdict(store: HostStores, file: HostConfig) -> ForeignStore | None:
+    # Made once per boot before seeding, and by store_write_guard for every CLI verb that writes the store.
+    file_ids = {r.id for r in file.runners if r.id is not None}
+    hosted = store.hosted_runner_ids()               # every runner with a hosted_runners row, added or retired
+    named = store.runner_audit.named_runners()       # every runner an identity row names
+    if not hosted:                                   # a store from before this epic, or a new one: judged as today
+        return foreign_store(named, file_ids)
+    if (stray := foreign_store(named, hosted)) is not None:
+        return stray                                 # an identity row no hosted row accounts for
+    if file_ids and not (file_ids & hosted):
+        return ForeignStore(kind=ForeignStoreKind.ALIEN, named=tuple(sorted(hosted)), foreign=tuple(sorted(hosted)))
+    return None                                      # ours; a file id it has not hosted is seeded (§Seeding step 4)
+```
+
+- A host whose file names runners shares at least one with its own store, so a store some other host wrote is still
+  refused untouched, with the messages `foreign_store_reason` gives today.
+- A host whose file names no runner, every runner added through the API, has nothing in the file to judge by; its store
+  stands.
+- A runner added or ingested writes its `hosted_runners` row in the transaction that writes its identity row, so no
+  crash leaves an identity row without one.
+
+### Replacing a runner's token
+
+A token is sealed once, at the add, the seed, or an ingest, and the seed never overwrites a row. The way an operator
+corrects one today (editing `.env` while the identity is in doubt, picked up by
+`runner/lifecycle/identity_check.py::_take_up_a_corrected_token`) goes with `.env`, so the host gains a write for it:
+
+```http
+PUT /api/host/runners/{runner_id}/token
+{ "token": "..." }
+
+→ 204; the token sealed at the row's next revision. Never echoed, logged, or carried by a change row.
+409 runner_retired
+```
+
+`blizzard runner token set [--runner NAME]` reads the token from standard input and calls the route on a running host,
+or writes the row under `store_write_guard` on a stopped one. `HubTokenHolder` opens the new row at the next identity
+check, as it re-reads `.env` today.
 
 ### Sealed tokens
 
@@ -211,6 +267,11 @@ def seal_hub_token(token: str, *, runner_id: str, revision: int, key: KeyMateria
 # hub's key is. Where neither is set, a key directory under the host's runtime root, minted at the first start that
 # needs it, owner-only, declared a durable path of the host registry.
 ```
+
+The key is the one copy that opens every token. A host that loses it keeps its store and loses its tokens: each runner
+refuses as a runner whose token the hub refuses does today, until a token is set for it (§Replacing a runner's token) or
+it is retired and added again. The upgrade note and the page on the host's credentials say to back the key directory up
+with the store, or to supply `BZ_HOST_SECRET_KEY`.
 
 | Event                                                        | Token                                                                                                                                              |
 | ------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -242,14 +303,15 @@ def seed_host(store, file: HostConfig) -> None:
     for sub in file.subscriptions:          # 3. each [[subscription]] with no host_subscriptions row
         if not store.has_subscription(sub.slug):
             store.create_subscription(sub)
-    for runner in file.runners:             # 4. hosted_runners row, `added` fact (door seed), runner_identity, entries
-        if runner.id is None:               #    a scaffold not yet joined: its join seeds it
-            continue
+    for runner in file.runners:             # 4. hosted_runners row, `added` fact (door seed), runner_identity, entries;
+        if runner.id is None:               #    only once host_store_verdict found the store ours (§Which store is the
+            continue                        #    host's). A scaffold not yet joined: its join seeds it
         if store.retired(runner.id):        #    retirement is final; the file cannot bring a runner back
             continue
         if not store.hosted(runner.id):
             store.add_hosted(runner)
-    for runner in store.hosted_runners():   # 5. each key a hosted runner's table states with no entry
+    for runner in store.hosted_runners():   # 5. each key a hosted runner's table states with no entry. Until
+                                            #    hosted_runners exists, steps 5-6 run over the file's runners with an id
         seed_runner_entries(store, runner, file)
         if not store.has_token(runner.id):  # 6. its token as resolved today, sealed (§Sealed tokens)
             store.seal_token(runner.id, resolve_token(runner, file))

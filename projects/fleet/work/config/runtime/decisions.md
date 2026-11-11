@@ -4,10 +4,13 @@
 
 **Decider:** owner
 
-**Open.** Whether the store's sealed tokens are also written somewhere an older release reads, or a walk-back is refused
-while a runner added through the API exists, since such a runner's hub token lives only in the store and a walk-back
-strands it until it is retired and added again. The owner accepts the strand for now; it is decided before the
-sealed-token change is filed, and it blocks `product:runners-come-and-go`.
+A runner added through the API has its hub token only in the store, and a release from before this epic reads tokens
+only from `.env` and runners only from the file. Walking a host back to such a release strands every runner added
+through the API: the older release does not run it, and the hub still holds it. The strand is accepted. Neither daemon
+writes tokens anywhere an older release reads, and no walk-back is refused. The operator recovers a stranded runner by
+retiring it at the hub and adding it again. Writing a second copy of the token would bring back the `.env` writes this
+epic removes, and refusing a walk-back would mean an older release has to enforce a rule it predates. The upgrade note
+names the strand beside `decision:config/runtime/walk-back`.
 
 ## Settings pulled per pass (decision:config/runtime/pull-per-pass)
 

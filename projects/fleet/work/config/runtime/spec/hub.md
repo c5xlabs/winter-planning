@@ -58,10 +58,10 @@ hub_setting_changes = Table(                             # append-only
 )
 ```
 
-- A write is the runner's ([runner-store.md](./runner-store.md) §A write) over these tables: `If-Match` against
-  `revision`, the whole resolved configuration validated through the section parsers `HubConfig.load` runs over the file
-  (`hub/config.py`), factored out to run over resolved settings; one revision and one change row per committed write;
-  `at_default` for an unset.
+- A write is the shared one ([lifetimes.md](./lifetimes.md) §The shared settings record), as the runner's is, over these
+  tables: `If-Match` against `revision`, the whole resolved configuration validated through the section parsers
+  `HubConfig.load` runs over the file (`hub/config.py`), factored out to run over resolved settings; one revision and
+  one change row per committed write; `at_default` for an unset.
 - The seed ([lifetimes.md](./lifetimes.md) §Seed) runs in `blizzard hub serve` after its store check and before
   `build_services`.
 
@@ -71,13 +71,17 @@ Every route takes `require_hub(Permission.SETTINGS_ADMIN)` (`hub/api/auth_sessio
 (`decision:config/runtime/hub-settings-admin-reads`). Routes are described in `openapi/hub.openapi.json` and reach the
 board through its generated client; the CLI verbs are in `contracts/cli/`. None is on the fleet wire.
 
-| Method  | Path                          | CLI                                                | Answer                                                                                                                                            |
-| ------- | ----------------------------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET`   | `/api/admin/settings`         | `blizzard hub settings show [KEY]`                 | The runner's view shape ([runner-api.md](./runner-api.md) §Views), only `pass` keys, no `in_force`: every pass and request takes its own snapshot |
-| `PATCH` | `/api/admin/settings`         | `blizzard hub settings set KEY VALUE`, `unset KEY` | `set` and `unset` with `If-Match`, refused as the runner's write is                                                                               |
-| `GET`   | `/api/admin/settings/changes` | `blizzard hub settings changes`                    | The change log, newest first, paginated                                                                                                           |
-| `POST`  | `/api/admin/settings/apply`   | `blizzard hub settings apply FILE [--dry-run]`     | §Apply                                                                                                                                            |
-| `GET`   | `/api/admin/settings/export`  | `blizzard hub settings export`                     | The apply document, as the store stands                                                                                                           |
+| Method  | Path                          | CLI                                                | Answer                                                                                                                                                               |
+| ------- | ----------------------------- | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET`   | `/api/admin/settings`         | `blizzard hub settings show [KEY]`                 | `HubSettingsView`: the runner's view shape ([runner-api.md](./runner-api.md) §Views), only `pass` keys, no `in_force`: every pass and request takes its own snapshot |
+| `PATCH` | `/api/admin/settings`         | `blizzard hub settings set KEY VALUE`, `unset KEY` | `set` and `unset` with `If-Match`, refused as the runner's write is                                                                                                  |
+| `GET`   | `/api/admin/settings/changes` | `blizzard hub settings changes`                    | The change log, newest first, paginated                                                                                                                              |
+| `POST`  | `/api/admin/settings/apply`   | `blizzard hub settings apply FILE [--dry-run]`     | §Apply                                                                                                                                                               |
+| `GET`   | `/api/admin/settings/export`  | `blizzard hub settings export`                     | The apply document, as the store stands                                                                                                                              |
+
+The hub already serves a tenant's settings at `/api/settings` (`hub/api/settings.py`, `wire/urgency.py::SettingsView`).
+The hub-wide record's wire models are `HubSettingsView`, `HubSettingRow`, and `HubSettingsWrite`, so the two never share
+a name in `openapi/hub.openapi.json` or the board's generated client.
 
 ### Apply
 

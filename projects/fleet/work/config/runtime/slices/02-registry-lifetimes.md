@@ -12,19 +12,21 @@ code:
 
 Gives every key of both registries its `lifetime` and `env`, carries both into the contract documents, and adds
 `tick_seconds` as a file key ([lifetimes.md](../spec/lifetimes.md) §Domain, §Interfaces;
-[settings.md](../spec/settings.md) §Data). Delivers `product:declared-lifetime`, `product:boot-lifetime`, and the
-deprecation in `product:tick-interval-setting`; `engineering:no-renamed-settings` holds every key's name.
+[settings.md](../spec/settings.md) §Data, §Pinned). Delivers `product:declared-lifetime`, `product:boot-lifetime`,
+`product:host-footing`, and the deprecation in `product:tick-interval-setting`; `engineering:no-renamed-settings` holds
+every key's name.
 
 ## Change
 
 - `Lifetime`, `ConfigKey.lifetime`, and `ConfigKey.env`; `ConfigRegistry`'s three refusals; every key of both registries
-  given its lifetime from [settings.md](../spec/settings.md) §Data; the four variables of
-  [lifetimes.md](../spec/lifetimes.md) §Environment variables declared.
+  given its lifetime from [settings.md](../spec/settings.md) §Data, and none declared for a constant §Pinned lists; the
+  four variables of [lifetimes.md](../spec/lifetimes.md) §Environment variables declared.
 - Both contract documents and `contracts/config/README.md` gain the two fields.
 - The hub's `work_source[]` declared `deprecated`, `boot`, `replaced_by` the work-source records.
-- `tick_seconds`, `pass`, read from the file at boot until [04-host-settings](./04-host-settings.md) makes it an entry.
+- `tick_seconds`, `pass`, read from the file at boot until [06-host-settings](./06-host-settings.md) makes it an entry.
   `BZ_RUNNER_TICK_SECONDS` deprecated and honored only when the file states none. Both drivers take
-  `interval: Callable[[], float]` ([passes.md](../spec/passes.md) §The loop's interval).
+  `interval: Callable[[], float]` and wait from the pass's end, as today, with a stop ending the wait
+  ([passes.md](../spec/passes.md) §The loop's interval).
 - Every test and script setting `BZ_RUNNER_TICK_SECONDS` moves to the file key in the same change: the crash suite's
   support (`tests/crash/support.py`), the runner and journey service specs, the two store-migration service tests, the
   rehearsal installer, the runner-host harness check, the step-pass component test, and the OpenCode bundle probe.
@@ -37,4 +39,7 @@ deprecation in `product:tick-interval-setting`; `engineering:no-renamed-settings
 - `blizzard:unit-test`: a registry refuses a value key with no lifetime, a grouping key with one, and a non-`boot` key
   with `env`.
 - `blizzard:compat` against a fixture document moving a key from `pass` to `boot` reports a break.
+- `blizzard:unit-test`: neither registry declares a key for a constant [settings.md](../spec/settings.md) §Pinned lists.
+- `blizzard:unit-test`: a driver waits the full interval after a pass that ran longer than it, and a stop ends its wait
+  at once.
 - `blizzard:config-contract`, `blizzard:harness-check`, and `blizzard:crash-sweep` on the file key pass.

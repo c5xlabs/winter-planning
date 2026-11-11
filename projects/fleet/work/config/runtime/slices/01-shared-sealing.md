@@ -22,5 +22,5 @@ operator surface.
 
 ## Acceptance
 
-- `blizzard:unit-test` and `blizzard:component-test` pass over the hub's secrets as they stand, unchanged.
+- `blizzard:unit-test` and `blizzard:component-test` pass over the hub's secrets, the tests changing only their imports.
 - `blizzard:structural-gate` passes for the new package's layering.

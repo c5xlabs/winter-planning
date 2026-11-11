@@ -12,34 +12,38 @@ generated client (`bzh:generated-client`), and is additive to the runner's API (
 ```python
 # runner/api/wiring.py                                                       product:runner-settings-api
 def require_superuser(session: RunnerSession = Depends(...)) -> RunnerSession:  # the request's human session
-    # Every write below: a settings edit, an apply, a runner's add or retire, a workspace's or subscription's create,
-    # edit, retire, or enable, and the workspace prompt's PUT and DELETE. Reads stay on the human lane, open to anyone
-    # the local page admits. A unix-socket caller holds IMPLICIT_SESSION (runner/auth/session.py, role SUPERUSER), so
+    # Every write below: a settings edit, an apply, a runner's add, retire, or token, and a workspace's or
+    # subscription's create, edit, retire, or enable. Reads stay on the human lane, open to anyone the local page
+    # admits. A unix-socket caller holds IMPLICIT_SESSION (runner/auth/session.py, role SUPERUSER), so
     # the CLI writes with the socket file's permission. A worker's lease token reaches only the ungated lane.
     if session.role is not Role.SUPERUSER:
         raise Refused(403, "superuser_required")
     return session
 ```
 
-Pause, takeover, requeue, and selftest keep the access they have.
+Pause, takeover, requeue, selftest, and the workspace prompt's `PUT` and `DELETE` keep the access they have. The
+prompt's routes are human-lane writes that predate this epic, and narrowing those to a role belongs to the runner's
+auth, not to this epic. So a session that may not `PATCH` a workspace may still set or clear its prompt, as it can today
+([host-records.md](./host-records.md) §The workspace prompt).
 
 ### Routes
 
 `{key}` is a key's dotted path as the contract document spells it. A table key's whole value is one entry, set whole.
 
-| Method        | Path                                              | Body / query                                  | `200` answer                                                          |
-| ------------- | ------------------------------------------------- | --------------------------------------------- | --------------------------------------------------------------------- |
-| `GET`         | `/api/host/settings`                              | —                                             | Host view                                                             |
-| `PATCH`       | `/api/host/settings`                              | Write, `If-Match`                             | Host view                                                             |
-| `GET`         | `/api/host/settings/changes`                      | `?record_kind=`, `?record_key=`; paginated    | Change rows, newest first                                             |
-| `GET`         | `/runners/{runner_id}/api/settings`               | —                                             | Runner view                                                           |
-| `PATCH`       | `/runners/{runner_id}/api/settings`               | Write, `If-Match`                             | Runner view                                                           |
-| `GET`         | `/runners/{runner_id}/api/settings/changes`       | paginated                                     | Change rows, newest first                                             |
-| `POST`        | `/api/host/settings/apply`                        | Apply document; `?dry_run=true` rolls it back | Outcome rows                                                          |
-| `GET`         | `/api/host/settings/export`                       | —                                             | Apply document: every entry, every active record, every hosted runner |
-| `GET`, `POST` | `/api/host/runners`                               | see [host-records.md](./host-records.md)      |                                                                       |
-| `POST`        | `/api/host/runners/{runner_id}/retire`            | see [host-records.md](./host-records.md)      |                                                                       |
-| six verbs     | `/api/host/workspaces`, `/api/host/subscriptions` | see [host-records.md](./host-records.md)      |                                                                       |
+| Method        | Path                                              | Body / query                                                         | `200` answer                                                          |
+| ------------- | ------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| `GET`         | `/api/host/settings`                              | —                                                                    | Host view                                                             |
+| `PATCH`       | `/api/host/settings`                              | Write, `If-Match`                                                    | Host view                                                             |
+| `GET`         | `/api/host/settings/changes`                      | `?record_kind=`, `?record_key=`; paginated                           | Change rows, newest first                                             |
+| `GET`         | `/runners/{runner_id}/api/settings`               | —                                                                    | Runner view                                                           |
+| `PATCH`       | `/runners/{runner_id}/api/settings`               | Write, `If-Match`                                                    | Runner view                                                           |
+| `GET`         | `/runners/{runner_id}/api/settings/changes`       | paginated                                                            | Change rows, newest first                                             |
+| `POST`        | `/api/host/settings/apply`                        | Apply document; `?dry_run=true` rolls it back                        | Outcome rows                                                          |
+| `GET`         | `/api/host/settings/export`                       | —                                                                    | Apply document: every entry, every active record, every hosted runner |
+| `GET`, `POST` | `/api/host/runners`                               | see [host-records.md](./host-records.md)                             |                                                                       |
+| `POST`        | `/api/host/runners/{runner_id}/retire`            | see [host-records.md](./host-records.md)                             |                                                                       |
+| `PUT`         | `/api/host/runners/{runner_id}/token`             | see [runner-store.md](./runner-store.md) §Replacing a runner's token |                                                                       |
+| six verbs     | `/api/host/workspaces`, `/api/host/subscriptions` | see [host-records.md](./host-records.md)                             |                                                                       |
 
 ### Views
 
@@ -61,6 +65,8 @@ class SettingsView(WireModel):
     revision: int                       # the record's revision in the store
     in_force: InForce                   # the revision the most recent pass started from, and when it took hold;
                                         # behind `revision` for one tick after a write. The host view's is the host tick's.
+                                        # Carries `failed: {revision, error, since}` while a rebuild at a later revision
+                                        # fails (passes.md §A rebuild that fails); absent otherwise.
     settings: list[SettingRow]          # every pass, session, and immutable key the registry declares for the record;
                                         # never a boot key, which is changed in the file
 

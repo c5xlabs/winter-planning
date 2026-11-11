@@ -28,8 +28,8 @@ by `decision:config/runtime/no-default-workspace`, the change note marking it br
 - `host_workspaces`, `host_subscriptions`, and their facts; their seed; the six verbs on each, routes and CLI.
 - `HostWorkspaces`, the holder every reader goes through; locks carried by `workspace_id`; an empty registry served.
 - The host tick's rebuild of providers, samplers, and renewers; the host report built per tick.
-- The workspace prompt's routes write the record under `require_superuser`; the `workspace_prompt` table deprecated
-  (`engineering:deprecations-outlive-epic`).
+- The workspace prompt's routes write the record and keep the access they have today; the `workspace_prompt` table
+  deprecated (`engineering:deprecations-outlive-epic`).
 - A binding to a retired workspace no longer halts its runner; a runner naming a retired subscription runs as though it
   named none.
 - The `workspace-local` fallback, `init`'s scaffolded workspace, and the `BZ_WORKSPACE_*` variables removed.
@@ -42,6 +42,8 @@ by `decision:config/runtime/no-default-workspace`, the change note marking it br
 ## Acceptance
 
 - `blizzard:unit-test` over each verb's refusals and the idempotent retire and enable.
+- `blizzard:component-test`: a session without the superuser role refused a workspace `PATCH`, and still setting and
+  clearing its prompt.
 - `blizzard:component-test` over:
   - a workspace repointed between two acquisitions with both taking the one lock;
   - a held environment released through the rebuilt provider;

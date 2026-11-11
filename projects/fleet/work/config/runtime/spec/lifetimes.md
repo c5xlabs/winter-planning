@@ -85,6 +85,32 @@ def lifetime_breaks(candidate: ContractKey, released: ContractKey) -> bool:
     return ORDER.index(candidate.lifetime) > ORDER.index(released.lifetime)
 ```
 
+### The shared settings record
+
+Both daemons write their settings the same way, and neither imports the other's code, so the write, the seed rule, and
+the change row live in `foundation/settings_record/`:
+
+```python
+# foundation/settings_record/
+class SettingsRecord(Protocol):
+    # One record's tables: its revision row, its entries, its change rows. The runner's records and the hub's settings
+    # record each implement it over their own tables; the module holds no table of its own.
+    def revision(self, conn) -> int: ...
+    def write_entries(self, conn, change: Change) -> list[FieldChange]: ...
+    def bump_revision(self, conn) -> None: ...
+    def append_change(self, conn, *, diff, op: str, door: str, actor: str, apply_id: str | None) -> None: ...
+
+def write(conn, record: SettingsRecord, change: Change, *, if_match: int | None, validate: Validate,
+          door: str, actor: str) -> list[FieldChange]: ...      # the steps runner-store.md §A write gives
+def seed_entry(record: SettingsRecord, key: ConfigKey, file: ConfigView) -> None: ...  # §Seed below
+```
+
+- `validate` is the daemon's own: the runner's host-file parse, the hub's section parsers.
+- The runner's `write` ([runner-store.md](./runner-store.md) §A write) and the hub's ([hub.md](./hub.md) §Data) are this
+  one, each with its validation, doors, and refusal codes.
+- `foundation/toml_emit.py`, moved from `HubConfig.to_toml`, sits beside it, so either daemon's export can emit TOML
+  ([hub.md](./hub.md) §Apply).
+
 ### Reading entries
 
 `ConfigView` keeps serving `boot` keys from the file. An entry is read only through its daemon's settings reader:
@@ -101,7 +127,7 @@ Run at every daemon start, one entry at a time, before anything reads an entry (
 
 ```python
 # The rule per entry, for both daemons' seeds.
-def seed_entry(store: SettingsStore, key: ConfigKey, file: ConfigView) -> None:
+def seed_entry(store: SettingsRecord, key: ConfigKey, file: ConfigView) -> None:
     if store.has_entry(key.path):        # an entry `at_default` counts: an unset is never re-seeded
         return                           # the store's value stands; the file's is ignored, with no warning
     if not file.states(key.path):

@@ -69,6 +69,11 @@ A pair of settings inside one daemon is checked at that daemon's write once both
 `HEARTBEAT_STALENESS_THRESHOLD`, and the close-drain interval equal to its backoff base. Pairs across the two daemons
 are not checked. Serves `product:independent-daemon-settings`.
 
+Each pair named above still has a constant on at least one side, and this epic promotes no constant
+([spec/settings.md](./spec/settings.md) §Lifetimes for constants the sweep will promote). So the rule is checked by the
+first change that makes both sides of a pair settings, which is `epic:config/sweep`'s. This epic's part is the write's
+`validate` step that such a check goes into ([spec/lifetimes.md](./spec/lifetimes.md) §The shared settings record).
+
 ## Migration on upgrade (engineering:upgrade-migration)
 
 Each change's store revisions are applied with `blizzard runner migrate` or `blizzard hub migrate`

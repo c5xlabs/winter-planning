@@ -1,7 +1,8 @@
 # Runners, workspaces, and subscriptions on a running host
 
 Tables are [runner-store.md](./runner-store.md) §Data; the host tick's reconcile is [passes.md](./passes.md) §The host
-tick; every route here takes `require_superuser` ([runner-api.md](./runner-api.md) §Who may write).
+tick; every route here takes `require_superuser` ([runner-api.md](./runner-api.md) §Who may write), except the workspace
+prompt's, which keep the access they have.
 
 ## Domain
 
@@ -96,8 +97,9 @@ provider the host cannot build, a root that is not a path, a `max_environments` 
 | `PUT /api/host/workspaces/{workspace_id}/prompt`    | `prompt` set; `prompt_file` and `prompt_package` to defaults, since a route-set prompt has always won |
 | `DELETE /api/host/workspaces/{workspace_id}/prompt` | All three to defaults: no standing prompt, `source` answers `default`                                 |
 
-The `workspace_prompt` table is deprecated, read only by the seed ([runner-store.md](./runner-store.md) §Seeding), and
-dropped later (`engineering:deprecations-outlive-epic`).
+Both keep the access they have today ([runner-api.md](./runner-api.md) §Who may write); only the record they write is
+new. The `workspace_prompt` table is deprecated, read only by the seed ([runner-store.md](./runner-store.md) §Seeding),
+and dropped later (`engineering:deprecations-outlive-epic`).
 
 ## Flows
 
@@ -121,15 +123,36 @@ sequenceDiagram
     H->>S: one transaction: hosted_runners, `added` fact, runner_identity,<br/>sealed token, runner_settings rev 1, entries (name, projects, settings), change op create
     H-->>Op: view, state "starting"
     T->>S: next host tick lists hosted_runners
-    T->>T: composition.add_runner; app.state.runners; tick, trace-sweep, spawner drivers;<br/>resume.on_startup() and takeover recovery, as a boot does
+    T->>T: composition.start_runner, the sequence a boot runs per runner (§Starting a runner)
     T->>Hub: the runner's first tick registers it
 ```
 
+- The add writes the `hosted_runners` row and the identity row in one transaction, so the next start finds the store the
+  host's ([runner-store.md](./runner-store.md) §Which store is the host's).
 - Nothing is written to `.env` or `blizzard-host.toml`, and no directory is created. The runners beside it keep ticking.
 - A crash between the mint and the transaction leaves a runner the hub shows as never registered, with no row and no
   token on the host. Nothing runs under it; the operator retires it from the hub and adds again. The hub mints the id
   the rows are keyed by, so the two cannot share a transaction; `architecture/crash-correctness/runner.md` records the
   window under `bzh:crash-exemptions-runner`.
+
+### Starting a runner
+
+Today a boot prepares each runner inline in `runner/cli/runtime.py::host` before any runner ticks. Under this epic that
+preparation is one function, `runner/composition.py::start_runner`. The boot calls it for each hosted runner, and the
+host tick calls it for each one added since the last tick, so a runner added live is prepared exactly as one started at
+boot:
+
+1. Compose the runner's process graph (`composition.add_runner`) and its harness set ([passes.md](./passes.md) §The
+   harness set), the bundle published as part of it.
+2. Every per-runner startup step the boot runs today, in the boot's order: the session reconcile, the worker-scratch
+   reconcile, the worker-shell refusal, the rejected-tracing announcement, `resume.on_startup()`, and takeover recovery.
+3. A host report naming the runner before its first tick, so a runner the hub has released is told so before it can
+   claim.
+4. Its drivers started (tick, trace sweep, spawner), and the runner placed in `app.state.runners`.
+
+A step that fails at boot fails the boot, as today. A step that fails during the host tick leaves the runner unstarted,
+names the step and its error in the runner's view (`state: "start_failed"`), and is retried at the next host tick; its
+neighbours keep ticking.
 
 ### Retiring a runner
 
