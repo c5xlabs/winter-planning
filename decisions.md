@@ -10,6 +10,13 @@ approval from Blizzard's process under `decision:release-versioning`; this block
 which remain product-specific or are adopted later, without assuming Blizzard's cadence and support windows apply
 everywhere.
 
+## Shared CLI runtime baseline (decision:shared-cli-runtime-baseline)
+
+Platform, Workspace, and Rust Fleet CLIs share the release target and minimum OS/libc policy under
+`engineering:cli-runtime-baseline`, rather than choosing separate product baselines. Shared release enablement owns
+settling the still-open minimum versions; product-specific provider prerequisites remain separate, and Foundation's CI
+images do not become minimum supported release systems.
+
 ## Shared release capability (decision:shared-release-capability)
 
 **Decider:** product owner and engineering
