@@ -1,5 +1,6 @@
 ---
 name: workspace-cli
+external: github:c5xlabs/winter#2
 ---
 
 # Establish the Rust workspace and standalone CLI

@@ -1,5 +1,6 @@
 ---
 name: sample-handoff
+external: github:c5xlabs/winter#5
 depends-on:
   - process-test-harness
   - sample-executable

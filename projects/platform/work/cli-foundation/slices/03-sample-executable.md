@@ -1,5 +1,6 @@
 ---
 name: sample-executable
+external: github:c5xlabs/winter#4
 depends-on:
   - workspace-cli
 ---

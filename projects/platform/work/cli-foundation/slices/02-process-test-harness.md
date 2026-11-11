@@ -1,5 +1,6 @@
 ---
 name: process-test-harness
+external: github:c5xlabs/winter#3
 depends-on:
   - workspace-cli
 ---

@@ -1,5 +1,6 @@
 ---
 name: governed-contributor-context
+external: github:c5xlabs/winter#7
 depends-on:
   - quality-gates
 ---

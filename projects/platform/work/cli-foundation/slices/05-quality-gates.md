@@ -1,5 +1,6 @@
 ---
 name: quality-gates
+external: github:c5xlabs/winter#6
 depends-on:
   - sample-handoff
 ---
