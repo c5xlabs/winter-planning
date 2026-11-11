@@ -48,6 +48,22 @@ Acceptance:
 - An unsupported invocation does not start another command, prompt to install a component, or change workspace files.
 - A normal production build rejects `winter sample`, even when a sample executable exists on PATH.
 
+## Run the checkout without shadowing the workspace tool (product:development-entrypoint)
+
+A contributor can run the Rust platform checkout through a distinctly named development entry point while continuing to
+use the installed `winter` workspace tool to develop it.
+
+Acceptance:
+
+- The documented development entry point is named `winter-cli` and runs the selected checkout, not whichever `winter`
+  happens to be installed on PATH.
+- Development setup and execution do not install, replace, or shadow the existing `winter` command or require a global
+  alias or PATH change.
+- The entry point preserves the caller's working directory, arguments, and streams, so it can be used to exercise the
+  checkout from another directory; an unsuccessful CLI invocation is reported as a failure.
+- The development name does not rename the public `winter` executable or change its help/version identity; it is not a
+  bridge or fallback into the Python CLI.
+
 ## Demonstrate a separate component (product:development-sample)
 
 A contributor can run a dev-only Rust sample through the platform CLI and observe a real handoff to a separate

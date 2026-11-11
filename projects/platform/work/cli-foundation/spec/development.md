@@ -53,6 +53,7 @@ pub enum Configuration { Production, Development }
 pub enum Tier { Unit, Component, Service }
 pub enum Termination { Code(i32), Signal(i32) }
 pub enum TestSignal { Interrupt, Terminate }
+pub enum ReplyStream { Stdout, Stderr }
 pub enum Completion {
     Exit,
     SignalAfterStdout { marker: Vec<u8>, signal: TestSignal },
@@ -66,6 +67,7 @@ pub struct Invocation {
     pub stdin: Vec<u8>,
     pub timeout: std::time::Duration,   // finite, positive; default 10 seconds
     pub completion: Completion,
+    pub reject_reply_writes: Option<ReplyStream>, // default None; only for reply-write failure fixtures
 }
 
 pub struct Observation {
@@ -97,20 +99,21 @@ pub struct InvocationFailure {
 pub fn invoke(invocation: Invocation) -> Result<Observation, InvocationFailure>;
 ```
 
-| Harness boundary                          | Behavior                                                                                                                                      |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Runtime child environment                 | `env_clear`; fresh HOME, XDG config/cache/data/state, TMPDIR; explicit fixture PATH and probe variables                                       |
-| Build/tool environment                    | Retain Cargo/Rustup locations, linker access, and installed tools; normalize Rust warning flags                                               |
-| Runtime child ownership                   | Guard owns the direct child; fixtures inherit the enclosing driver-owned Cargo/test process group and do not detach or daemonize              |
-| Stream capture                            | Separate temporary files for stdin/stdout/stderr; no pipe-reader or writer thread joins                                                       |
-| Live output observation                   | Read through separately opened descriptors, without sharing the child's file offset                                                           |
-| Completion loop                           | Monotonic deadline; poll at intervals no greater than 10 ms; detect output overflow while running                                             |
-| Normal completion                         | Reap the direct child before releasing fixture state                                                                                          |
-| Timeout, overflow, early return, or panic | Kill/reap the owned direct child; retain bounded output before cleanup                                                                        |
-| Readiness action                          | Under the same overall deadline, detect the stdout marker, signal the owned PID once, then await termination; exit before marker is a failure |
-| Output limit                              | Poll for more than 1 MiB per stream and terminate on detection; retain at most 1 MiB per stream, not a hard on-disk write quota               |
-| Signaling                                 | Address only a positive owned PGID/PID; never signal the driver's own process group                                                           |
-| Signal assertions                         | Read `ExitStatusExt::signal()`, not shell-style `128 + signal` status codes                                                                   |
+| Harness boundary                          | Behavior                                                                                                                                                                                     |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime child environment                 | `env_clear`; fresh HOME, XDG config/cache/data/state, TMPDIR; explicit fixture PATH and probe variables                                                                                      |
+| Build/tool environment                    | Retain Cargo/Rustup locations, linker access, and installed tools; normalize Rust warning flags                                                                                              |
+| Runtime child ownership                   | Guard owns the direct child; fixtures inherit the enclosing driver-owned Cargo/test process group and do not detach or daemonize                                                             |
+| Stream capture                            | Separate temporary files for stdin/stdout/stderr; no pipe-reader or writer thread joins                                                                                                      |
+| Reply-write failure fixture               | For the selected stream, supply an empty temporary file opened read-only as the child's output descriptor; keep the other stream captured normally. No platform-specific device is required. |
+| Live output observation                   | Read through separately opened descriptors, without sharing the child's file offset                                                                                                          |
+| Completion loop                           | Monotonic deadline; poll at intervals no greater than 10 ms; detect output overflow while running                                                                                            |
+| Normal completion                         | Reap the direct child before releasing fixture state                                                                                                                                         |
+| Timeout, overflow, early return, or panic | Kill/reap the owned direct child; retain bounded output before cleanup                                                                                                                       |
+| Readiness action                          | Under the same overall deadline, detect the stdout marker, signal the owned PID once, then await termination; exit before marker is a failure                                                |
+| Output limit                              | Poll for more than 1 MiB per stream and terminate on detection; retain at most 1 MiB per stream, not a hard on-disk write quota                                                              |
+| Signaling                                 | Address only a positive owned PGID/PID; never signal the driver's own process group                                                                                                          |
+| Signal assertions                         | Read `ExitStatusExt::signal()`, not shell-style `128 + signal` status codes                                                                                                                  |
 
 `wait` readiness is detected from its flushed stdout marker before a test sends a signal. Service fixtures include
 empty/spaced/option-like/non-UTF-8 arguments, non-UTF-8 executable paths, controlled env/cwd/stdin, missing and
@@ -147,32 +150,50 @@ cargo dev format [--write]
 cargo dev lint
 cargo dev architecture
 cargo dev build --configuration production|development
+cargo dev run -- [ARG...]
 cargo dev test unit|component|service --configuration production|development [--filter TEXT]
 cargo dev sample -- [ARG...]
+./scripts/winter-cli [ARG...]
 ```
 
-| Driver command       | Contract                                                                                                                                                             |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `check`              | One shared local/CI operation list: format check, lint, architecture, both configuration builds and all three test tiers                                             |
-| `format`             | rustfmt and dprint check only; `--write` is the sole explicit source-rewriting mode                                                                                  |
-| `lint`               | Clippy on all Rust targets in both configurations, rumdl, `actionlint -shellcheck= -pyflakes=`, and `bash -n` on the bootstrap script; every enabled check must pass |
-| `architecture`       | Cargo declaration allowlist and its checker self-tests from [system.md](./system.md)                                                                                 |
-| `build`              | Build the selected CLI configuration; development also builds the independent sample                                                                                 |
-| `test unit`          | Inline library/binary unit targets, not integration targets                                                                                                          |
-| `test component`     | Harness `tests/component.rs` against platform public interfaces and controlled process doubles                                                                       |
-| `test service`       | Harness `tests/service.rs` against explicitly built CLI/sample artifacts                                                                                             |
-| `--filter TEXT`      | Pass a Rust test-name filter to the selected tier; no format/lint sweep or clean rebuild                                                                             |
-| `sample -- [ARG...]` | Build development artifacts, then exec the built `winter sample` with the explicit sample path and raw tail                                                          |
+| Driver command       | Contract                                                                                                                                                                 |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `check`              | One shared local/CI operation list: format check, lint, architecture, both configuration builds and all three test tiers                                                 |
+| `format`             | rustfmt and dprint check only; `--write` is the sole explicit source-rewriting mode                                                                                      |
+| `lint`               | Clippy on all Rust targets in both configurations, rumdl, `actionlint -shellcheck= -pyflakes=`, and `bash -n` on both development scripts; every enabled check must pass |
+| `architecture`       | Cargo declaration allowlist and its checker self-tests from [system.md](./system.md)                                                                                     |
+| `build`              | Build the selected CLI configuration; development also builds the independent sample                                                                                     |
+| `run -- [ARG...]`    | Build development artifacts, set the absolute sample path, then exec the built CLI with every raw argument unchanged; never invoke `winter` through PATH                 |
+| `test unit`          | Inline library/binary unit targets, not integration targets                                                                                                              |
+| `test component`     | Harness `tests/component.rs` against platform public interfaces and controlled process doubles                                                                           |
+| `test service`       | Harness `tests/service.rs` against explicitly built CLI/sample artifacts                                                                                                 |
+| `--filter TEXT`      | Pass a Rust test-name filter to the selected tier; no format/lint sweep or clean rebuild                                                                                 |
+| `sample -- [ARG...]` | Delegate to `run` with the literal `sample` token followed by the raw tail                                                                                               |
 
 | Driver result                                                          | Exit                                                                                                                                         |
 | ---------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
 | All requested checks pass                                              | `0`                                                                                                                                          |
 | Check failure, missing prerequisite, timeout, or orchestration failure | `1`                                                                                                                                          |
 | Invalid developer-command usage                                        | `2`                                                                                                                                          |
-| Sample demonstration                                                   | Driver execs the CLI; subsequent status and signals belong to the replaced executable; failed replacement exits `1` with a driver diagnostic |
+| Development run / sample demonstration                                 | Driver execs the CLI; subsequent status and signals belong to the replaced executable; failed replacement exits `1` with a driver diagnostic |
 
 The driver is internal development tooling, never installed, published, or registered in `winter` help. It contains the
 task implementation inside the existing harness crate rather than adding an xtask crate or a second command runner.
+
+| Development entry point         | Contract for `product:development-entrypoint`                                                                                                                                          |
+| ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `./scripts/winter-cli [ARG...]` | Thin executable Bash wrapper for the harness driver's `run -- [ARG...]`; it does not duplicate build/artifact-selection logic                                                          |
+| Checkout selection              | Resolve the repository from the wrapper's location and give Cargo its absolute manifest path, not a caller-cwd-relative path                                                           |
+| Toolchain selection             | Select the channel from that checkout's `rust-toolchain.toml`, including when invoked outside the repository                                                                           |
+| Arguments and process context   | Forward the raw tail with shell array semantics; no command-string evaluation or `cd`; inherit cwd and streams                                                                         |
+| Handoff                         | The wrapper execs its Cargo invocation; after builds, the driver execs the selected absolute CLI path with the sample path set                                                         |
+| Naming and coexistence          | Wrapper name is `winter-cli`; Cargo binary target, executable identity, and eventual release command remain `winter`                                                                   |
+| Shell integration               | Invoke the wrapper by relative or absolute path; a contributor may choose a distinct-name alias, but setup does not edit profiles, install an alias, or put the built `winter` on PATH |
+| Automation coverage             | Formatting and shell syntax checks cover the extensionless wrapper as well as `bootstrap-dev.sh`                                                                                       |
+
+Wrapper/driver regression checks invoke the wrapper from an unrelated cwd with a marker-writing `winter` decoy on PATH;
+they verify checkout version/output and preserved arguments/cwd, with the decoy untouched. Executable service tests
+continue to use absolute Cargo artifact paths directly, not the wrapper or installed workspace command.
 
 ```text
 production target directory  = <workspace>/target/verification/production
@@ -210,8 +231,8 @@ driver builds service artifacts before starting tests; requesting service tests 
 inputs fails with an actionable message. Rustdoc tests, where present, run with their package's unit-tier command.
 
 All Cargo/tool children owned by the driver have a 15-minute deadline and retained diagnostics; ordinary service
-invocations use the shorter per-invocation deadline above. After building, the demonstration replaces the driver with
-the built CLI using Unix `exec`, with inherited streams and cwd; it does not create another supervising parent.
+invocations use the shorter per-invocation deadline above. After building, `run` replaces the driver with the built CLI
+using Unix `exec`, with inherited streams and cwd; it does not create another supervising parent.
 
 ```yaml
 # .github/workflows/check.yml — engineering:automated-checks
@@ -253,5 +274,6 @@ versions are pinned in repository configuration; bootstrap and cache setup do no
 | `winter:service-test`                | `cargo dev test service --configuration production`   |
 | `winter:sample-test`                 | `cargo dev test service --configuration development`  |
 | `tool:sample`                        | `cargo dev sample -- inspect`                         |
+| `tool:cli`                           | `./scripts/winter-cli --help`                         |
 
 Matrix entries are added to application context only when their commands exist.

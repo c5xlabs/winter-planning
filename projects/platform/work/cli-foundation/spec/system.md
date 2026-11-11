@@ -9,6 +9,7 @@ c5xlabs/winter/
 ├── rust-toolchain.toml
 ├── dev-tools.env
 ├── scripts/bootstrap-dev.sh
+├── scripts/winter-cli         # development-only checkout entry point; never installs or shadows winter
 ├── .cargo/config.toml
 ├── .github/workflows/check.yml
 ├── dprint.json
