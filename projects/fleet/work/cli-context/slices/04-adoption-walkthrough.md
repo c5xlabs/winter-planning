@@ -8,8 +8,8 @@ depends-on:
 # Prove workspace-to-delivery diagnosis through the installed context
 
 Complete `product:workspace-participation`, `product:task-taxonomy`, and the integrated
-`engineering:context-example-proof` through [the workspace adoption example](../spec.md#workspace-adoption-example)
-and [the diagnosis walkthrough](../spec.md#diagnosis-walkthrough).
+`engineering:context-example-proof` through [the workspace adoption example](../spec.md#workspace-adoption-example) and
+[the diagnosis walkthrough](../spec.md#diagnosis-walkthrough).
 
 ## Change
 
@@ -22,11 +22,11 @@ and [the diagnosis walkthrough](../spec.md#diagnosis-walkthrough).
 
 ## Acceptance
 
-- The fixture traverses root → connection → work/inspect → delivery and issues only the expected read-only requests to
-  a controlled hub under the binding's explicit project/tenant scope, with no Blizzard development checkout.
+- The fixture traverses root → connection → work/inspect → delivery and issues only the expected read-only requests to a
+  controlled hub under the binding's explicit project/tenant scope, with no Blizzard development checkout.
 - Every final taxonomy address and index alias is served from the built wheel, with its authored body and task cue;
   root/work index routes collectively reach all required leaves without concatenating their bodies.
 - Missing-binding and missing-CLI cases stop at the documented setup request; no localhost fallback, sibling-directory
   discovery, dependency installation, host control, or factory mutation occurs.
-- The walkthrough preserves the distinction between CLI guidance and remote-hub capabilities, between participation
-  and authority, and between a prose binding and supported configuration; no credential is committed.
+- The walkthrough preserves the distinction between CLI guidance and remote-hub capabilities, between participation and
+  authority, and between a prose binding and supported configuration; no credential is committed.

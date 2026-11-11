@@ -91,7 +91,7 @@ class CommandExample:                # example-surface validation only; not a ru
 | Every path is unique and satisfies the full-match grammar.                                                                  | Fail the build.                                           |
 | Every topic has valid metadata and a nonempty Markdown body.                                                                | Fail the build, naming the source and field.              |
 | Every source directory has a readable `index.md`.                                                                           | Fail the build, naming the missing index.                 |
-| A directory alias cannot collide with a leaf key: `work.md` and `work/index.md` are ambiguous. | Fail the build, naming both sources. |
+| A directory alias cannot collide with a leaf key: `work.md` and `work/index.md` are ambiguous.                              | Fail the build, naming both sources.                      |
 | Every declared link resolves to a topic key or directory-index alias.                                                       | Fail the build, naming the source and target.             |
 | Every topic is reachable through index navigation from the root; duplicate link targets are checked after alias resolution. | Fail the build on unreachable pages or duplicate targets. |
 | Runtime catalog corruption never triggers source-file or service fallback.                                                  | Exit 1 before emitting a document.                        |
@@ -226,19 +226,19 @@ A hub coordinates work; runners execute leased steps.
 | Path                    | Relative file path without `.md`, separators mapped to `/`; no filesystem path is accepted at runtime.                                  |
 | Directory alias         | Each `<directory>/index.md` also accepts `<directory>`; omission selects root `index`. No alias may collide with another canonical key. |
 
-| Source | Routing contract / command surfaces described |
-| --- | --- |
-| `index.md` | Routes to `overview`, `connection`, `work`, `delivery`, `workers`, and `runner-hosts`, with read-trigger cues. |
-| `overview.md` | Hub, runner host, runner, project, chunk, and graph vocabulary; interactive versus leased roles; routes onward to connection and task guidance. |
-| `connection.md` | Explicit destination and tenant/project scope, authentication, CLI-versus-hub version boundary, workspace binding/eager entry, and missing-setup recovery. |
-| `work/index.md` | Routes to `work/inspect`, `work/prepare`, `work/control`, and `work/respond`; no combined operations manual. |
-| `work/inspect.md` | Chunk status, current node, history, work items, artifacts, and evidence; routes a landing wait to `delivery`. |
-| `work/prepare.md` | Ingest, group, true prerequisite links, order, promote, and queue operations; separates product mechanics from tenant policy. |
-| `work/control.md` | Chunk pause/resume/stop and recovery controls, their scope, eligibility, and consequences. |
-| `work/respond.md` | Read and answer worker questions and resolve human decisions within the current user's authority. |
-| `delivery.md` | Landing policies, checks, mergeability, waits and failures, external merge recognition, and graph completion after landing. |
-| `workers.md` | Leased node-step responsibilities and runner-facing artifact/ask/history interfaces; runtime identity and grants are supplied, never inferred. |
-| `runner-hosts.md` | Remote runner availability versus machine-local host status and controls; host ownership, fleet-wide restart impact, and when to hand off. |
+| Source            | Routing contract / command surfaces described                                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.md`        | Routes to `overview`, `connection`, `work`, `delivery`, `workers`, and `runner-hosts`, with read-trigger cues.                                             |
+| `overview.md`     | Hub, runner host, runner, project, chunk, and graph vocabulary; interactive versus leased roles; routes onward to connection and task guidance.            |
+| `connection.md`   | Explicit destination and tenant/project scope, authentication, CLI-versus-hub version boundary, workspace binding/eager entry, and missing-setup recovery. |
+| `work/index.md`   | Routes to `work/inspect`, `work/prepare`, `work/control`, and `work/respond`; no combined operations manual.                                               |
+| `work/inspect.md` | Chunk status, current node, history, work items, artifacts, and evidence; routes a landing wait to `delivery`.                                             |
+| `work/prepare.md` | Ingest, group, true prerequisite links, order, promote, and queue operations; separates product mechanics from tenant policy.                              |
+| `work/control.md` | Chunk pause/resume/stop and recovery controls, their scope, eligibility, and consequences.                                                                 |
+| `work/respond.md` | Read and answer worker questions and resolve human decisions within the current user's authority.                                                          |
+| `delivery.md`     | Landing policies, checks, mergeability, waits and failures, external merge recognition, and graph completion after landing.                                |
+| `workers.md`      | Leased node-step responsibilities and runner-facing artifact/ask/history interfaces; runtime identity and grants are supplied, never inferred.             |
+| `runner-hosts.md` | Remote runner availability versus machine-local host status and controls; host ownership, fleet-wide restart impact, and when to hand off.                 |
 
 Navigation advertises only sources included in that build; expanding the corpus adds the corresponding index links in
 the same change, without placeholder pages or dangling requests. Root and work indexes route to branches, not every
@@ -277,6 +277,7 @@ installed CLI
 
 ````markdown
 <!-- context-example: syntax-only -->
+
 ```sh
 blizzard hub chunk promote <chunk-id> --hub-url https://factory.example.invalid --tenant <tenant-id>
 ```
@@ -294,12 +295,12 @@ topic requests in index navigation
   → execute only the context read, with network and worker/factory clients denied
 ```
 
-| Marker / boundary | Contract |
-| --- | --- |
-| `context-example: syntax-only` | Validation is metadata-only, including for mutation examples; placeholders are sample argument values, not real identities. |
+| Marker / boundary                    | Contract                                                                                                                    |
+| ------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
+| `context-example: syntax-only`       | Validation is metadata-only, including for mutation examples; placeholders are sample argument values, not real identities. |
 | `context-example: read-only-fixture` | Same surface validation; a separate controlled scenario supplies concrete fake values and an allowlisted read-only command. |
-| Unmarked code fence | Illustrative text; not executable. The scenario cannot treat it as authorization to run a command. |
-| Reused operator Markdown | Uses the same markers and validation; no separate example corpus maintained by copying its command text. |
+| Unmarked code fence                  | Illustrative text; not executable. The scenario cannot treat it as authorization to run a command.                          |
+| Reused operator Markdown             | Uses the same markers and validation; no separate example corpus maintained by copying its command text.                    |
 
 ### Workspace adoption example
 

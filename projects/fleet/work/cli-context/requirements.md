@@ -38,17 +38,18 @@ Acceptance:
 
 ## Choose guidance by task (product:task-taxonomy)
 
-The context is organized around the questions a person or agent brings to Blizzard, rather than mirroring command
-groups or collecting every interactive operation under an "operator" topic. Workspace participation and binding
-guidance belongs with connection setup, not in a separate workspace topic.
+The context is organized around the questions a person or agent brings to Blizzard, rather than mirroring command groups
+or collecting every interactive operation under an "operator" topic. Workspace participation and binding guidance
+belongs with connection setup, not in a separate workspace topic.
 
 Acceptance:
 
 - The root routes to `overview` for components and roles, `connection` for hub/tenant/project setup, `work` for work
   operations, `delivery` for landing and delivery waits, `workers` for leased-step usage, and `runner-hosts` for runner
   availability and host controls.
-- The `work` index routes to `work/inspect` for progress/history/evidence, `work/prepare` for ingestion, grouping, ordering,
-  and promotion, `work/control` for pause/resume/stop/recovery, and `work/respond` for worker questions and human decisions.
+- The `work` index routes to `work/inspect` for progress/history/evidence, `work/prepare` for ingestion, grouping,
+  ordering, and promotion, `work/control` for pause/resume/stop/recovery, and `work/respond` for worker questions and
+  human decisions.
 - Each index is a small task router with read-trigger cues. Each leaf answers its named question and points to another
   topic rather than absorbing unrelated usage guidance.
 - `connection` includes the workspace-owned binding and eager-entry examples; `runner-hosts` distinguishes inspecting

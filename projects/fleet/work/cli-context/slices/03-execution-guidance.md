@@ -8,7 +8,8 @@ depends-on:
 
 Deliver the execution and delivery branches of `product:task-taxonomy` and the remaining role/landing behavior of
 `product:factory-operation` through [Markdown sources](../spec.md#markdown-sources). Apply
-`engineering:context-example-proof` and `engineering:context-usage-boundary` to keep guidance separate from runtime data.
+`engineering:context-example-proof` and `engineering:context-usage-boundary` to keep guidance separate from runtime
+data.
 
 ## Change
 

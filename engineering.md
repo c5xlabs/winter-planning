@@ -2,9 +2,9 @@
 
 ## Rust product CLIs (engineering:rust-product-clis)
 
-Rust is the intended implementation language for the suite's public-facing product CLIs. Adoption is decided per project,
-not imposed on every existing product at once; a project's current implementation remains valid until its migration is
-explicitly adopted.
+Rust is the intended implementation language for the suite's public-facing product CLIs. Adoption is decided per
+project, not imposed on every existing product at once; a project's current implementation remains valid until its
+migration is explicitly adopted.
 
 Platform's launcher and the new Workspace CLI adopt Rust. Blizzard retains its Python CLI and services for the time
 being, including new capabilities delivered through that CLI; Fleet's Rust CLI direction is not a prerequisite for
