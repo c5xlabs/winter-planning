@@ -2,9 +2,14 @@
 
 ## Rust product CLIs (engineering:rust-product-clis)
 
-All public-facing, released CLI tools that are part of the Winter product suite are implemented in Rust. This includes
-the platform executable and launcher shim, Workspace CLI, and Fleet hub and runner CLIs; it does not constrain internal
-development scripts or long-running services.
+Rust is the intended implementation language for the suite's public-facing product CLIs. Adoption is decided per project,
+not imposed on every existing product at once; a project's current implementation remains valid until its migration is
+explicitly adopted.
+
+Platform's launcher and the new Workspace CLI adopt Rust. Blizzard retains its Python CLI and services for the time
+being, including new capabilities delivered through that CLI; Fleet's Rust CLI direction is not a prerequisite for
+maintaining or extending Blizzard. This requirement does not select the language of internal scripts or long-running
+services, and a CLI migration does not imply a service rewrite.
 
 ## Shared CLI runtime baseline (engineering:cli-runtime-baseline)
 
