@@ -2,6 +2,7 @@
 epic: config/runtime
 refinement: refined
 status: planned
+external: github:paul-gross/blizzard#2124
 ---
 
 # Runtime

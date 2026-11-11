@@ -1,5 +1,6 @@
 ---
 name: hub-board
+external: github:paul-gross/blizzard#2137
 depends-on:
   - hub-settings
 code:

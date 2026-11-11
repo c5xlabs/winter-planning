@@ -1,5 +1,6 @@
 ---
 name: registry-lifetimes
+external: github:paul-gross/blizzard#2126
 code:
   - blizzard/src/blizzard/foundation/config_keys.py::ConfigKey
   - blizzard/src/blizzard/foundation/config_keys.py::ConfigRegistry

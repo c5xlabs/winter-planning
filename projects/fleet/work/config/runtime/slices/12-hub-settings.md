@@ -1,5 +1,6 @@
 ---
 name: hub-settings
+external: github:paul-gross/blizzard#2136
 depends-on:
   - registry-lifetimes
   - settings-record

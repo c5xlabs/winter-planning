@@ -1,5 +1,6 @@
 ---
 name: host-settings
+external: github:paul-gross/blizzard#2130
 depends-on:
   - runner-settings
 code:

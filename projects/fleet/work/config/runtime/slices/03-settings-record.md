@@ -1,5 +1,6 @@
 ---
 name: settings-record
+external: github:paul-gross/blizzard#2127
 code:
   - blizzard/src/blizzard/hub/config.py::HubConfig.to_toml
 ---

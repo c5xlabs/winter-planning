@@ -1,5 +1,6 @@
 ---
 name: shared-sealing
+external: github:paul-gross/blizzard#2125
 code:
   - blizzard/src/blizzard/hub/secrets/internal/aes_gcm.py::AesGcmSecretCipher
   - blizzard/src/blizzard/hub/secrets/internal/key_material.py::generation_of

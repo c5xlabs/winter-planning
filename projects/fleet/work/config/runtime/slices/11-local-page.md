@@ -1,5 +1,6 @@
 ---
 name: local-page
+external: github:paul-gross/blizzard#2135
 depends-on:
   - host-settings
   - host-records

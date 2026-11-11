@@ -1,5 +1,6 @@
 ---
 name: runner-settings
+external: github:paul-gross/blizzard#2129
 depends-on:
   - registry-lifetimes
   - settings-record

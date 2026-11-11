@@ -1,5 +1,6 @@
 ---
 name: harness-set
+external: github:paul-gross/blizzard#2128
 code:
   - blizzard/src/blizzard/runner/harness/wiring.py::select_harness_bindings
   - blizzard/src/blizzard/runner/harness/wiring.py::publish_harness_bundle

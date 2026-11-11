@@ -1,5 +1,6 @@
 ---
 name: apply-export
+external: github:paul-gross/blizzard#2134
 depends-on:
   - settings-record
   - hosted-runners

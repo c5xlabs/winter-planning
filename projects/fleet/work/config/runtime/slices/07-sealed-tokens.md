@@ -1,5 +1,6 @@
 ---
 name: sealed-tokens
+external: github:paul-gross/blizzard#2131
 depends-on:
   - shared-sealing
   - runner-settings

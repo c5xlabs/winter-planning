@@ -1,5 +1,6 @@
 ---
 name: hosted-runners
+external: github:paul-gross/blizzard#2132
 depends-on:
   - host-settings
   - sealed-tokens
