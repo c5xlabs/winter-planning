@@ -9,6 +9,7 @@ what the package declares for Angular 22.
 | --- | --- | --- | --- |
 | `@angular/*` (core, common, compiler, forms, platform-browser, router, build, cli, compiler-cli, animations) | 21.2 | 22.2 | — |
 | `@angular/cdk` | 21.2 | 22.2 | — |
+| `ng-packagr` | 21.2 | 22.2 | peer `@angular/compiler-cli ^22` |
 | `@angular/aria` | absent | 22.2 | peer `@angular/core ^22 \|\| ^23` |
 | `typescript` | ~5.9 | ~6.0 | `@angular/compiler-cli` 22 peers `>=6.0 <6.1` |
 | `@analogjs/vite-plugin-angular` | 2.8.1 | 2.9 | peer `@angular/build ^22.0.0` |

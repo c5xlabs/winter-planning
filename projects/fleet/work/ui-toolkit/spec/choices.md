@@ -13,6 +13,8 @@ the kit's directive.
 | `KitTabs` | component | `ngTabs`, `ngTabList`, `ngTab` | — | hand-wired `role="tab"` |
 | `fleetKitTabPanel` | directive | `ngTabPanel` | each panel a page projects into `KitTabs` | the page's own `@switch` |
 | `KitChips` | component | `ngListbox` (horizontal, single selection), `ngOption` | — | `aria-pressed` toggles |
+| `fleetKitChipGroup` | directive | `ngListbox` (horizontal, single selection) | the element holding a page's `@for` of `KitChip`s, such as the project lens, filter chips, project color, and graph list rows | one Tab stop per chip |
+| `KitChip` | component | `ngOption` inside a `fleetKitChipGroup` | — | `[selected]` toggles |
 | `fleetKitToolbar`, `fleetKitToolbarWidget` | directives | `ngToolbar`, `ngToolbarWidget` | an action chip row and its chips (`[action]="true"` today) | separate buttons |
 | `fleetKitSelectList` | directive | `ngListbox` (vertical, single selection) | the element holding a page's `@for` of rows | a column of buttons |
 | `KitSelectRow` | component | `ngOption` | — | `<button aria-current>` |
@@ -60,7 +62,8 @@ export interface ComboOption {
   readonly label: string;
   readonly meta?: string; // shown at the row's end, such as a UTC offset
 }
-// inputs: options: readonly ComboOption[]; ariaLabel
+// inputs: options: readonly ComboOption[]; ariaLabel; noneLabel?: string
+// With noneLabel, an optional field lists a first option of that label whose value is '', so the field can be cleared.
 // Typing filters options by case-insensitive substring of label. Up and Down move the highlight, Enter picks it,
 // Escape closes. Leaving the input with text that picks nothing restores the text of the current value.
 // A current value with no option is listed first as its own option, marked "not in list", and kept until another

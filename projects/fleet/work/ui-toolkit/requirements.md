@@ -60,7 +60,7 @@ A cadence's zone is picked from the zones there are, filtered as the operator ty
 Acceptance:
 
 - A cadence's zone is picked from the IANA zone list, filtered by what is typed.
-- A zone that is not on the list cannot be entered.
+- A zone that is not on the list cannot be entered, and an optional zone can be cleared.
 - A cadence whose stored zone is not on the list shows that zone and keeps it until the operator picks another.
 
 ## The frontend owns its domain (product:domain-boundary)
@@ -89,10 +89,11 @@ Acceptance:
 - All eleven form surfaces, including the admin config dialog and all five record types it serves, are built on Signal
   Forms, a domain model, and `KitField`. No form keeps hand-written set and save helpers, a field-layout class, or an
   error line of its own.
-- `KitTabs`, `KitChips`, the `KitSelectRow` lists, and `KitAccordionSection` are on Angular Aria, as are the members,
-  cadences, and routines tables.
-- The superseded code is deleted, not left beside its replacement: the per-form layout classes, the admin field lists,
-  `missingRequired`, `invalidNumbers`, and the text-to-number conversion in `config-edit.model.ts`.
+- `KitTabs`, `KitChips` and the chip rows built from single `KitChip`s, the `KitSelectRow` lists, and
+  `KitAccordionSection` are on Angular Aria, as are the members, cadences, and routines tables.
+- The superseded code is deleted, not left beside its replacement: the per-form layout classes, the required and
+  number checks in the admin field lists, `missingRequired`, `invalidNumbers`, and the text-to-number conversion in
+  `config-edit.model.ts`.
 
 ## A path for the next surface (product:assembled-surface)
 

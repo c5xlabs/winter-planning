@@ -33,20 +33,20 @@ project's kernel (`core/`), or to `fleet` where both apps reach it.
 
 | blizzard-context | Change |
 | --- | --- |
-| `architecture/frontend-structure/wire.md` | `bzh:frontend-wire-conformist` replaced by `bzh:frontend-domain-boundary`; `bzh:frontend-open-vocabulary` scoped to translators |
+| `architecture/frontend-structure/wire.md` | `bzh:frontend-wire-conformist` replaced by `bzh:frontend-domain-boundary`, its pending-override exception reworded with it; `bzh:frontend-open-vocabulary` scoped to translators |
 | `architecture/frontend-structure/containers.md` | `bzh:frontend-containers-compose`: a judgment once sent to the wire lives in a `*.domain.ts` |
-| `architecture/frontend-structure/mutations.md` | `bzh:frontend-pending-override`: the exception citing the old rule reworded |
 | `architecture/frontend-structure/kit.md` | `bzh:frontend-kit-floor` dependency list (`decision:ui-toolkit/kit-dependencies`) |
-| `architecture/frontend-structure/disjoint-diffs.md`, `architecture/system-shape/released-surfaces.md`, `standards/frontend.md`, `standards/wire.md` | citations of the old rule replaced |
-| `verification/blizzard/commands/web/static-checks.md`, `…/shell-sweep.md` | the boundary sweep's scope, report, and exemption list |
+| every other file that cites the old rule, in blizzard-context and in blizzard's own source and exemplars | the citation replaced |
+| `verification/blizzard/commands/web/static-checks.md` | the boundary sweep's scope, report, and exemption list; the open-vocabulary sweep's narrowed scope |
 | `exemplars/` web slice | gains the cadence concept's domain, translator, form, and service |
 
-| `web/scripts/structural-gate.js` | Change |
+| `web/` gate | Change |
 | --- | --- |
-| `assertDomainBoundaryDetectorWorks` (new) | fails a file outside `*.query.ts`, `*.mutations.ts`, `*.translate.ts`, and `fleet/src/lib/api/` that imports a name the generated `types.gen.ts` exports, unless its unit is on `DOMAIN_BOUNDARY_EXEMPT` |
+| Domain-boundary detector (new) | fails a file outside `*.query.ts`, `*.mutations.ts`, `*.translate.ts`, and `fleet/src/lib/api/` that imports from the generated `types.gen.ts`, judged by the import's source module, not its name, so a domain type may share a wire type's name; a unit on `DOMAIN_BOUNDARY_EXEMPT` passes |
 | `DOMAIN_BOUNDARY_EXEMPT` (new) | every unit that reads a wire type outside the boundary when the sweep lands; a unit leaves it in the landing that moves it; empty at delivery |
-| `assertClientCallPlacementDetectorWorks` | unchanged: the generated client is still called only from `*.query.ts` and `*.mutations.ts` |
-| `assertBackendCitationDetectorWorks` | unchanged |
+| `wire-conformist-sweep.js` | renamed for the new rule; its client-call and backend-citation detectors are kept as they are |
+| `open-vocabulary-sweep.js` | scoped to translators, where wire vocabularies are read |
+| `eslint.config.js` | restricted imports, as `*.model.ts` has today: no Angular in `*.domain.ts` or `*.translate.ts`; only `@angular/forms/signals` in `*.form.ts`; `@angular/aria` only in the kit |
 
 ## Domain
 
@@ -57,8 +57,8 @@ export type ChunkStatus =
   | 'not-ready' | 'ready' | 'running' | 'delivering' | 'waiting-on-human' | 'needs-human'
   | 'paused' | 'stopped' | 'done' | 'unknown';
 
-// A judgment the frontend makes from what it holds is a pure domain function, pinned by its spec.
-export function isTerminal(status: ChunkStatus): boolean;
+// A judgment the wire already carries, such as a chunk's `terminal`, is translated, not re-derived. A judgment the
+// frontend makes from what it holds is a pure domain function, pinned by its spec.
 ```
 
 ## Interfaces
@@ -74,7 +74,8 @@ export function injectHubCadencesQuery() {
   }));
 }
 
-// garden/core/cadence.translate.ts
+// garden/core/cadence.translate.ts, beside garden/core/cadence.domain.ts: in the kernel, because the query in
+// garden/core and more than one garden feature read them.
 export function fromCadenceView(wire: CadenceView): Cadence;
 export function toDraft(cadence: Cadence): CadenceDraft;
 export function toCreateRequest(draft: CadenceDraft): CadenceCreateRequest;

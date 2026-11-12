@@ -7,14 +7,14 @@ How a form is built: a domain draft, its rules, a service that saves it, and the
 
 | Part | Where | Holds |
 | --- | --- | --- |
-| `<concept>.domain.ts` | feature folder | The draft type the form edits |
+| `<concept>.domain.ts` | feature folder, or its kernel (`core/`) when a query or a second feature reads it | The draft type the form edits |
 | `<concept>.form.ts` | feature folder | The draft's validation rules, as a Signal Forms schema |
-| `<concept>.translate.ts` | feature folder | Draft ⇄ wire, and the concept's `RefusalMap` |
+| `<concept>.translate.ts` | beside its domain | Draft ⇄ wire, and the concept's `RefusalMap` |
 | `<concept>.service.ts` | feature folder | `inject<Concept>Service()`: saves a draft, answers a `SaveOutcome` |
 | Container | feature folder | Injects the service, owns the `form()`, submits it |
 | Form view | feature folder | Presentational: takes the field tree, renders kit parts, emits `save` and `cancel` |
 | `refusal.translate.ts` | `fleet/src/lib/core/forms/` | `readRefusal`: a hub refusal → domain fields, through a `RefusalMap` |
-| `outcome.ts`, `submit.ts` | `fleet/src/lib/core/forms/` | `SaveOutcome`, `OrDefault`, `toFormErrors`, `submitForm` |
+| `outcome.ts`, `submit.ts` | `fleet/src/lib/core/forms/` | `SaveOutcome`, `toFormErrors`, `submitForm` |
 | `KitForm`, `KitField`, `KitNumberInput`, `KitOrDefault` | `fleet/src/lib/kit/` | Form chrome; bind Signal Forms fields (`decision:ui-toolkit/kit-dependencies`) |
 | Kit controls | `KitTextInput`, `KitCheckbox`, `KitSelect`, `KitColorInput`, `KitCombobox` | Each implements Signal Forms' `FormValueControl`, so `[formField]` binds it; `valueChange` stays for use outside a form |
 
@@ -22,9 +22,6 @@ How a form is built: a domain draft, its rules, a service that saves it, and the
 
 ```ts
 // fleet/src/lib/core/forms/outcome.ts
-// decision:ui-toolkit/explicit-default
-export type OrDefault<T> = { readonly kind: 'default' } | { readonly kind: 'set'; readonly value: T };
-
 export type SaveOutcome<D> =
   | { readonly ok: true }
   | { readonly ok: false; readonly fields: Partial<Record<keyof D, string>>; readonly form: string | null };
@@ -38,7 +35,7 @@ export interface RefusalMap<D> {
 ```
 
 ```ts
-// garden/cadences/cadence.domain.ts — what the cadence form edits; no wire, no Angular
+// garden/core/cadence.domain.ts — what the cadence form edits; no wire, no Angular
 export type CadenceAnchor = 'scheduled' | 'started' | 'finished';
 export interface CadenceDraft {
   readonly slug: string;
@@ -59,7 +56,8 @@ export interface RepositoryDraft {
   readonly baseBranch: string;
   readonly tokenSecret: string;
   readonly landingPolicy: LandingPolicy;
-  readonly parkTimeoutHours: OrDefault<string>; // as typed; the rule makes it a whole number
+  readonly parkTimeoutDefault: boolean; // decision:ui-toolkit/explicit-default: the default is a choice
+  readonly parkTimeoutHours: string; // as typed; judged only when the default is not chosen
 }
 ```
 
@@ -71,9 +69,22 @@ const editRules = schema<CadenceDraft>((p) => {
       ? null
       : { kind: 'cron', message: 'Needs five fields: minute hour day month weekday' });
   validate(p.spacing, ({ value }) =>
-    value() === '' || /^\d+[mhd]$/.test(value())
+    value() === '' || /^[1-9]\d*[mhd]$/.test(value())
       ? null
-      : { kind: 'spacing', message: 'A whole number and m, h, or d' });
+      : { kind: 'spacing', message: 'A whole number above zero and m, h, or d' });
+  // The cross-field rules the hub states, judged here from the draft alone.
+  validate(p.zone, ({ value, valueOf }) =>
+    (value() === '') === (valueOf(p.cron) === '')
+      ? null
+      : { kind: 'schedule', message: 'A schedule needs both a cron and a zone' });
+  validate(p.anchor, ({ value, valueOf }) =>
+    value() !== 'unstated' && valueOf(p.spacing) === ''
+      ? { kind: 'anchor', message: 'An anchor needs a spacing' }
+      : null);
+  validate(p, ({ value }) =>
+    value().cron === '' && value().spacing === ''
+      ? { kind: 'cadence', message: 'State a schedule, a spacing, or both' }
+      : null);
 });
 export const cadenceEditRules = editRules; // the slug is fixed on edit
 export const cadenceCreateRules = schema<CadenceDraft>((p) => {
@@ -84,12 +95,11 @@ export const cadenceCreateRules = schema<CadenceDraft>((p) => {
 // admin/repositories/repository.form.ts
 export const repositoryRules = schema<RepositoryDraft>((p) => {
   for (const field of [p.slug, p.forge, p.owner, p.repo, p.baseBranch, p.tokenSecret]) required(field);
-  validate(p.parkTimeoutHours, ({ value }) => {
-    const choice = value();
-    return choice.kind === 'set' && !/^\d+$/.test(choice.value)
-      ? { kind: 'hours', message: 'Not a whole number of hours' }
-      : null;
-  });
+  disabled(p.parkTimeoutHours, ({ valueOf }) => valueOf(p.parkTimeoutDefault));
+  validate(p.parkTimeoutHours, ({ value, valueOf }) =>
+    valueOf(p.parkTimeoutDefault) || /^\d+$/.test(value())
+      ? null
+      : { kind: 'hours', message: 'Not a whole number of hours' });
 });
 ```
 
@@ -109,12 +119,12 @@ export function readRefusal<D>(error: unknown, map: RefusalMap<D>): SaveOutcome<
 //   a Problem whose type is in map.kinds             -> that field, with the problem's detail as its message
 //   anything else (network failure, 5xx, unknown 4xx) -> `form`, worded by errorMessage as today
 
-// garden/cadences/cadence.translate.ts
+// garden/core/cadence.translate.ts
 export const CADENCE_REFUSALS: RefusalMap<CadenceDraft> = {
   field: (path) =>
     ({
       slug: 'slug', name: 'name', 'schedule.cron': 'cron', 'schedule.zone': 'zone',
-      spacing: 'spacing', anchor: 'anchor',
+      schedule: 'cron', spacing: 'spacing', anchor: 'anchor',
     } as const)[path] ?? null,
   kinds: { 'urn:blizzard:problem:cadence-slug-taken': 'slug' }, // a 422 with a string detail, no path
 };
@@ -122,8 +132,8 @@ export const CADENCE_REFUSALS: RefusalMap<CadenceDraft> = {
 // for slug, and 'urn:blizzard:problem:repository-coordinate-taken' for repo.
 
 export function toCreateRequest(draft: CadenceDraft): CadenceCreateRequest;
-// RepositoryDraft.parkTimeoutHours: { kind: 'default' } -> park_timeout_hours: null; { kind: 'set' } -> Number(value),
-// reached only once the rule has passed.
+// RepositoryDraft: parkTimeoutDefault -> park_timeout_hours: null; otherwise Number(parkTimeoutHours), reached only
+// once the rule has passed.
 ```
 
 ```ts
@@ -173,7 +183,7 @@ readonly cancel = output<void>();
     <fleet-kit-text-input [formField]="form().slug" />
   </fleet-kit-field>
   <fleet-kit-field label="Zone" [field]="form().zone">
-    <fleet-kit-combobox [formField]="form().zone" [options]="zones" />
+    <fleet-kit-combobox [formField]="form().zone" [options]="zones" noneLabel="None" />
   </fleet-kit-field>
 </fleet-kit-form>
 ```
@@ -183,13 +193,14 @@ readonly cancel = output<void>();
 | `KitForm` | `form: FieldTree<unknown>`, `saveLabel`, `cancelLabel` | The field stack, the action row, and the root field's errors as the form-level line. Save is disabled while `form().submitting()`. Emits `save` on submit and `cancel` |
 | `KitField` | `label`, `field: FieldTree<unknown>`, `hint?` | The label; a required marker when `field().required()`; the hint; `field().errors()` once `touched()` |
 | `KitNumberInput` | `[formField]` bound to a `string`, `unit?` | A text input with `inputmode="numeric"` and the unit after it; the text is kept as typed, and the rule judges it |
-| `KitOrDefault` | `[formField]` bound to an `OrDefault<string>`, `defaultLabel` | A "default" chip beside the projected control; choosing it sets `{ kind: 'default' }` and disables the control |
+| `KitOrDefault` | `[formField]` bound to the draft's `boolean` default choice, `defaultLabel` | A "default" chip beside the projected control, which the rules disable while the default is chosen |
 
 Every kit control is focusable through `focusBoundControl()`, which `submitForm` relies on.
 
-The admin config dialog stays generic over five record types. Its field list keeps only presentation (key, label,
-kind, order, and when a field is shown), keyed by the domain draft's fields. Required-ness and number checks move to
-each record type's `*.form.ts`. The awaiting-human answers are one form per question, each over its own `AnswerDraft`;
+The admin config dialog stays generic over five record types. It takes the record type's field tree, and its field list
+keeps only presentation (key, label, kind, order, and when a field is shown), keyed by the domain draft's fields; a
+field's kind names the kit control it is drawn with. Required-ness and number checks move to each record type's
+`*.form.ts`. The awaiting-human answers are one form per question, each over its own `AnswerDraft`;
 the row's action chips are a toolbar of actions (`spec/choices.md`), not fields.
 
 ## Flows
