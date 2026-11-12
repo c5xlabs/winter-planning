@@ -30,20 +30,20 @@ auth, not to this epic. So a session that may not `PATCH` a workspace may still 
 
 `{key}` is a key's dotted path as the contract document spells it. A table key's whole value is one entry, set whole.
 
-| Method        | Path                                              | Body / query                                                         | `200` answer                                                          |
-| ------------- | ------------------------------------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| `GET`         | `/api/host/settings`                              | —                                                                    | Host view                                                             |
-| `PATCH`       | `/api/host/settings`                              | Write, `If-Match`                                                    | Host view                                                             |
-| `GET`         | `/api/host/settings/changes`                      | `?record_kind=`, `?record_key=`; paginated                           | Change rows, newest first                                             |
-| `GET`         | `/runners/{runner_id}/api/settings`               | —                                                                    | Runner view                                                           |
-| `PATCH`       | `/runners/{runner_id}/api/settings`               | Write, `If-Match`                                                    | Runner view                                                           |
-| `GET`         | `/runners/{runner_id}/api/settings/changes`       | paginated                                                            | Change rows, newest first                                             |
-| `POST`        | `/api/host/settings/apply`                        | Apply document; `?dry_run=true` rolls it back                        | Outcome rows                                                          |
-| `GET`         | `/api/host/settings/export`                       | —                                                                    | Apply document: every entry, every active record, every hosted runner |
-| `GET`, `POST` | `/api/host/runners`                               | see [host-records.md](./host-records.md)                             |                                                                       |
-| `POST`        | `/api/host/runners/{runner_id}/retire`            | see [host-records.md](./host-records.md)                             |                                                                       |
-| `PUT`         | `/api/host/runners/{runner_id}/token`             | see [runner-store.md](./runner-store.md) §Replacing a runner's token |                                                                       |
-| six verbs     | `/api/host/workspaces`, `/api/host/subscriptions` | see [host-records.md](./host-records.md)                             |                                                                       |
+| Method        | Path                                              | Body / query                                                         | `200` answer                                                                          |
+| ------------- | ------------------------------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------------------------------------- |
+| `GET`         | `/api/host/settings`                              | —                                                                    | Host view                                                                             |
+| `PATCH`       | `/api/host/settings`                              | Write, `If-Match`                                                    | Host view                                                                             |
+| `GET`         | `/api/host/settings/changes`                      | `?record_kind=`, `?record_key=`; paginated                           | Change rows, newest first                                                             |
+| `GET`         | `/runners/{runner_id}/api/settings`               | —                                                                    | Runner view                                                                           |
+| `PATCH`       | `/runners/{runner_id}/api/settings`               | Write, `If-Match`                                                    | Runner view                                                                           |
+| `GET`         | `/runners/{runner_id}/api/settings/changes`       | paginated                                                            | Change rows, newest first                                                             |
+| `POST`        | `/api/host/settings/apply`                        | Apply document; `?dry_run=true` rolls it back                        | Outcome rows                                                                          |
+| `GET`         | `/api/host/settings/export`                       | —                                                                    | Apply document: every entry holding a value, every active record, every hosted runner |
+| `GET`, `POST` | `/api/host/runners`                               | see [host-records.md](./host-records.md)                             |                                                                                       |
+| `POST`        | `/api/host/runners/{runner_id}/retire`            | see [host-records.md](./host-records.md)                             |                                                                                       |
+| `PUT`         | `/api/host/runners/{runner_id}/token`             | see [runner-store.md](./runner-store.md) §Replacing a runner's token |                                                                                       |
+| six verbs     | `/api/host/workspaces`, `/api/host/subscriptions` | see [host-records.md](./host-records.md)                             |                                                                                       |
 
 ### Views
 
@@ -133,7 +133,9 @@ class ConfigApplyOutcome(WireModel):
 
 - Every write commits together, each with its change row, door `apply`, one shared `apply_id`, or none does. A dry run
   is the same transaction rolled back.
-- The route takes and the export answers JSON. Applying an export back writes nothing.
+- The route takes and the export answers JSON. The export leaves out every entry `at_default`
+  (`decision:config/runtime/export-values-only`), so applying it back writes nothing, and no document unsets a key:
+  `settings unset` does.
 
 ## CLI
 

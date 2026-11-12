@@ -25,9 +25,9 @@ export ([hub.md](../spec/hub.md) §Domain, §Data, §Interfaces; [settings.md](.
 `product:hub-settings-record`, `product:hub-pass-settings`, `product:hub-file-seeds`, and
 `product:hub-settings-document`, and the hub's side of `product:independent-daemon-settings`. It is bound by
 `engineering:one-hub-process`, `engineering:upgrade-migration`, `engineering:unedited-daemon-unchanged`, and
-`engineering:off-fleet-wire`, and shaped by `decision:config/runtime/hub-settings-admin-reads` and
-`decision:settings-cli-scopes`. Its write and seed are the shared ones ([lifetimes.md](../spec/lifetimes.md) §The shared
-settings record).
+`engineering:off-fleet-wire`, and shaped by `decision:config/runtime/hub-settings-admin-reads`,
+`decision:settings-cli-scopes`, and `decision:config/runtime/export-values-only`. Its write and seed are the shared ones
+([lifetimes.md](../spec/lifetimes.md) §The shared settings record).
 
 ## Change
 
@@ -50,6 +50,8 @@ settings record).
 - `blizzard:component-test` over a sweep's interval write reaching the next pass, a transcript cap write reaching the
   next ingest in every tenant, and the throttle rebuilt.
 - `blizzard:service-test` on the controlled clock writing a sweep interval and stepping.
+- `blizzard:component-test` over an export leaving out an entry `at_default`, an unset transcript cap among them, and
+  that export applied back writing nothing.
 - `blizzard:service-test`: a runner of the previous release registers and claims against the upgraded hub, and the fleet
   wire's contract is unchanged.
 - `blizzard:store-contract`, `blizzard:cli-contract`, `blizzard:compat`, and `web:client-drift` pass.

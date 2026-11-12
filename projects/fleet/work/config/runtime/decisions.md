@@ -1,5 +1,15 @@
 # Runtime decisions
 
+## An export carries values only (decision:config/runtime/export-values-only)
+
+**Decider:** owner
+
+Either daemon's export writes only the entries that hold a value; an entry `at_default`, a setting unset back to its
+default, is left out, and no document unsets a setting. A document only ever sets, as it already never retires, and it
+keeps its file's shape: a reserved marker for an unset would be grammar no file accepts, and TOML cannot state a null
+default. Applying an export back to its own daemon still writes nothing; on another daemon such a setting keeps the
+value it has, and an operator resets it there with `settings unset`.
+
 ## Tokens after a walk-back (decision:config/runtime/walk-back-tokens)
 
 **Decider:** owner

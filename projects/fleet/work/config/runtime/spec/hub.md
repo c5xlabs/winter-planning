@@ -100,7 +100,7 @@ since a tenant's document never reaches past its tenant (`bzh:config-apply`).
 | Encode     | `export` emits TOML through the emitter `HubConfig.to_toml` uses, moved to `foundation/toml_emit.py` and shared with the runner                                                                                                                    |
 | Writes     | Each stated key set, nothing else touched; a `boot` key refused `setting_not_live`                                                                                                                                                                 |
 | Commit     | One transaction, door `apply`, one `apply_id`; one outcome row per key; a dry run rolls it back                                                                                                                                                    |
-| Round trip | The export writes every entry the store holds, so applying it back writes nothing                                                                                                                                                                  |
+| Round trip | The export writes every entry holding a value and leaves out one `at_default` (`decision:config/runtime/export-values-only`), so applying it back writes nothing; no document unsets a key                                                         |
 
 ### Reading per pass
 

@@ -12,7 +12,8 @@ code:
 # Apply and export
 
 Adds the runner's declarative apply and its export, emitted through the shared TOML emitter
-([runner-api.md](../spec/runner-api.md) §Apply, §CLI). Delivers `product:runner-settings-document`.
+([runner-api.md](../spec/runner-api.md) §Apply, §CLI). Delivers `product:runner-settings-document`, shaped by
+`decision:config/runtime/export-values-only`.
 
 ## Change
 
@@ -24,5 +25,5 @@ Adds the runner's declarative apply and its export, emitted through the shared T
 
 - `blizzard:unit-test` over the plan never retiring an omitted record and refusing an unknown runner.
 - `blizzard:component-test` over a refused entry rolling back the whole document, a dry run reaching a validation
-  refusal, and an export applied back writing nothing.
+  refusal, and an export, which leaves out every entry `at_default`, applied back writing nothing.
 - `blizzard:cli-contract`, `web:client-drift`, and `blizzard:compat` pass.

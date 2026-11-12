@@ -228,7 +228,9 @@ validated write. Its export is the same document, so a host's settings can be ke
 Acceptance:
 
 - Every setting the document states is set, and every workspace or subscription it names is created or edited.
-- Nothing the document leaves out is retired.
+- Nothing the document leaves out is retired, and a document never resets a setting to its default.
+- The export states every setting that holds a value and leaves out one reset to its default, so applying it back
+  changes nothing.
 
 ## The hub's operational settings as a record (product:hub-settings-record)
 
@@ -269,6 +271,7 @@ As on the runner, the hub's settings take a document shaped like its file, appli
 Acceptance:
 
 - The hub's settings document is separate from any tenant's config document.
+- As on the runner, the export leaves out a setting reset to its default, and a document never resets one.
 
 ## Each daemon sets its own side (product:independent-daemon-settings)
 
