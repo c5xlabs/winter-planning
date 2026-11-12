@@ -1,5 +1,6 @@
 ---
 name: converge-hub-execution
+external: github:paul-gross/blizzard#2158
 depends-on:
   - store-judgments
   - flow-judgments

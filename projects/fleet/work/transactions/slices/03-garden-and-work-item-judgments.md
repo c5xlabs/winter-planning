@@ -1,5 +1,6 @@
 ---
 name: garden-and-work-item-judgments
+external: github:paul-gross/blizzard#2150
 depends-on:
   - store-judgments
   - config-judgments

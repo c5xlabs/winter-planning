@@ -1,5 +1,6 @@
 ---
 name: converge-decisions-and-escalations
+external: github:paul-gross/blizzard#2157
 depends-on:
   - store-judgments
 ---

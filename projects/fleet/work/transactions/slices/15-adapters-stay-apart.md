@@ -1,5 +1,6 @@
 ---
 name: adapters-stay-apart
+external: github:paul-gross/blizzard#2162
 depends-on:
   - garden-and-work-item-judgments
   - converge-record-and-work-refs

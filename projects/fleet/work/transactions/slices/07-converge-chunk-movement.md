@@ -1,5 +1,6 @@
 ---
 name: converge-chunk-movement
+external: github:paul-gross/blizzard#2154
 depends-on:
   - store-judgments
   - flow-judgments

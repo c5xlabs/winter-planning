@@ -1,5 +1,6 @@
 ---
 name: store-held-exclusions
+external: github:paul-gross/blizzard#2163
 depends-on:
   - tenant-judgments
   - garden-and-work-item-judgments

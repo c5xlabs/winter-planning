@@ -1,5 +1,6 @@
 ---
 name: converge-record-and-work-refs
+external: github:paul-gross/blizzard#2159
 depends-on:
   - store-judgments
   - config-judgments

@@ -1,5 +1,6 @@
 ---
 name: flow-judgments
+external: github:paul-gross/blizzard#2151
 depends-on:
   - store-judgments
   - config-judgments

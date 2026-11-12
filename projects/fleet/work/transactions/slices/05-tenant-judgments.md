@@ -1,5 +1,6 @@
 ---
 name: tenant-judgments
+external: github:paul-gross/blizzard#2152
 depends-on:
   - store-judgments
 ---

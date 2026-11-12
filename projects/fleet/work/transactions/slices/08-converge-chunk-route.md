@@ -1,5 +1,6 @@
 ---
 name: converge-chunk-route
+external: github:paul-gross/blizzard#2155
 depends-on:
   - store-judgments
 ---

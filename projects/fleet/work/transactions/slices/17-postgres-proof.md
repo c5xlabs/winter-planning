@@ -1,5 +1,6 @@
 ---
 name: postgres-proof
+external: github:paul-gross/blizzard#2164
 depends-on:
   - tenant-judgments
 ---

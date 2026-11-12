@@ -1,5 +1,6 @@
 ---
 name: converge-chunk-lifecycle
+external: github:paul-gross/blizzard#2153
 depends-on:
   - store-judgments
   - flow-judgments

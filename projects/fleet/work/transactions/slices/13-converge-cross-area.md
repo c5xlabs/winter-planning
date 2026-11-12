@@ -1,5 +1,6 @@
 ---
 name: converge-cross-area
+external: github:paul-gross/blizzard#2160
 depends-on:
   - converge-chunk-lifecycle
   - converge-chunk-movement

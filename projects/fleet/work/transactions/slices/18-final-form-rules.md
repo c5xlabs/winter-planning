@@ -1,5 +1,6 @@
 ---
 name: final-form-rules
+external: github:paul-gross/blizzard#2165
 depends-on:
   - converge-graph
   - adapters-stay-apart

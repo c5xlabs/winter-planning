@@ -2,6 +2,7 @@
 epic: transactions
 refinement: final
 status: planned
+external: github:paul-gross/blizzard#2147
 ---
 
 # Transactions

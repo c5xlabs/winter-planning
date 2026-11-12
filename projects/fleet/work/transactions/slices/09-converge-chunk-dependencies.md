@@ -1,5 +1,6 @@
 ---
 name: converge-chunk-dependencies
+external: github:paul-gross/blizzard#2156
 depends-on:
   - store-judgments
 ---

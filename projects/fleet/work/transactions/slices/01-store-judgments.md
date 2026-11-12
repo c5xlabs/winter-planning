@@ -1,5 +1,6 @@
 ---
 name: store-judgments
+external: github:paul-gross/blizzard#2148
 ---
 
 # Store judgments

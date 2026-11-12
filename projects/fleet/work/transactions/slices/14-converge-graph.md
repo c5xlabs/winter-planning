@@ -1,5 +1,6 @@
 ---
 name: converge-graph
+external: github:paul-gross/blizzard#2161
 depends-on:
   - config-judgments
   - converge-cross-area

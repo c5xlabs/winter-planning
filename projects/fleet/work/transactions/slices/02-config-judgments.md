@@ -1,5 +1,6 @@
 ---
 name: config-judgments
+external: github:paul-gross/blizzard#2149
 ---
 
 # Config judgments
