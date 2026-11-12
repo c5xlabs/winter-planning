@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>blizzard hub — Tables — interactive rows on Angular Aria grid</title>
+<style>
+:root {
+  --bg: #060a12;
+  --ground: #080d17;
+  --panel: #0b1120;
+  --panel-deep: #080d19;
+  --panel-hover: #121b30;
+  --panel-hi: #1a2748;
+  --bezel: #1d2b44;
+  --bezel-hi: #27395c;
+  --line: #131d30;
+  --amber: #f2b25c;
+  --amber-hi: #ffcf8a;
+  --amber-dim: #8f7548;
+  --amber-faint: #4d4130;
+  --snow: #eef4fb;
+  --cyan: #5cd1e5;
+  --cyan-dim: #2b6675;
+  --red: #f05c6c;
+  --red-dim: #7a3540;
+  --red-wash-text: #ffd9dd;
+  --green: #4fc57e;
+  --green-dim: #2b5c40;
+  --hatch-paused: repeating-linear-gradient(
+    135deg,
+    transparent 0 10px,
+    color-mix(in srgb, var(--amber-hi) 3%, transparent) 10px 20px
+  );
+  --grey: #5c5c5c;
+  --grey-dim: #3d3d3d;
+  --label: #98a8bd;
+  --label-dim: #7f91a9;
+  --text: #b8c6d8;
+  --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  --header-hi: #0d1526;
+  --header-lo: #080d18;
+  --fs-label: 11px; /* engraved uppercase labels (.lbl), raised from 9px */
+  --fs-xs: 12px; /* dense secondary text — node names, counts, badges */
+  --fs-sm: 13px; /* list rows: activity feed, history, artifacts */
+  --fs-base: 15px; /* body copy and controls */
+  --fs-md: 16px; /* card ids, column counts, runner names */
+  --fs-lg: 19px; /* the brand and header values */
+  --master-list-col: 320px;
+  --overlay-20: rgba(0, 0, 0, 0.2);
+  --overlay-25: rgba(0, 0, 0, 0.25);
+  --overlay-30: rgba(0, 0, 0, 0.3);
+  --overlay-35: rgba(0, 0, 0, 0.35);
+  --overlay-40: rgba(0, 0, 0, 0.4);
+  --overlay-90: rgba(0, 0, 0, 0.9); /* the engraved .lbl text-shadow */
+  --tint-hover: color-mix(in srgb, var(--cyan) 5%, var(--overlay-25));
+  --tint-selected: color-mix(in srgb, var(--cyan) 8%, var(--overlay-25));
+  --surface-resting: var(--panel);
+  --surface-hover: var(--panel-hover);
+  --surface-selected: var(--panel-hi);
+  --project-red: #f87171;
+  --project-orange: #fb923c;
+  --project-amber: #fbbf24;
+  --project-lime: #a3e635;
+  --project-green: #4ade80;
+  --project-teal: #14b8a6;
+  --project-cyan: #22d3ee;
+  --project-blue: #60a5fa;
+  --project-indigo: #818cf8;
+  --project-violet: #a78bfa;
+  --project-pink: #f472b6;
+  --project-slate: #94a3b8;
+}
+
+
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);font-family:var(--mono);font-size:var(--fs-base)}
+.page{max-width:1240px;margin:0 auto;padding:28px 28px 40px}
+h1{font-size:var(--fs-lg);color:var(--snow);margin:0 0 4px;font-weight:600;letter-spacing:.02em}
+.sub{color:var(--label);font-size:var(--fs-sm);margin:0 0 22px;max-width:980px;line-height:1.5}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start;margin-bottom:28px}
+.pair.three{grid-template-columns:1fr 1fr 1fr}
+.side-h{display:flex;align-items:center;gap:10px;margin:0 0 8px;font-size:var(--fs-label);letter-spacing:.18em;text-transform:uppercase}
+.side-h .tag{padding:2px 8px;border:1px solid var(--line);border-radius:999px}
+.side-h.today .tag{color:var(--label)}
+.side-h.after .tag{color:var(--green);border-color:var(--green-dim)}
+.side-h .what{color:var(--label-dim);letter-spacing:.04em;text-transform:none;font-size:var(--fs-xs)}
+.row-h{font-size:var(--fs-sm);color:var(--amber);margin:0 0 10px;letter-spacing:.04em}
+/* kit: panel */
+.panel{background:linear-gradient(180deg,var(--panel) 0%,var(--panel-deep) 100%);border:1px solid var(--bezel)}
+.p-hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px;border-bottom:1px solid var(--line);background:var(--overlay-25)}
+.lbl{font-size:var(--fs-label);letter-spacing:.18em;text-transform:uppercase;color:var(--label);text-shadow:0 1px 0 var(--overlay-90)}
+.p-body{padding:12px}
+/* kit: button */
+.act{font-family:inherit;background:var(--overlay-30);border:1px solid var(--line);color:var(--text);padding:2px 7px;font-size:var(--fs-xs);cursor:pointer}
+.act.primary{color:var(--cyan)}
+.act.danger{color:var(--red)}
+.act:disabled{opacity:.4}
+/* kit: text input */
+.ctl{display:block;width:100%;font-family:inherit;font-size:var(--fs-sm);background:var(--overlay-35);border:1px solid var(--line);color:var(--text);padding:4px 6px}
+.ctl.ph{color:var(--label-dim)}
+.ctl.invalid{border-color:var(--red)}
+.ctl.focus{outline:1px solid var(--cyan)}
+.ctl.invalid.focus{outline-color:var(--red)}
+.selectish{display:flex;justify-content:space-between;align-items:center}
+.selectish::after{content:"▾";color:var(--label-dim);font-size:var(--fs-xs)}
+/* kit: error line */
+.err{margin:0;color:var(--red);font-size:var(--fs-sm);overflow-wrap:anywhere}
+/* form layout (today's per-form copy / tomorrow's KitField) */
+.form{display:flex;flex-direction:column;gap:10px}
+.frow{display:flex;gap:8px;flex-wrap:wrap}
+.frow > .field{flex:1 1 140px}
+.field{display:flex;flex-direction:column;gap:4px;min-width:0}
+.flabel{font-size:var(--fs-label);letter-spacing:.12em;text-transform:uppercase;color:var(--label)}
+.req{color:var(--amber);margin-left:3px;letter-spacing:0}
+.hint{font-size:var(--fs-xs);color:var(--label-dim)}
+.ferr{font-size:var(--fs-xs);color:var(--red);display:flex;gap:5px}
+.ferr::before{content:"✕"}
+.actions{display:flex;gap:6px}
+/* kit: chips */
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{font-family:inherit;background:transparent;border:1px solid var(--line);border-radius:999px;color:var(--text);padding:1px 8px;font-size:var(--fs-xs);letter-spacing:.04em}
+.chip.sel{border-color:var(--amber-hi);color:var(--amber-hi)}
+.chip.focus{outline:1px solid var(--cyan);outline-offset:1px}
+/* kit: tabs */
+.tabs{display:flex;border-bottom:1px solid var(--line);background:var(--overlay-25);height:34px}
+.tab{display:flex;align-items:center;padding:0 16px;border-right:1px solid var(--line);color:var(--label);font-size:var(--fs-sm);white-space:nowrap}
+.tab.active{color:var(--amber-hi);background:var(--header-hi)}
+.tab.focus{outline:1px solid var(--cyan);outline-offset:-1px}
+.tab .cnt{margin-left:7px;font-size:var(--fs-xs);color:var(--label-dim)}
+/* kit: select row */
+.rows{display:flex;flex-direction:column}
+.srow{display:flex;justify-content:space-between;gap:8px;padding:7px 10px;border-left:2px solid transparent;border-bottom:1px solid var(--line);font-size:var(--fs-sm);color:var(--text)}
+.srow.sel{background:var(--surface-selected);border-left-color:var(--cyan)}
+.srow.hover{background:var(--surface-hover)}
+.srow.focus{outline:1px solid var(--cyan);outline-offset:-1px}
+.srow .meta{color:var(--label-dim);font-size:var(--fs-xs)}
+/* Tab-stop annotation: a numbered marker on every element Tab visits */
+.ts{position:relative}
+.ts::after{content:attr(data-ts);position:absolute;top:-8px;right:-6px;min-width:16px;height:16px;padding:0 3px;border-radius:8px;background:var(--amber);color:var(--bg);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;z-index:2}
+.ts.one::after{background:var(--green)}
+.chip.ts::after{right:-16px;top:-10px}
+/* notes */
+.notes{margin:10px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.notes li{font-size:var(--fs-xs);color:var(--label);line-height:1.45;padding-left:14px;position:relative}
+.notes li::before{content:"›";position:absolute;left:2px;color:var(--amber)}
+.notes.after li::before{color:var(--green)}
+.keys{display:inline-flex;gap:3px}
+kbd{font-family:inherit;font-size:10px;padding:0 4px;border:1px solid var(--bezel-hi);border-bottom-width:2px;border-radius:3px;color:var(--snow);background:var(--panel-hi)}
+.legend{display:flex;gap:18px;font-size:var(--fs-xs);color:var(--label);margin:-10px 0 20px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.dot{width:14px;height:14px;border-radius:7px;display:inline-block}
+.wire{color:var(--cyan)}
+/* dialog */
+.dialog{background:linear-gradient(180deg,var(--panel) 0%,var(--panel-deep) 100%);border:1px solid var(--bezel-hi);box-shadow:0 0 0 9999px var(--overlay-40)}
+.d-hdr{padding:10px 14px;border-bottom:1px solid var(--line);background:var(--overlay-25);display:flex;justify-content:space-between;align-items:center}
+.d-hdr h2{margin:0;font-size:var(--fs-md);color:var(--snow);font-weight:600}
+.d-body{padding:14px}
+.d-ftr{padding:10px 14px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:6px}
+.stage{padding:18px;background:var(--ground);border:1px dashed var(--bezel);overflow:hidden}
+/* combobox popup */
+.pop{border:1px solid var(--bezel-hi);background:var(--panel-deep);margin-top:2px;max-height:220px;overflow:hidden}
+.opt{padding:5px 8px;font-size:var(--fs-sm);display:flex;justify-content:space-between}
+.opt.active{background:var(--surface-selected);color:var(--snow);border-left:2px solid var(--cyan);padding-left:6px}
+.opt .m{color:var(--label-dim);font-size:var(--fs-xs)}
+.opt b{color:var(--amber-hi);font-weight:400}
+/* table */
+table{border-collapse:collapse;width:100%;font-size:var(--fs-sm)}
+th{text-align:left;font-weight:400;font-size:var(--fs-label);letter-spacing:.12em;text-transform:uppercase;color:var(--label);background:var(--overlay-25);padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.cell-focus{outline:1px solid var(--cyan);outline-offset:-2px}
+tr.row-active td{background:var(--tint-hover)}
+.badge{font-size:var(--fs-xs);padding:0 6px;border:1px solid var(--line);border-radius:999px;color:var(--label);margin-left:6px}
+
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Tables — interactive rows on Angular Aria grid</h1>
+<p class="sub">The look of the table does not change. Moving through it does.</p>
+<div class="legend"><span><i class="dot" style="background:var(--amber)"></i>a Tab stop, numbered in Tab order</span><span><i class="dot" style="background:var(--green)"></i>one Tab stop; the arrow keys move inside it</span></div>
+<div class="pair">
+<div>
+<div class="side-h today"><span class="tag">Today</span><span class="what">members-table.html, a plain &lt;table&gt;</span></div>
+<div class="panel"><div class="p-hdr"><span class="lbl">Members</span></div><div class="p-body"><table><tr><th>Username</th><th>Display name</th><th>Role</th><th></th></tr><tr><td>ada<span class="badge">hub admin</span></td><td>Ada</td><td><span class='ctl selectish ts' data-ts='1' style='display:inline-flex;width:auto;gap:8px'>admin</span></td><td><button class='act danger ts' data-ts='2'>Remove</button></td></tr><tr><td>linus</td><td>Linus</td><td><span class='ctl selectish ts' data-ts='3' style='display:inline-flex;width:auto;gap:8px'>member</span></td><td><button class='act danger ts' data-ts='4'>Remove</button></td></tr><tr><td>ops-bot</td><td>Ops bot</td><td><span class='ctl selectish ts' data-ts='5' style='display:inline-flex;width:auto;gap:8px'>member</span></td><td><button class='act danger ts' data-ts='6'>Remove</button></td></tr></table></div></div>
+<ul class="notes"><li>Every role picker and every Remove button is its own Tab stop: two per member, so sixty presses for thirty members.</li><li>Nothing says which row a control belongs to except its position.</li></ul>
+</div>
+<div>
+<div class="side-h after"><span class="tag">After</span><span class="what">ngGrid over the same &lt;table&gt;</span></div>
+<div class="panel"><div class="p-hdr"><span class="lbl">Members</span></div><div class="p-body"><div class="ts one" data-ts="1"><table><tr><th>Username</th><th>Display name</th><th>Role</th><th></th></tr><tr><td>ada<span class="badge">hub admin</span></td><td>Ada</td><td><span class="ctl selectish" style="display:inline-flex;width:auto;gap:8px">admin</span></td><td><button class='act danger'>Remove</button></td></tr><tr class="row-active"><td>linus</td><td>Linus</td><td class="cell-focus"><span class="ctl selectish" style="display:inline-flex;width:auto;gap:8px">member</span></td><td><button class='act danger'>Remove</button></td></tr><tr><td>ops-bot</td><td>Ops bot</td><td><span class="ctl selectish" style="display:inline-flex;width:auto;gap:8px">member</span></td><td><button class='act danger'>Remove</button></td></tr></table></div></div></div>
+<ul class="notes after"><li>The table is one Tab stop. The arrow keys move between cells, and the active row takes the hover wash.</li><li><kbd>Enter</kbd> or <kbd>Space</kbd> activates the control in the active cell. Here that opens Linus's role picker.</li><li>Only the three tables whose rows act move: members, cadences, and routines. The read-only tables stay plain (<code>decision:ui-toolkit/no-table-engine</code>).</li></ul>
+</div>
+</div>
+</div>
+</body>
+</html>
