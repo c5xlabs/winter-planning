@@ -23,18 +23,25 @@ language: Python
 severity: error
 files: [src/blizzard/hub/store/**]
 rule:
-  pattern: $HELPER($$$)
-  # $HELPER is one of the status-family helpers below.
+  kind: call
+  has: { field: function, regex: "(^|\\.)($HELPERS)$" }   # any call form: bare, self., or module.
   inside:
+    kind: function_definition
     stopBy: end
     any:
-      - kind: with_statement            # a write the method opens
-        has: { kind: with_clause, has: { pattern: $S.write($$$), stopBy: end } }
-      - kind: function_definition       # a write the method joins
-        has: { field: parameters, has: { regex: "transaction: (Locked)?Transaction", stopBy: end } }
+      - has: { field: name, regex: "^(fence|mint_admission|_check_\\w+)$" }   # a write's guard helper
+      - has:                                                                 # a function that writes a row
+          stopBy: end
+          kind: call
+          has:
+            field: function
+            kind: attribute
+            all:
+              - has: { field: attribute, regex: "^(insert|update|delete)$" }
+              - has: { field: object, regex: "(_store|stmts|statements_of\\(.*\\)|^sa|^s)$" }
 ```
 
-The status-family helpers it matches, all in `src/blizzard/hub/store/internal/`:
+`$HELPERS` is the status-family helpers below, all in `src/blizzard/hub/store/internal/`:
 
 | Module                                      | Helpers                                                                                   |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------- |
@@ -44,13 +51,27 @@ The status-family helpers it matches, all in `src/blizzard/hub/store/internal/`:
 | `garden_proposal_store.py`                  | `is_closed`                                                                               |
 | `forge_record_store.py`, `secret_store.py`  | `referred_forge`, `standing_forge`, `secret_unavailable`                                  |
 | `forge_referrers.py`, `secret_referrers.py` | `active_referrers`                                                                        |
+| `flow_store.py`                             | `has_open_turn`, `_busy`, `_ahead_on`                                                     |
 
-It does not match a read: `list_open_questions` (`chunk_questions_store.py:41`) and `list_open_decisions`
-(`chunk_decisions_store.py:193`) filter by `chunk_is_terminal` inside `read(...)`, and they pass. A write that
-conditions on a status column inline, such as `WorkItemStore.edit`'s `closed_at IS NULL`, escapes the rule; review
-catches it.
+A write is a function that builds an insert, update, or delete statement, or one of the guard helpers a write calls
+before it writes (`fence`, `mint_admission`, `_check_secret`, `_check_forge`); a read builds none, so the rule passes
+it. The statement-builder receivers are named so that a `dict.update` does not count as a write.
 
-The helper list is the rule's whole reach, so a new status-family helper joins it in the same change that adds it.
+Measured on `eda353d55` (`ast-grep` 0.51.2, via `uvx --from ast-grep-cli`), the rule matches 19 calls, every one a
+judgment the five judgment slices remove, and no read:
+
+| Family             | Matches                                                                                                                            |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Chunks             | `fence`, `mint_admission` (`chunk_rows.py:525,544`); `record_promote`, `record_backlog_positions`                                  |
+| Forges and secrets | `_check_secret` (twice), `_check_forge`, `insert_record`, `update_record`, both `record_lifecycle_fact`s, `record_forge_lifecycle` |
+| Garden and urgency | `GardenProposalStore.edit`, `attach`, `detach`; `UrgencyChunksStore.move`                                                          |
+| Flows              | `FlowStore.take_turn`'s `has_open_turn`, `_busy`, `_ahead_on`                                                                      |
+
+It does not reach a judgment made inline or one level down: `WorkItemStore.edit`'s `closed_at IS NULL`,
+`TenantAdministrationStore.rename`'s `~_DELETING`, `TenantTeardownStore.close`'s last-tenant count, `FlowStore.close`'s
+`has_open_turn` (its write is in `close_submission`), and `withdraw_waiting`'s choice in `flow_rows.py`. Review catches
+those, against `bzh:store-refuses-stale`. The helper list and the guard-helper names are the rule's whole reach, so a
+new status-family helper or guard joins it in the same change that adds it.
 
 ### A broker call inside a store write
 
@@ -76,17 +97,3 @@ Each rule's test carries an `invalid:` snippet of the departure and a `valid:` s
 first, a write calling `is_terminal` and a read filtering by `chunk_is_terminal`; for the second, a store method
 publishing and one returning the ids its caller publishes. Both scan the tree clean when they land, so every match the
 first finds is moved or suppressed by then (the five judgment slices, [store-judgments.md](./store-judgments.md)).
-
-## Open questions
-
-- **The refuse-stale rule's reach.** Run against `src/blizzard/hub/store` on `eda353d55` (`ast-grep` 0.51.2, via
-  `uvx --from ast-grep-cli`), the rule as written matches 4 sites: `record_promote`, `record_backlog_positions`, and
-  `UrgencyChunksStore.move`, which are judgments, and `promoted_ats`, a read that takes `transaction` to join a unit, as
-  every read a locked decision depends on does (write-entry.md). It misses most judgments: the fence's `is_terminal`
-  (`chunk_rows.py:525`), the forge and secret checks in module-level helpers taking `conn` (`insert_record`,
-  `update_record`, `_check_secret`, `_check_forge`), the retirements' referrer checks, and `GardenProposalStore`'s
-  `self.is_closed(...)`, whose callee is an attribute the bare `$HELPER` pattern does not match. Matching every call
-  form anywhere under `store/` finds 45 calls, most of them reads (fact loading, open-question and decision lists,
-  counts). The scope "a write the method opens or joins" therefore neither holds every judgment nor excludes reads. A
-  reshape to weigh: match any call form, inside a function that also inserts, updates, or deletes a row; and measure it
-  again after the judgment slices, when it must scan clean. The publish rule matches nothing today, as expected.
