@@ -1,0 +1,186 @@
+# The one write entry
+
+The target form every hub write takes, how the legacy seam folds into it, and the transitional form that lets each area
+converge on its own. Delivers `engineering:one-write-entry`; [areas.md](./areas.md) assigns each piece to its slice.
+Paths are under `blizzard/src/blizzard/hub/`, measured on `master` at `eda353d55`.
+
+## Interfaces
+
+### Opening a write
+
+```python
+# domain/kernel/transactions.py — keys typed as LockKey (§Lock keys)       engineering:one-write-entry
+class IHubTransactions(Protocol):
+    def begin(self) -> AbstractContextManager[Transaction]: ...
+
+class Transaction(Protocol):
+    # One declaration per unit, before any statement: chunks sorted, then keys sorted by (namespace, key).
+    def lock_set(
+        self, *, chunks: Sequence[str] = (), keys: Sequence[LockKey] = (), hub: Sequence[HubLock] = ()
+    ) -> LockedTransaction: ...
+    # hub: a lock on a concept above any tenant (hub-locks.md); a tenant unit may declare TENANT_LIFECYCLE only.
+```
+
+A decision that must win exactly once opens `begin()`, declares every chunk and key it reads to decide in one
+`lock_set`, and hands the `LockedTransaction` to every participant. No unit takes a lock any other way: a store method
+never calls `lock_keys` or `lock_chunk_row` on a connection it opened for itself.
+
+### How a repository write says whether it needs a lock
+
+A write keeps its own name; its `transaction` parameter says whether it needs a lock.
+
+```python
+def record_pause(chunk_id, *, paused, by, at, transaction: Transaction | None = None) -> int: ...
+# Correct alone. Called without a unit, it runs in its own implicit unit: one scoped write that takes the tenant row,
+# commits when the method returns, and rolls back when it raises (store/transactions.py connection_in).
+
+def record_stop(chunk_id, *, by, at, transaction: LockedTransaction) -> LeverWrite: ...
+# Correct only under a lock: required, no default. Its body resolves the connection through
+# connection_for(..., chunk=chunk_id), which refuses a unit that did not lock that chunk.
+```
+
+No method name carries the lock: no `*_locked`, no `_under_lock`. The signature tells the caller a lock is needed; the
+body's `connection_for(..., chunk=)` or `(key=)` checks that the unit locked the right chunk or key.
+
+A repository read a locked decision depends on takes `transaction: Transaction | None = None` and joins the unit when
+given one, so the decision reads what it writes under.
+
+### Lock keys
+
+Every key lock names its namespace from one enum, so a namespace cannot be misspelled, two cannot collide unseen, and
+every one in use is listed in one place.
+
+```python
+# domain/kernel/locks.py                                                     engineering:one-write-entry
+class LockNamespace(StrEnum):
+    CADENCE_ERRAND = "cadence_errand"
+    CHUNK_DEPENDENCIES = "chunk_dependencies"      # new: the dependency lock, decision:transactions/cycle-check-lock
+    FLOW = "flow"
+    FORGE = "forge"                                # new: config-judgments
+    GARDEN_PROPOSAL = "garden_proposal"            # new: garden-and-work-item-judgments
+    GRAPH_NAME = "graph_name"
+    PROJECT_SOURCE_LINKS = "project-source-links"
+    QUEUE_RANKING = "queue_ranking"
+    SECRET = "secret"                              # new: config-judgments
+    TENANT_SETTINGS = "tenant_settings"
+    TRANSCRIPT_CHUNK = "transcript_chunk"
+    TRANSCRIPT_LANE = "transcript_lane"
+    URGENCY = "urgency"
+    URGENCY_ORDER = "urgency_order"
+    WORK_ITEM = "work_item"                        # new: garden-and-work-item-judgments
+    WORK_REF = "work_ref"
+
+@dataclass(frozen=True, order=True)
+class LockKey:
+    namespace: LockNamespace
+    key: str
+
+# domain/kernel/transactions.py
+class Transaction(Protocol):
+    def lock_set(
+        self, *, chunks: Sequence[str] = (), keys: Sequence[LockKey] = (), hub: Sequence[HubLock] = ()
+    ) -> "LockedTransaction": ...
+    def lock_keys(self, namespace: LockNamespace, keys: Sequence[str]) -> "LockedTransaction": ...
+
+# store/transactions.py
+def connection_for(store, transaction, *, chunk: str | None = None, key: LockKey | None = None) -> Connection: ...
+```
+
+The existing values are the strings in use today, so the `keyed_locks` rows already written keep serving and nothing
+migrates; the five marked new have no rows yet, and their first unit creates each. `LockKey` orders by namespace, then
+key, which is the order `lock_set` takes keys in today. The per-namespace constants (`URGENCY_LOCK_NAMESPACE`,
+`ERRAND_LOCK_NAMESPACE`, `TRANSCRIPT_*_LOCK_NAMESPACE`, `TENANT_SETTINGS_LOCK_NAMESPACE`,
+`URGENCY_ORDER_LOCK_NAMESPACE`) give way to the enum, and the existing builders (`urgency_lock`,
+`transcript_chunk_lock`, `READY_RANKING_LOCK`, `BACKLOG_RANKING_LOCK`) return a `LockKey`.
+
+Every key a unit declares is built in the domain, beside the port that needs it. Four builders are store-side only today
+and move:
+
+| Namespace              | Today                                                             | Builder moves to                  |
+| ---------------------- | ----------------------------------------------------------------- | --------------------------------- |
+| `WORK_REF`             | `_POINTER_LOCK_NAMESPACE` and `pointer_lock_key`, store-side      | `domain/chunk/ports/work_refs.py` |
+| `PROJECT_SOURCE_LINKS` | `PROJECT_SOURCE_LINKS_LOCK_NAMESPACE`, `project_link_store.py:69` | `domain/projects/links.py`        |
+| `GRAPH_NAME`           | `_GRAPH_NAME_LOCK_NAMESPACE`, `graph_store.py:265`                | `domain/graph/model.py`           |
+| `FLOW`                 | `_FLOW_LOCK_NAMESPACE`, `flow_store.py:69`                        | `domain/delivery/ports/flows.py`  |
+
+The enum, `LockKey`, and the retyped `lock_set` land in one change that converts every existing namespace, in the first
+slice to land that declares a key, a judgment slice or a convergence slice; the four builders then move with the area
+that declares them ([areas.md](./areas.md)).
+
+### Removed
+
+Each removal folds into the plain method it shadowed, or into an ordinary repository read joining the unit.
+
+| Removed                                                         | Replaced by                                                                    |
+| --------------------------------------------------------------- | ------------------------------------------------------------------------------ |
+| `IChunkExclusiveWrites.locked`                                  | `IHubTransactions.begin` + `lock_set(chunks=, keys=)` — what it already runs   |
+| `IChunkExclusiveWrites.locked_work_refs`                        | `begin` + `lock_set(keys=)` over the domain-built `work_ref` and link keys     |
+| `IWriteGraphRepository.locked_name`, `ILockedGraphNameRead`     | `begin` + `lock_set(keys=[graph_name_lock(name)])`                             |
+| `ILockedChunkRead`, `ILockedWorkRefRead`                        | The reads below, joining the unit                                              |
+| `ChunkExclusiveWrites`, `LockedChunkTransaction`, `LockedWorkRefTransaction`, `LockedGraphName` | Nothing                                       |
+| `ChunkHandle`, `WorkRefHandle`, `chunk_handle_connection`, `work_ref_handle_connection` | `connection_for(..., chunk=)` / `(key=)`                  |
+| `ChunkStores.exclusive`, `ClaimService.exclusive`, the `exclusive=` wiring in `composition.py` | Nothing                                            |
+| Every `*_locked` twin                                           | The plain method, taking `transaction` ([areas.md](./areas.md))                |
+
+`IChunkExclusiveWrites.locked` already opens `begin()` and one `lock_set` underneath
+(`store/internal/chunk_exclusive_store.py:143`), so removing it changes no lock a unit takes. `locked_name` is the
+exception: it opens its own scoped write and calls `lock_keys` directly (`graph_store.py:289`), outside the unit's
+bookkeeping.
+
+### Handle reads and what replaces them
+
+| Handle read                                  | Replaced by                                                         | Needs `transaction` added |
+| -------------------------------------------- | ------------------------------------------------------------------- | ------------------------- |
+| `ILockedChunkRead.facts`                     | `IReadChunkFactsRepository.load_facts` (`ports/facts.py:23`)        | no                        |
+| `ILockedChunkRead.facts_for`                 | `IReadChunkFactsRepository.load_facts_for` (`ports/facts.py:32`)    | yes                       |
+| `ILockedChunkRead.record`                    | `IReadChunkRecordRepository.get` (`ports/record.py:33`)             | no                        |
+| `ILockedChunkRead.records_for`               | `IReadChunkRecordRepository.get_many` (`ports/record.py:34`)        | no                        |
+| `ILockedChunkRead.route_of`                  | `IReadChunkRouteRepository.route_of` (`ports/route.py:21`)          | no                        |
+| `ILockedChunkRead.is_ephemeral`              | `IReadChunkLifecycleRepository.is_ephemeral` (`ports/lifecycle.py:18`) | yes                    |
+| `ILockedChunkRead.standing_edges`            | `list_standing_edges` (`ports/dependencies.py:43`)                  | yes                       |
+| `ILockedChunkRead.standing_edges_touching`   | `standing_edges_for` (`ports/dependencies.py:60`)                   | no                        |
+| `ILockedChunkRead.runner_registration`       | `IReadRunnerRegistry.get_runner` (`domain/runners/registration.py:738`) | yes                   |
+| `ILockedWorkRefRead.live_holders`            | `IReadChunkWorkRefsRepository.live_holders` (`ports/work_refs.py:107`) | yes                    |
+| `ILockedWorkRefRead.source_links`            | `IReadProjectLinks.projects_linking_sources` (`domain/projects/links.py:240`) | yes; the caller maps an unlinked source to `[]`, which the handle did for it |
+| `ILockedGraphNameRead.get_enabled_by_name`   | `IReadGraphRepository.get_enabled_by_name` (`domain/graph/model.py:1004`) | yes                 |
+| `ILockedGraphNameRead.any_minted`            | `IReadGraphRepository.any_minted` (`domain/graph/model.py:1021`)    | yes                       |
+
+### Store methods that lock outside the declaration
+
+Each runs a store-opened write that takes its own key lock, so the unit's one declaration does not hold it:
+
+| Site                              | Lock                       | Converges with                                                        |
+| --------------------------------- | -------------------------- | --------------------------------------------------------------------- |
+| `graph_store.py:291`              | `graph_name`               | `locked_name`, in `converge-graph`                                    |
+| `flow_store.py:419` (`take_turn`) | `flow`                     | `converge-hub-execution`: its caller opens `begin` and declares the key |
+| `project_link_store.py:74`        | `project-source-links`     | `converge-record-and-work-refs`                                       |
+| `config_apply_store.py:145`       | the apply's sorted key set | No slice owns it today ([areas.md](./areas.md) §Open questions)       |
+
+## Flows
+
+### The transitional form
+
+`ILockedChunkRead.transaction` is already a `LockedTransaction` covering the block's chunks and keys. So an area
+converts its port methods to the target form while a legacy block still calls them, handing in `handle.transaction`:
+
+```python
+with self._exclusive.locked([chunk.chunk_id]) as handle:                      # legacy block, not yet switched
+    facts = handle.facts(chunk.chunk_id)
+    self._lifecycle.record_stop(chunk.chunk_id, by=by, at=at, transaction=handle.transaction)   # converted
+```
+
+A lock site switches to `begin()` in the slice that converts the last method it calls. A block that calls methods of
+several areas keeps its legacy opener, passing `handle.transaction`, until every one of them is converted; it then
+switches in `converge-graph`, which removes the seam with its last caller. No landing leaves a method with both forms.
+
+### Reads that miss the unit today
+
+Four legacy blocks read on a separate connection while holding their lock; each joins the unit when its site switches:
+
+- `ApplyService._exit_claimant` reads `route_of` without `transaction` (`domain/execution/apply.py:419,437,601`).
+- `ClaimService._claim_locked` reads `self._graphs.get` and, after its write, `load_artifacts` without it
+  (`domain/execution/claim.py:414,464`).
+- `RestartService.restart` and `EditService.edit` read `self._graphs.is_retired` without it (`restart.py`, `edit.py`).
+
+On SQLite the separate read sees the same state, so joining changes no route's behavior; on Postgres it closes a window
+in which the decision reads past its own lock.

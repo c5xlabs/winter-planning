@@ -1,13 +1,14 @@
 ---
-name: converge-chunk-lifecycle
+name: converge-chunk-dependencies
 depends-on:
   - store-judgments
 ---
 
-# Converge a chunk's lifecycle
+# Converge a chunk's dependencies
 
-Moves the writes of a chunk's lifecycle onto the one write entry and deletes their `*_locked` twins. Delivers
-`engineering:one-write-entry` for this area; spec `Interfaces`.
+Moves the writes of a chunk's dependencies onto the one write entry and deletes their `*_locked` twins. Delivers
+`engineering:one-write-entry` for this area; spec [areas.md](../spec/areas.md) and
+[write-entry.md](../spec/write-entry.md).
 
 ## Change
 

@@ -14,7 +14,8 @@ depends-on:
 # Converge the graph
 
 Moves the writes of the graph onto the one write entry and deletes their `*_locked` twins. Delivers
-`engineering:one-write-entry` for this area; spec `Interfaces`.
+`engineering:one-write-entry` for this area; spec [areas.md](../spec/areas.md) and
+[write-entry.md](../spec/write-entry.md).
 
 ## Change
 

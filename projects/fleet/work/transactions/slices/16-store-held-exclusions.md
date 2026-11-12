@@ -9,7 +9,7 @@ depends-on:
 
 Moves the dependency graph's cycle check, the delete and release that share its lock, and the export cursor's pass lock
 onto locks the store holds. Delivers `engineering:store-held-exclusions`; waits on
-`decision:transactions/cycle-check-lock`. Spec `Data`.
+`decision:transactions/cycle-check-lock`. Spec [exclusions.md](../spec/exclusions.md).
 
 ## Change
 

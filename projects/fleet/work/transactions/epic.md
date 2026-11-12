@@ -29,7 +29,8 @@ Blizzard reaches the final state of how it changes its own data. A write opens o
 once locks what it reads, in one declared order, through the one unit of work. The store refuses a write only because it
 is stale, and the domain alone decides whether it is allowed. An event is announced only after the write it describes
 has committed, by the code that asked for the write. Every exclusion a writer depends on lives in the store rather than
-in a process's memory. And the locking that SQLite makes true by construction is shown to hold on Postgres.
+in a process's memory, and a lock on a concept above any tenant is a row in one hub lock table. And the locking that
+SQLite makes true by construction is shown to hold on Postgres.
 
 ## What this epic is not
 

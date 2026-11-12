@@ -1,6 +1,11 @@
 ---
 name: final-form-rules
 depends-on:
+  - store-judgments
+  - config-judgments
+  - garden-and-work-item-judgments
+  - flow-judgments
+  - tenant-judgments
   - announce-after-commit
   - converge-graph
   - adapters-stay-apart
@@ -9,8 +14,8 @@ depends-on:
 
 # Final-form rules
 
-Removes the legacy clauses and Known debt from the write rules and lands a gate for each store-side departure they
-catch at review. Delivers `engineering:final-form-rules` and `product:one-way-to-write`.
+Removes the legacy clauses and Known debt from the write rules and lands a gate for each store-side departure they catch
+at review. Delivers `engineering:final-form-rules` and `product:one-way-to-write`. Spec [gates.md](../spec/gates.md).
 
 ## Change
 

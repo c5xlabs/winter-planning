@@ -1,13 +1,14 @@
 ---
-name: converge-chunk-dependencies
+name: converge-chunk-route
 depends-on:
   - store-judgments
 ---
 
-# Converge a chunk's dependencies
+# Converge a chunk's route
 
-Moves the writes of a chunk's dependencies onto the one write entry and deletes their `*_locked` twins. Delivers
-`engineering:one-write-entry` for this area; spec `Interfaces`.
+Moves the writes of a chunk's route onto the one write entry and deletes their `*_locked` twins. Delivers
+`engineering:one-write-entry` for this area; spec [areas.md](../spec/areas.md) and
+[write-entry.md](../spec/write-entry.md).
 
 ## Change
 

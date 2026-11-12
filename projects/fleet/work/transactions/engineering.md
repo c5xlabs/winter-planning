@@ -9,7 +9,8 @@ Measured on `master` at `7d984dad8`:
 - 25 repository port methods exist only as a `*_locked` twin of a write.
 - 17 domain and delivery modules reach the store through the legacy locked seam (`IChunkExclusiveWrites`); 12 open the
   unit of work directly, and several do both.
-- Four store methods judge a domain predicate rather than refusing only a stale write.
+- Store writes judge a domain predicate, rather than refusing only a stale write, in fifteen places: the four
+  `bzh:store-exclusive-write` lists as Known debt, and eleven it does not.
 - Two exclusions live in the hub process's memory: the per-tenant lock that keeps the dependency graph free of cycles,
   and the lock that keeps an operator's reset of the export cursor from being overwritten by a pass in flight.
   `bzh:store-exclusive-write` lists them as residual debt.
@@ -18,6 +19,9 @@ Measured on `master` at `7d984dad8`:
   decision.
 - `blizzard:postgres-uow-concurrency` is the focused Postgres proof of the unit of work, and the gap ledger (`gaps.md`)
   keeps it a focused method rather than a Postgres test tier.
+- The one hub-wide lock is the identity lock, a no-op `UPDATE` of the migration tool's revision row; `keyed_locks` rows
+  belong to a tenant and cannot hold a hub-wide lock. Tenant close locks every tenant row to keep two closes from
+  closing the last two open tenants.
 - A lock that needs a store row no table holds lands as an expansion (`bzh:store-expand-contract`); a row in
   `keyed_locks` needs no revision.
 
@@ -36,17 +40,26 @@ Acceptance:
 
 ## Store refuses only stale writes (engineering:store-refuses-stale)
 
-A store write is refused only because it is stale; the domain alone decides whether it is allowed. The four store
-methods that judge a domain predicate hand their fact back to the domain, and the store conditions its write on the
-token the domain read. A decision covered by one version or monotonic token takes the compare-and-set form before the
-locked form. Serves `product:one-way-to-write`.
+A store write is refused only because it is stale; the domain alone decides whether it is allowed. Every store write
+that judges a domain predicate hands its fact back to the domain, which decides under the locks it declared, and the
+store conditions its write on the token the domain read. A decision covered by one version or monotonic token takes the
+compare-and-set form before the locked form. Serves `product:one-way-to-write`.
 
-The four judgments:
+The judgments, by family:
 
-- The terminal check inside `fence`.
-- The escalation that runs that fence on its own write.
-- The backlog write that drops a promoted chunk's position.
-- The promote that writes nothing for an already-promoted chunk.
+- **Chunks** — the terminal check inside `fence`, the escalation that runs that fence on its own write, the backlog
+  write that drops a promoted chunk's position, and the promote that writes nothing for an already-promoted chunk.
+- **Forges and secrets** — a repository or work source naming a retired forge or secret, and the retirement of a forge
+  or secret still in use.
+- **Garden proposals, work items, and urgency moves** — an edit of a closed proposal or work item, and the urgency move
+  that skips terminal chunks.
+- **Flow submissions and turns** — closing a submission with a turn open, taking a turn the queue does not allow, and
+  choosing which waiting submissions a stop, completion, or restart withdraws.
+- **Tenants** — renaming a closing tenant, and closing the last open tenant.
+
+Acceptance:
+
+- No store write reads a status-family fact to refuse, to skip, or to choose.
 
 ## Announce after commit (engineering:announce-after-commit)
 
@@ -69,12 +82,25 @@ locks, and the in-process locks `bzh:store-exclusive-write` lists as residual de
 order a process's own bookkeeping and guard no store decision, stay in process. Where the cycle check's lock is scoped
 is `decision:transactions/cycle-check-lock`. Serves `epic:transactions`.
 
+## Hub locks (engineering:hub-locks)
+
+A lock on a concept no tenant owns is a row in one `hub_locks` table, seeded by the revision that creates it, named by
+one `HubLock` enum. The identity lock moves onto it, and tenant creation and close take a `TENANT_LIFECYCLE` lock, in
+place of a close locking every tenant row. Every unit takes these in one order: `IDENTITY`, then tenant rows, then
+`TENANT_LIFECYCLE`. Serves `product:one-way-to-write`.
+
+Acceptance:
+
+- The identity lock is a `hub_locks` row, still the identity unit's first statement.
+- Two concurrent closes of the last two open tenants: one is refused `LastTenant`.
+- A close holds no tenant's row but its own.
+
 ## Locking shown on Postgres (engineering:postgres-locking-proof)
 
 `blizzard:postgres-uow-concurrency` covers what SQLite cannot show: the closed-tenant check a scoped write opens with,
-the ordered locks that keep two closes from closing the last two open tenants, the drain's delete order under enforced
-foreign keys, and keyed locks of different keys not excluding each other. A gap the proof closes is removed from
-`gaps.md`, and a mechanism the proof finds broken is fixed in this epic. Serves `epic:transactions`.
+the tenant lifecycle lock that keeps two closes from closing the last two open tenants, the drain's delete order under
+enforced foreign keys, and keyed locks of different keys not excluding each other. A gap the proof closes is removed
+from `gaps.md`, and a mechanism the proof finds broken is fixed in this epic. Serves `epic:transactions`.
 
 ## Rules in final form (engineering:final-form-rules)
 

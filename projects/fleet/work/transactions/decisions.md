@@ -19,3 +19,12 @@ done, where the store should refuse a write only because its data changed undern
 domain. Those rules move to the domain before the hub's writes move onto the one unit-of-work path. Each rule sits
 inside a write that move relocates, so relocating the write first would carry the rule along with it, and the rule
 would then have to be pulled out of its new home as well.
+
+## A stop racing an urgency retirement (decision:transactions/urgency-move-race)
+
+A chunk stopped or completed while its urgency is being retired may be moved to the replacement urgency, though a
+terminal chunk otherwise keeps the urgency it ended with. The retirement locks the urgency, not its holders' chunks,
+which it can name only after reading them; closing the window would take a pre-read and a retry loop on every
+retirement, or the urgency's key on every write that ends a chunk. The state the race leaves is harmless, and the cost
+of keeping the invariant exact is not justified. While the tenant row stays a mutex
+(`decision:transactions/tenant-row-mutex`), the race cannot occur.

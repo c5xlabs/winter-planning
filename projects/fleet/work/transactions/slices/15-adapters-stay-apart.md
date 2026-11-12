@@ -7,7 +7,7 @@ depends-on:
 # Adapters stay apart
 
 Hands every write an adapter makes to another repository's facts, through a sibling's private helper, back to the
-domain. Delivers `engineering:adapters-stay-apart`.
+domain. Delivers `engineering:adapters-stay-apart`. Spec [adapters.md](../spec/adapters.md).
 
 ## Change
 
