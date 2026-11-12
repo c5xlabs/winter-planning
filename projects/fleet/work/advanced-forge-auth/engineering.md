@@ -6,6 +6,17 @@ Engineering requirements for `epic:advanced-forge-auth`.
 
 - The forge record and landing seam of `epic:advanced-delivery/forges`. This epic's configuration changes are
   coordinated with that epic's forge surfaces.
+- The configured-record lifecycle, change log, and sealed secrets of `epic:live-config`, which the credential record
+  joins as one more kind.
+- A replaced secret takes effect at its next use: adapters are cached under a key carrying their records' and secret's
+  revisions (`blizzard/src/blizzard/hub/live_config/__init__.py`).
+- Landing policies' capability requirements are checked against `ForgeRegistry.offered` at configuration time and at
+  each pass's start; `offered` already takes a repository and ignores it
+  (`blizzard/src/blizzard/hub/forge/registry.py`).
+- A requeued `land` reuses the change already open for its branch and skips repositories already landed
+  (`blizzard/src/blizzard/hub/delivery/actions/landing/merge_on_checks.py`, `.../actions/land.py`).
+- Unavailable, unreadable, refused, or empty checks never lead to a merge
+  (`blizzard/src/blizzard/hub/delivery/actions/landing/checks.py`).
 - GitHub App installation authentication:
   <https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation>
 - GitHub App permissions for Checks:
@@ -58,16 +69,3 @@ installation token to read a pull request's head and the exact check-runs endpoi
 checks and conclusions are verified rather than a successful HTTP status. The proof opens no probe pull request and
 performs no merge, and a public-repository success does not substitute for it. Serves
 `product:github-app-installations`.
-
-## Open questions
-
-- The smallest provider-aware credential schema that represents supplied tokens and App installations, permits key reuse
-  across installations, and keeps the operator's setup understandable; App registrations get records of their own only
-  if their lifecycle earns that extra concept.
-- How existing direct secret references map onto credential records without ambiguity when ingestion and delivery share
-  a secret, and how the transition stays readable to supported clients.
-- Which readiness checks can establish each required permission without writes, which results are uncertain, and how
-  their freshness is invalidated by credential, repository, or policy changes. Permission labels alone must not stand in
-  for a successful supported read.
-- The precise recovery operation for a delivery already escalated on authentication, preserving its existing pull
-  request and landed facts, and how installation-scoped authorization fits the shared forge rate budget.
