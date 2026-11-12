@@ -79,12 +79,11 @@ foreign keys, and keyed locks of different keys not excluding each other. A gap 
 ## Rules in final form (engineering:final-form-rules)
 
 `bzh:transaction-participation`, `bzh:store-exclusive-write`, and `bzh:store-refuses-stale` lose their legacy clauses
-and their Known debt, and each departure they catch at review gains a mechanical gate. Serves
+and their Known debt, and the store-side departures they catch at review gain a mechanical gate. Serves
 `product:one-way-to-write`.
 
 Acceptance:
 
-- A gate fails on a `*_locked` name or a locked-handle type under `hub/`.
 - A gate fails on a store write that reads a status-family fact to refuse.
 - A gate fails on a broker call inside a store write.
 
