@@ -22,7 +22,7 @@ secret reveal it replaces. Delivers `engineering:core-provider-split`, and `engi
 `engineering:accounting-by-authorization` for supplied tokens. Builds [authorization.md](../spec/authorization.md) for
 `github.token`, the `token-unsupported` row of [refusals.md](../spec/refusals.md#interfaces), and the hub-start and
 pass-start rows of the gates in [readiness-check.md](../spec/readiness-check.md#interfaces). Shaped by
-`decision:advanced-forge-auth/three-slices`. Shaped by `decision:advanced-forge-auth/fine-grained-checks`.
+`decision:advanced-forge-auth/fine-grained-checks`.
 
 ## Change
 

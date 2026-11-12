@@ -16,16 +16,6 @@ Claiming a chunk is not refused for a credential that cannot serve its repositor
 gate, the hub-start warning, and the pass-start gate already catch the incompatibility, and a gate on the claim path
 would add a token reveal to every claim for the one case they leave: an undeclared token whose warning was ignored.
 
-## Slice cut (decision:advanced-forge-auth/three-slices)
-
-**Decider:** engineering
-
-The epic is one epic, not a child epic per surface or adapter, cut into slices that each hold one mechanism, or a group
-of thin entrypoints over one mechanism, so each is one reviewable change. References to secrets move to credentials by
-expand and contract, whose contract step is the cleanup `engineering:additive-transition` leaves outside the epic.
-Authentication moves by branch by abstraction, and its closing step, removing the direct secret reveal, lands with the
-boundary itself, since nothing calls the old path once the boundary does.
-
 ## Installation tokens held in memory (decision:advanced-forge-auth/tokens-in-memory)
 
 **Decider:** engineering
