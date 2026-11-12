@@ -10,37 +10,37 @@ Decide for themselves how the fleet behaves: every operational constant theirs t
 takes work theirs to declare, a provider outage ridden out rather than slept through, every upgrade taken when they
 choose and told beforehand what it asks of them, and every question about the platform answerable without cloning it.
 
-| Epic                                     | Status    |
-| ---------------------------------------- | --------- |
-| `epic:runner-host`                       | delivered |
-| `epic:release-engineering/first-release` | delivered |
-| `epic:release-engineering/compat-floor`  | delivered |
-| `epic:release-engineering/notes`         | delivered |
-| `epic:release-engineering/release-lines` | delivered |
-| `epic:release-engineering/dark-launch`   | delivered |
-| `epic:release-engineering/supply-chain`  | delivered |
-| `epic:storybook`                         | delivered |
-| `epic:throttling`                        | delivered |
-| `epic:test-suite/foundation`             | delivered |
-| `epic:test-suite/hub-tier`               | delivered |
-| `epic:test-suite/runner-tier`            | delivered |
-| `epic:test-suite/fleet-tier`             | delivered |
-| `epic:test-suite/journey`                | delivered |
-| `epic:architectural-sweep`               | delivered |
-| `epic:strict-types`                      | delivered |
-| `epic:strict-mock`                       | delivered |
-| `epic:test-suite/controlled-clock`       | delivered |
-| `epic:resilience`                        | planned   |
-| `epic:config/model-resolution`           | planned   |
-| `epic:config/sweep`                      | planned   |
-| `epic:config/runtime`                    | planned   |
-| `epic:ui-toolkit`                        | planned   |
-| `epic:documentation`                     | planned   |
-| `epic:cli-context`                       | planned   |
-| `epic:test-suite/optimization`           | planned   |
-| `epic:adopt-di`                          | planned   |
-| `epic:transactions`                      | planned   |
-| `epic:advanced-forge-auth`               | planned   |
+| Epic                                     | Status      |
+| ---------------------------------------- | ----------- |
+| `epic:runner-host`                       | delivered   |
+| `epic:release-engineering/first-release` | delivered   |
+| `epic:release-engineering/compat-floor`  | delivered   |
+| `epic:release-engineering/notes`         | delivered   |
+| `epic:release-engineering/release-lines` | delivered   |
+| `epic:release-engineering/dark-launch`   | delivered   |
+| `epic:release-engineering/supply-chain`  | delivered   |
+| `epic:storybook`                         | delivered   |
+| `epic:throttling`                        | delivered   |
+| `epic:test-suite/foundation`             | delivered   |
+| `epic:test-suite/hub-tier`               | delivered   |
+| `epic:test-suite/runner-tier`            | delivered   |
+| `epic:test-suite/fleet-tier`             | delivered   |
+| `epic:test-suite/journey`                | delivered   |
+| `epic:architectural-sweep`               | delivered   |
+| `epic:strict-types`                      | delivered   |
+| `epic:strict-mock`                       | delivered   |
+| `epic:test-suite/controlled-clock`       | delivered   |
+| `epic:resilience`                        | planned     |
+| `epic:config/model-resolution`           | planned     |
+| `epic:config/sweep`                      | planned     |
+| `epic:config/runtime`                    | in-progress |
+| `epic:ui-toolkit`                        | planned     |
+| `epic:documentation`                     | planned     |
+| `epic:cli-context`                       | planned     |
+| `epic:test-suite/optimization`           | planned     |
+| `epic:adopt-di`                          | planned     |
+| `epic:transactions`                      | planned     |
+| `epic:advanced-forge-auth`               | planned     |
 
 ## Autonomy (milestone:autonomy)
 
