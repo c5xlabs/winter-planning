@@ -45,8 +45,8 @@ class ForgeScope(StrEnum):
 
 @dataclass(frozen=True)
 class ForgeAuthorization:
-    credential_id: CredentialId
-    credential_slug: str
+    credential_id: CredentialId | None   # None: an implicit github.token for a referrer with no credential_id
+    credential_slug: str | None          # None alike; diagnostics then name the secret
     binding: str
     variant: str | None             # github.token only: "classic" | "fine-grained" | "unspecified"
     authority: str                  # keys budgets and write locks
@@ -56,6 +56,20 @@ class ForgeAuthorization:
 class IForgeAuthorizations(Protocol):
     def authorization(self, credential: ResolvedCredential, scope: ForgeScope) -> ForgeAuthorization: ...
         # raises CredentialUnavailable: unknown or retired credential or secret
+```
+
+```python
+# hub/domain/config/credentials.py
+@dataclass(frozen=True)
+class ResolvedCredential:
+    credential_id: CredentialId | None   # None: a referrer whose credential_id is still NULL
+    forge_id: ForgeId; binding: str; secret_name: str; settings: Mapping[str, object]
+    revision: int; authority: str
+
+def resolve_credential(record: RepositoryFields | WorkSourceFields, credentials: IReadCredentialRepository) -> ResolvedCredential | None:
+    # credential_id set: that credential, retired or not.
+    # credential_id NULL and secret_name set: an implicit github.token with no variant, authority secret/<secret_name>.
+    # neither: None, an anonymous work source.
 ```
 
 `CredentialUnavailable` is refused by `TurnRunner` as `repository-secret-unavailable`, unchanged
@@ -83,10 +97,12 @@ granted ones:
 | Scope         | Required                                                                  | Optional, and the capability withheld when not granted            |
 | ------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------- |
 | `landing`     | `metadata: read`, `contents: write`, `pull_requests: write`               | `checks: read` → `checks.read`; `actions: write` → `checks.rerun` |
-| `work-source` | `metadata: read`, `issues: write`                                         | none                                                              |
+| `work-source` | `metadata: read`, `issues: write`, `pull_requests: read`                  | none                                                              |
 | `check`       | `metadata: read`, `contents: read`, `pull_requests: read`, `issues: read` | `checks: read`                                                    |
 
-A required permission not granted raises `ForgeAuthRefused(PERMISSION_MISSING)` at mint ([refusals.md](./refusals.md)).
+`pull_requests: read` is required because the batch fetch reads each ref through GraphQL `issueOrPullRequest`
+(`hub/work_sources/internal/github_work_source.py::_batch_query`), which resolves a pull request's number too. A
+required permission not granted raises `ForgeAuthRefused(PERMISSION_MISSING)` at mint ([refusals.md](./refusals.md)).
 
 ```python
 # hub/forge/internal/github_auth.py

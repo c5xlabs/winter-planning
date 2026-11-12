@@ -6,16 +6,27 @@
 
 **Open.** Whether claiming a chunk is refused when a repository its project lands on holds a credential whose runtime
 offer cannot serve the repository's landing policy, so no worker starts on work that cannot land. The configuration and
-pass-start gates already cover every declared credential; this gate would add one only for a carried-over token never
-given a variant. It blocks nothing in the current slices.
+pass-start gates cover every declared credential, and the hub-start warning names the rest. It blocks no requirement of
+this epic; deciding yes adds an acceptance bullet to `product:readiness-check`.
 
 ## Fine-grained tokens and checks (decision:advanced-forge-auth/fine-grained-checks)
 
 **Decider:** engineering
 
-A fine-grained token is not offered `checks.read` until the private-repository proof reads check runs with one, because
-GitHub documents the Checks API among fine-grained token limitations and the fleet's own escalation came from that read.
-The proof's result rewrites this entry: either the withholding stands, or `FINE_GRAINED_WITHHELD` is emptied.
+**Open.** Whether a fine-grained token is offered `checks.read`, decided by the private-repository proof's fine-grained
+run: offered if it reads the check runs, withheld if refused. Until it is made, `FINE_GRAINED_WITHHELD` holds
+`checks.read`, following GitHub's documented fine-grained limitations and the fleet's escalation on that read. It blocks
+`product:supplied-tokens`, whose setup must say what a fine-grained token supports.
+
+## Slice cut (decision:advanced-forge-auth/three-slices)
+
+**Decider:** engineering
+
+The epic is one epic, not a child epic per surface or adapter, cut into slices that each hold one mechanism, or a group
+of thin entrypoints over one mechanism, so each is one reviewable change. References to secrets move to credentials by
+expand and contract, whose contract step is the cleanup `engineering:additive-transition` leaves outside the epic.
+Authentication moves by branch by abstraction, and its closing step, removing the direct secret reveal, lands with the
+boundary itself, since nothing calls the old path once the boundary does.
 
 ## Installation tokens held in memory (decision:advanced-forge-auth/tokens-in-memory)
 
@@ -62,9 +73,3 @@ budgets and write lanes key on it, and two credentials for one authority would s
 An App's id lives on each installation's credential and its key is a secret, with no record for the App itself. Two
 installations of one App name the same key secret, so replacing the key is one secret write, and nothing in the epic
 acts on an App apart from an installation.
-
-## One epic, three slices (decision:advanced-forge-auth/three-slices)
-
-The work stays one epic of three substantial slices rather than a child epic for every surface or adapter, and each
-slice carries its own tests, operator documentation, and compatible upgrade path rather than a documentation-only
-follow-up.

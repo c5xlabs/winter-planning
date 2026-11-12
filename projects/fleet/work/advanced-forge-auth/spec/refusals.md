@@ -73,6 +73,7 @@ include it". A 5xx body is sanitized into `ForgeUnavailable`'s message.
 <owner/repo> on forge <forge slug>: <operation sentence> was refused: <refusal sentence>.
 GitHub said: "<message>" (HTTP <status>, request <request_id>).
 Credential <slug> (<binding>, <variant>). <remedy>
+Then run: blizzard hub credential check <slug> --repo <owner/repo>; blizzard hub chunk requeue <chunk>.
 ```
 
 | Refusal                  | Remedy                                                                                     |
@@ -85,10 +86,8 @@ Credential <slug> (<binding>, <variant>). <remedy>
 | `installation-missing`   | Reinstall the App, or correct the installation id                                          |
 | `installation-suspended` | Unsuspend the App's installation                                                           |
 
-The readiness-and-recovery slice appends
-`Then run: blizzard hub credential check <slug> --repo <repo>; blizzard hub
-chunk requeue <chunk>.` Before a credential
-exists for the repository, `Credential …` names the repository's secret.
+For a referrer with no credential, `Credential <slug> (…)` reads `Secret <secret_name>`, and the `Then run:` line is
+omitted.
 
 Event `forge-auth-refused`, joining `foundation/event_log.py`'s kinds at severity `WARNING`, recorded once per
 escalation and once per refused work-source sweep:

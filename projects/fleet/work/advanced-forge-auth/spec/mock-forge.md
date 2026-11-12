@@ -41,7 +41,6 @@ GET  /app/installations/{id}                 Bearer JWT, RS256 over the App's ke
 POST /app/installations/{id}/access_tokens   Bearer JWT; body {permissions?}
      201 {token, expires_at, permissions}          401 bad JWT   404 unknown   403 suspended
      422 a requested permission the installation was not granted
-GET  /installation/repositories              token: installation token
 ```
 
 Levers, in `domain/levers.py`, set through the existing `/_levers` route:
@@ -60,12 +59,12 @@ Levers, in `domain/levers.py`, set through the existing `/_levers` route:
 
 Under `STRICT_TOKENS`:
 
-| Request                                                        | Answer                                                                                                   |
-| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| Installation token on a route its permissions do not cover     | `403`, `X-Accepted-GitHub-Permissions: <name>=<level>`, message "Resource not accessible by integration" |
-| Fine-grained PAT on `GET …/check-runs` of a private repository | `403`, message "Resource not accessible by personal access token"                                        |
-| Classic PAT                                                    | every route; `X-OAuth-Scopes` echoes its scopes                                                          |
-| Any request                                                    | `X-GitHub-Request-Id` set                                                                                |
+| Request                                                                                                           | Answer                                                                                                   |
+| ----------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Installation token on a route its permissions do not cover                                                        | `403`, `X-Accepted-GitHub-Permissions: <name>=<level>`, message "Resource not accessible by integration" |
+| Fine-grained PAT on `GET …/check-runs` of a private repository, while `FINE_GRAINED_WITHHELD` holds `checks.read` | `403`, message "Resource not accessible by personal access token"                                        |
+| Classic PAT                                                                                                       | every route; `X-OAuth-Scopes` echoes its scopes                                                          |
+| Any request                                                                                                       | `X-GitHub-Request-Id` set                                                                                |
 
 The fine-grained row follows `FINE_GRAINED_WITHHELD`; when `decision:advanced-forge-auth/fine-grained-checks` changes,
 the row changes with it.

@@ -99,24 +99,44 @@ Column("credential_id", String, nullable=True)            # no FK until the old 
 Column("secret_name", ..., info={"deprecated": "<line>"}) # kept; every write sets it to the credential's secret_name
 ```
 
-One additive Alembic revision, `hub/store/migrations/versions/<ts>_credentials.py`, with a colocated test:
+Three additive Alembic revisions in `hub/store/migrations/versions/`, each with a colocated test:
+
+| Revision                     | Does                                                                                         | Downgrade                                                                                                   |
+| ---------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `<ts>_credentials`           | Creates the three tables and the two nullable `credential_id` columns                        | Drops them                                                                                                  |
+| `<ts>_credential_carry_over` | Links or creates a credential for every referrer, as below                                   | Removes what it created, as below                                                                           |
+| `<ts>_app_credentials`       | No schema change; marks the store as one that may hold `github.app-installation` credentials | Refused while one exists, so no build that sends `secret_name` as a token serves a store holding an App key |
+
+The carry-over:
 
 ```sql
 -- per tenant; decision:advanced-forge-auth/credential-carry-over
--- one github.token credential per distinct (forge_id, secret_name) any repository or work source names
-INSERT INTO credentials (credential_id, tenant_id, slug, name, forge_id, binding, secret_name, settings, authority, ...)
-SELECT new_cred_id(), tenant_id, unique_slug(secret_name), secret_name, forge_id, 'github.token', secret_name,
-       '{}', 'secret/' || secret_name, ...
-FROM (SELECT tenant_id, forge_id, secret_name FROM repositories
-      UNION SELECT tenant_id, forge_id, secret_name FROM work_sources WHERE secret_name IS NOT NULL);
--- unique_slug: the secret's name; "-2", "-3", ... when one secret is named on several forges
--- a credential whose secret is retired gets a retired lifecycle fact
+-- 1. link: a referrer with no credential_id takes the credential already holding its authority, if any
 UPDATE repositories r SET credential_id = (SELECT c.credential_id FROM credentials c
-  WHERE (c.tenant_id, c.forge_id, c.authority) = (r.tenant_id, r.forge_id, 'secret/' || r.secret_name));
--- the same for work_sources; a work source with no secret keeps credential_id NULL
+  WHERE (c.tenant_id, c.forge_id, c.authority) = (r.tenant_id, r.forge_id, 'secret/' || r.secret_name))
+WHERE r.credential_id IS NULL;
+-- the same for work_sources with a secret_name
+
+-- 2. create: one github.token credential per (forge_id, secret_name) a referrer still names with no credential_id
+INSERT INTO credentials (credential_id, tenant_id, slug, name, forge_id, binding, secret_name, settings, authority,
+                         revision, created_at, created_by)
+SELECT new_cred_id(), tenant_id, unique_slug(tenant_id, secret_name), secret_name, forge_id, 'github.token',
+       secret_name, '{}', 'secret/' || secret_name, 1, now(), 'migration:credential-carry-over'
+FROM (SELECT tenant_id, forge_id, secret_name FROM repositories WHERE credential_id IS NULL
+      UNION SELECT tenant_id, forge_id, secret_name FROM work_sources
+            WHERE credential_id IS NULL AND secret_name IS NOT NULL);
+-- unique_slug: the secret's name, else "-2", "-3", ...; never a current or former credential slug of the tenant
+-- a credential whose secret is retired gets a retired lifecycle fact
 -- each creation writes a config_changes row as the forges migration wrote its forges'
--- downgrade drops the three tables and the two columns
+
+-- 3. link again, as in 1; afterwards only a work source with no secret has credential_id NULL
+-- 4. enable: a retired credential an enabled referrer now names is enabled, with a lifecycle fact by
+--    migration:credential-carry-over; the downgrade does not retire it again
 ```
+
+The downgrade sets `credential_id` to NULL on every referrer naming a credential whose `created_by` is
+`migration:credential-carry-over`, then deletes those credentials, their lifecycle facts, and their change rows.
+Credentials a door created are left in place.
 
 `contracts/store/hub.json` is regenerated. `tests/support/store_read_census.py` gains a recipe for each new `IRead*`
 method.
@@ -178,7 +198,15 @@ RepositorySummary / WorkSourceSummary += credential_id, credential_slug, credent
 | `credential_conflict`            | 422    | An old field sent beside `credential` that is not the credential's `github.token` secret |
 | `forge_capability_missing`       | 422    | The landing policy requires a capability outside `declared_offers` (`require_offered`)   |
 
-The old fields, `secret_name` on a repository and `secret` on a work source, stay accepted:
+The old fields, `secret_name` on a repository and `secret` on a work source, stay accepted. Every door, the
+configuration apply included, resolves them through one domain function:
+
+```python
+# hub/domain/config/authoring.py
+def credential_for_old_field(self, forge_id: ForgeId, secret_name: str, *, door: Door) -> tuple[CredentialId, list[str]]: ...
+    # the credential with authority secret/<secret_name> on the forge, created if absent; and the warnings to answer
+    # a retired one is refused 422 credential_unavailable, naming it, so the operator enables it rather than a door
+```
 
 | A write carries                                 | Result                                                                                                                                                                                                         |
 | ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -214,12 +242,14 @@ class ConfigDocumentV3(BaseModel):         # extra="forbid"
     version: Literal[3]
     # v2's sections, in v2's order, with `credentials: list[CredentialEntry]` after `secrets`;
     # RepositoryEntryV3 and WorkSourceEntryV3 carry `credential` where v2's carry secret_name and secret
+    # a v3 export of a referrer whose credential_id is NULL, which exists only before the carry-over runs,
+    # writes the credential credential_for_old_field would resolve it to, without creating it: export never writes
 ```
 
 `POST /api/config/apply` takes versions 2 and 3, told apart by `version`. `GET /api/config/export` and
 `GET /api/config/schema/{kind}` take `version`, defaulting to 2. `hub/domain/config/apply.py` reconciles `credentials`
 after `forges` and the secrets check, before work sources and repositories, through a `PlannedCredentials` lookup; a v2
-entry's old field resolves as the table above.
+entry's old field resolves through `credential_for_old_field`.
 
 Board, `web/projects/hub/src/app/admin/credentials/`, with the file set of `admin/forges/`:
 

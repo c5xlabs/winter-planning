@@ -77,15 +77,9 @@ for that scope and renders the `CredentialCheck` as a table.
 
 Gates that refuse a known incompatibility:
 
-| Gate                | Where                                                       | Reads                                                         | Answer                                                                                                                                           |
-| ------------------- | ----------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Configuration write | `require_offered`, `hub/domain/config/authoring.py`         | the credential's `declared_offers`                            | `422 forge_capability_missing`, naming the capability and credential                                                                             |
-| Credential edit     | `edit_credential`                                           | `declared_offers` after the edit, per enabled referrer        | `422 forge_capability_missing`, listing the referrers                                                                                            |
-| Hub start           | `hub/app.py`, after live config loads                       | each enabled `github.token` credential with no `variant`      | one `WARNING` log line per credential whose effective variant withholds a capability an enabled referrer requires, naming the variant to declare |
+| Gate                | Where                                                         | Reads                                                         | Answer                                                                                                                                           |
+| ------------------- | ------------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Configuration write | `require_offered`, `hub/domain/config/landing_policies.py`    | the credential's `declared_offers`                            | `422 forge_capability_missing`, naming the capability and credential                                                                             |
+| Credential edit     | `edit_credential`                                             | `declared_offers` after the edit, per enabled referrer        | `422 forge_capability_missing`, listing the referrers                                                                                            |
+| Hub start           | `hub/app.py`, after live config loads                         | each enabled `github.token` credential with no `variant`      | one `WARNING` log line per credential whose effective variant withholds a capability an enabled referrer requires, naming the variant to declare |
 | Pass start          | `TurnRunner._missing_capability`, `hub/delivery/flow_turn.py` | `ForgeRegistry.offered(forge, repository)`, the runtime offer | `forge-capability-missing` escalation, unchanged, with `credential` added to its event detail                                                    |
-
-## Open questions
-
-- Which reads the work source's GraphQL query needs, and so the `work-source` scope's permissions beyond `issues: write`
-  and the check's `issues.read` call; measured against `GitHubWorkSource` when the `github-app-installations` slice
-  lands. Engineering answers.
