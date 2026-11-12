@@ -39,7 +39,7 @@ choose and told beforehand what it asks of them, and every question about the pl
 | `epic:cli-context`                       | planned     |
 | `epic:test-suite/optimization`           | planned     |
 | `epic:adopt-di`                          | planned     |
-| `epic:transactions`                      | planned     |
+| `epic:transactions`                      | in-progress |
 | `epic:advanced-forge-auth`               | planned     |
 
 ## Autonomy (milestone:autonomy)
