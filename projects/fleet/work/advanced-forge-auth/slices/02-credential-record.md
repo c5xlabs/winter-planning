@@ -1,5 +1,6 @@
 ---
 name: credential-record
+external: github:paul-gross/blizzard#2175
 depends-on:
   - epic:advanced-delivery/forges
 code:

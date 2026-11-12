@@ -1,5 +1,6 @@
 ---
 name: authorization-boundary
+external: github:paul-gross/blizzard#2176
 depends-on:
   - credential-record
   - refusal-diagnostics

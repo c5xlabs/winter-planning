@@ -1,5 +1,6 @@
 ---
 name: app-installation-binding
+external: github:paul-gross/blizzard#2182
 depends-on:
   - authorization-boundary
   - credential-document-and-board

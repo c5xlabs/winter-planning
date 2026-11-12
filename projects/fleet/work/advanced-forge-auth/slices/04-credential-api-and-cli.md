@@ -1,5 +1,6 @@
 ---
 name: credential-api-and-cli
+external: github:paul-gross/blizzard#2177
 depends-on:
   - credential-record
 code:

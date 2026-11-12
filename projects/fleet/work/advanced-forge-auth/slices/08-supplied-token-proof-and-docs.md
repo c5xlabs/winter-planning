@@ -1,5 +1,6 @@
 ---
 name: supplied-token-proof-and-docs
+external: github:paul-gross/blizzard#2181
 depends-on:
   - authorization-boundary
   - credential-api-and-cli

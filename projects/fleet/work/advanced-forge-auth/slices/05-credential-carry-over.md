@@ -1,5 +1,6 @@
 ---
 name: credential-carry-over
+external: github:paul-gross/blizzard#2178
 depends-on:
   - credential-record
 code:

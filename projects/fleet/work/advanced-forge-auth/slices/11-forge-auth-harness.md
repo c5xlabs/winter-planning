@@ -1,5 +1,6 @@
 ---
 name: forge-auth-harness
+external: github:paul-gross/blizzard#2184
 depends-on:
   - refusal-diagnostics
   - authorization-boundary

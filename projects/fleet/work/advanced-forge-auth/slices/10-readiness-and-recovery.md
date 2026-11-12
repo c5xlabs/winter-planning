@@ -1,5 +1,6 @@
 ---
 name: readiness-and-recovery
+external: github:paul-gross/blizzard#2183
 depends-on:
   - app-installation-binding
   - credential-document-and-board

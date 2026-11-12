@@ -2,6 +2,7 @@
 epic: advanced-forge-auth
 refinement: refined
 status: planned
+external: github:paul-gross/blizzard#2173
 ---
 
 # Advanced forge authentication

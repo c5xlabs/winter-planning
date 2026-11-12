@@ -1,5 +1,6 @@
 ---
 name: refusal-diagnostics
+external: github:paul-gross/blizzard#2174
 depends-on:
   - epic:advanced-delivery/forges
 code:

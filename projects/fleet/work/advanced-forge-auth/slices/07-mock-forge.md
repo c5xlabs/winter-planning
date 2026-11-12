@@ -1,5 +1,6 @@
 ---
 name: mock-forge
+external: github:paul-gross/blizzard#2180
 code:
   - blizzard-mock/src/blizzard_mock/forge/api/middleware.py::LeverMiddleware
   - blizzard-mock/src/blizzard_mock/forge/domain/levers.py::Lever

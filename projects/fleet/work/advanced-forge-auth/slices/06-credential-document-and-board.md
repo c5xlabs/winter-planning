@@ -1,5 +1,6 @@
 ---
 name: credential-document-and-board
+external: github:paul-gross/blizzard#2179
 depends-on:
   - credential-api-and-cli
   - credential-carry-over
