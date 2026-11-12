@@ -1,6 +1,6 @@
 # Riding out provider outages engineering
 
-Engineering for `epic:resilience`.
+Engineering for `epic:resilience/provider-outages`.
 
 ## Brief requirements
 

@@ -1,10 +1,9 @@
 ---
 initiative: mutation-testing
-refinement: refined
+refinement: final
 epics:
   - diff-scoped
   - corpus-sweep
-  - angular
 ---
 
 # Mutation testing
@@ -28,6 +27,5 @@ pinned.
 
 `epic:mutation-testing/diff-scoped` is advisory and in the delivery path, so the feedback reaches the change that
 introduced the weak test while it is still open. `epic:mutation-testing/corpus-sweep` folds it into gardening.
-`epic:mutation-testing/angular` brings the frontend under the tooling once the tooling can reach it; until then, a
-reviewer's hand-picked mutations stay the standing complement to the tooling and the only path open on the frontend
+A reviewer's hand-picked mutations stay the standing complement to the tooling, and the only path open on the frontend
 (`decision:mutation-testing/shape`).

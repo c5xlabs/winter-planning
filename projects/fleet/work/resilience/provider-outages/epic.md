@@ -1,12 +1,12 @@
 ---
-epic: resilience
+epic: resilience/provider-outages
 refinement: outline
 status: planned
 ---
 
 # Riding out provider outages
 
-A standalone epic; its requirements are inline below.
+Part of `initiative:resilience`; its requirements are inline below.
 
 ## The problem
 
@@ -59,8 +59,8 @@ Acceptance:
 
 ### A floor under the patience (product:bounded-wait)
 
-Waiting is bounded (`decision:resilience/patience-bound`). An outage that outlasts the bound becomes one ordinary
-escalation about the outage, not one per chunk.
+Waiting is bounded (`decision:resilience/provider-outages/patience-bound`). An outage that outlasts the bound becomes one
+ordinary escalation about the outage, not one per chunk.
 
 Acceptance:
 

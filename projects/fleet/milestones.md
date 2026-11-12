@@ -7,8 +7,7 @@ board. Once a milestone is reached, it moves to the [delivered ledger](./deliver
 ## Hardening (milestone:hardening)
 
 Decide for themselves how the fleet behaves: every operational constant theirs to set, when and at what rate each runner
-takes work theirs to declare, a provider outage ridden out rather than slept through, every upgrade taken when they
-choose and told beforehand what it asks of them, and every question about the platform answerable without cloning it.
+takes work theirs to declare, and every upgrade taken when they choose and told beforehand what it asks of them.
 
 | Epic                                     | Status      |
 | ---------------------------------------- | ----------- |
@@ -30,12 +29,10 @@ choose and told beforehand what it asks of them, and every question about the pl
 | `epic:strict-types`                      | delivered   |
 | `epic:strict-mock`                       | delivered   |
 | `epic:test-suite/controlled-clock`       | delivered   |
-| `epic:resilience`                        | planned     |
 | `epic:config/model-resolution`           | planned     |
 | `epic:config/sweep`                      | planned     |
 | `epic:config/runtime`                    | in-progress |
 | `epic:ui-toolkit`                        | planned     |
-| `epic:documentation`                     | planned     |
 | `epic:cli-context`                       | planned     |
 | `epic:test-suite/optimization`           | planned     |
 | `epic:adopt-di`                          | planned     |
@@ -90,15 +87,6 @@ that arrive the way the phone's own do.
 | `epic:android` | planned |
 | `epic:ios`     | planned |
 
-## Project management (milestone:project-management)
-
-Assemble what the fleet works on from inside blizzard — browse the backlog, take many items at once, and shape them into
-chunks — instead of handing over ids one at a time.
-
-| Epic          | Status  |
-| ------------- | ------- |
-| `epic:intake` | planned |
-
 ## Future state
 
 Ideas for where the fleet goes next, not yet needed by any milestone.
@@ -112,7 +100,6 @@ Ideas for where the fleet goes next, not yet needed by any milestone.
 | `epic:demo`                               | planned |
 | `epic:code-harness-window/agent-observer` | planned |
 | `epic:code-harness-window/swarm-view`     | planned |
-| `epic:mutation-testing/angular`           | planned |
 | `epic:lab/bench`                          | planned |
 | `epic:lab/experiment`                     | planned |
 | `epic:lab/lab-runner`                     | planned |
@@ -126,3 +113,5 @@ Ideas for where the fleet goes next, not yet needed by any milestone.
 | `epic:advanced-deployment`                | planned |
 | `epic:retention`                          | planned |
 | `epic:ui-redesign`                        | planned |
+| `epic:resilience/provider-outages`        | planned |
+| `epic:documentation`                      | planned |

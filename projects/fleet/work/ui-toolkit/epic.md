@@ -73,6 +73,6 @@ Acceptance:
   if it does.
 - **Product owner:** What counts as evidence: the most convincing experiment is building one real board surface twice,
   which is also the most expensive.
-- **Product owner:** How the epics already queued against the board (the story map, `epic:intake`, and
+- **Product owner:** How the epics already queued against the board (the story map and
   `epic:self-sourced-work`'s authoring surface) sequence around this one, since each is cheaper after it and blocked
   waiting for it.
