@@ -149,19 +149,6 @@ App-authenticated and spend no installation budget.
 `CacheKey` (`hub/live_config/__init__.py`) gains `credential_id` and `credential_revision`; its `secret_name` and
 `secret_revision` become the credential's secret's. `ConfigRevisionsStore` outer-joins `credentials`.
 
-The proof tool, `blizzard/tools/proofs/github_private_checks.py`, serves `engineering:private-checks-proof`:
-
-```text
-github_private_checks.py --api-base URL --repo OWNER/REPO --pull N --expect NAME=CONCLUSION ...
-    --app-id N --installation-id N --key-file PATH
-    env: PROOF_CLASSIC_TOKEN, PROOF_FINE_GRAINED_TOKEN
-stdout, one line per credential:  <app|classic|fine-grained> pull=<status> check-runs=<status> matched=<yes|no>
-exit 0 when the App line is pull=200 check-runs=200 matched=yes
-```
-
-It makes no call but `GET /repos/{o}/{r}/pulls/{n}`, `GET /repos/{o}/{r}/commits/{head}/check-runs`, and the mint. It
-prints no token, body, or check name.
-
 ## Flows
 
 ```mermaid

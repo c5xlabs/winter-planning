@@ -17,6 +17,10 @@ Engineering requirements for `epic:advanced-forge-auth`.
   (`blizzard/src/blizzard/hub/delivery/actions/landing/merge_on_checks.py`, `.../actions/land.py`).
 - Unavailable, unreadable, refused, or empty checks never lead to a merge
   (`blizzard/src/blizzard/hub/delivery/actions/landing/checks.py`).
+- `engineering:private-checks-proof` holds: a test App installed only on the private `paul-gross/blizzard-infra`, with
+  Checks, Contents, and Pull requests read, minted an installation token that read a merged pull request's head and its
+  check runs, matching the conclusions GitHub shows for it; a classic `repo` token matched too. No probe pull request
+  and no merge.
 - GitHub App installation authentication:
   <https://docs.github.com/en/apps/creating-github-apps/authenticating-with-a-github-app/authenticating-as-a-github-app-installation>
 - GitHub App permissions for Checks:

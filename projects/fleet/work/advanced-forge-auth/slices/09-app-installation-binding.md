@@ -1,7 +1,6 @@
 ---
 name: app-installation-binding
 depends-on:
-  - private-checks-proof
   - authorization-boundary
   - credential-document-and-board
   - mock-forge
@@ -20,7 +19,7 @@ parts of [authorization.md](../spec/authorization.md), its [Flows](../spec/autho
 [refusals.md](../spec/refusals.md#interfaces), the `<ts>_app_credentials` revision of credential-record.md's
 [Data](../spec/credential-record.md#data), and the App settings and `'secret-text'` field of its
 [Interfaces](../spec/credential-record.md#interfaces). Shaped by `decision:advanced-forge-auth/tokens-in-memory`;
-follows `engineering:private-checks-proof`, which the first slice ran.
+follows `engineering:private-checks-proof`, which already holds.
 
 ## Change
 

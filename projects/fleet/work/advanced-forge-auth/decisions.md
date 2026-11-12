@@ -5,8 +5,8 @@
 **Decider:** engineering
 
 A fine-grained token is not offered `checks.read`: GitHub lists the Checks API among fine-grained token limitations, and
-the fleet's `forge-auth` escalation on a private repository came from exactly that read. The private-checks proof's
-fine-grained run confirms it; a run that reads the check runs reopens this decision.
+the fleet's `forge-auth` escalation on a private repository came from exactly that read, and the operator has seen a
+fine-grained token fail it. A fine-grained token that reads private check runs reopens this decision.
 
 ## Claim-time credential gate (decision:advanced-forge-auth/claim-time-gate)
 
