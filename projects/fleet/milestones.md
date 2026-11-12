@@ -42,8 +42,9 @@ takes work theirs to declare, and every upgrade taken when they choose and told 
 ## Autonomy (milestone:autonomy)
 
 Leave the fleet to run itself: it keeps its own schedule, takes up work the moment something happens, reaches first for
-what is most urgent, hands each piece to the runner and the settings suited to it, and clears the road for a change too
-large to share it — without the operator choreographing any of it.
+what is most urgent, hands each piece to the runner and the settings suited to it, clears the road for a change too
+large to share it, and keeps watch over itself through agents that each hold their role alone — without the operator
+choreographing any of it.
 
 | Epic                         | Status      |
 | ---------------------------- | ----------- |
@@ -54,6 +55,8 @@ large to share it — without the operator choreographing any of it.
 | `epic:worker-profiles`       | planned     |
 | `epic:chokepoint/chokepoint` | planned     |
 | `epic:chokepoint/epic-dwf`   | planned     |
+| `epic:sentinel-agents`       | planned     |
+| `epic:agent-identity`        | planned     |
 
 ## Foundational seams (milestone:foundational-seams)
 
