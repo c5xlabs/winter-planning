@@ -102,6 +102,10 @@ class LeaseView(WireModel):
   under the settings in force when it relaunches.
 - A session's transcript is read from the `transcripts_root` on its spawn row, so moving `transcripts_root` loses no
   running session's transcript.
+- A judge resumes the worker's session and is part of it, so it reads and writes the worker's transcript source: the set
+  the session launched with holds until judging ends, and after a restart the worker's spawn row supplies
+  `transcripts_root`, the current setting standing in for a row recorded before it. Its other `session` keys are those
+  in force at its launch.
 
 ### The objects settings reach
 
