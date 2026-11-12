@@ -1,6 +1,6 @@
 ---
 epic: transactions
-refinement: outline
+refinement: final
 status: planned
 ---
 
@@ -13,11 +13,10 @@ A standalone epic; its requirements are inline below.
 An agent adding a write to the hub (`persona:fleet-agent`) has to learn which of several ways to change the store this
 write should take, and the code offers it every one of them as a precedent. It can open a unit of work and declare its
 locks, which is the path the harness asks for. It can open a locked handle and call one of the locked twins beside the
-method it actually wanted, which is the path many of the existing decisions still take. It can call a repository method
-that opens its own short write. It can find a store method that decides the business rule itself, checking that a chunk
-is terminal inside its own query, and copy that. Each path is correct where it stands. Together they teach a newcomer
-that any of them will do, and the rules that say otherwise are written as a list of exceptions a reviewer has to
-remember.
+method it actually wanted, which is the path many of the existing decisions still take. It can find a store method that
+decides the business rule itself, checking that a chunk is terminal inside its own query, and copy that. Each path is
+correct where it stands. Together they teach a newcomer that any of them will do, and the rules that say otherwise are
+written as a list of exceptions a reviewer has to remember.
 
 Everything holds today only because one hub process serves the store and every behavior test runs on SQLite, whose
 single writer lock serializes everything whether or not the code asked it to. Two exclusions live in the hub process's

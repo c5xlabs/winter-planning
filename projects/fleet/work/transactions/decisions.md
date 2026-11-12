@@ -17,14 +17,13 @@ tenant chunks, so no two dependency changes run at once. Other chunk writes keep
 A few store methods decide a business rule themselves, such as refusing a write because the chunk is already stopped or
 done, where the store should refuse a write only because its data changed underneath it and leave the rule to the
 domain. Those rules move to the domain before the hub's writes move onto the one unit-of-work path. Each rule sits
-inside a write that move relocates, so relocating the write first would carry the rule along with it, and the rule
-would then have to be pulled out of its new home as well.
+inside a write that move relocates, so relocating the write first would carry the rule along with it, and the rule would
+then have to be pulled out of its new home as well.
 
 ## A stop racing an urgency retirement (decision:transactions/urgency-move-race)
 
-A chunk stopped or completed while its urgency is being retired may be moved to the replacement urgency, though a
-terminal chunk otherwise keeps the urgency it ended with. The retirement locks the urgency, not its holders' chunks,
-which it can name only after reading them; closing the window would take a pre-read and a retry loop on every
-retirement, or the urgency's key on every write that ends a chunk. The state the race leaves is harmless, and the cost
-of keeping the invariant exact is not justified. While the tenant row stays a mutex
-(`decision:transactions/tenant-row-mutex`), the race cannot occur.
+No stop or completion races an urgency retirement, and a terminal chunk keeps the urgency it ended with. The retirement
+already locks every chunk it moves: it pre-reads the urgency's open holders, declares them, re-reads them under the
+lock, and runs again over any it missed. A stop or completion takes the same chunk lock, so the terminal read the
+retirement takes under it is exact, and moving that read from the store to the domain opens no window. An earlier form
+of this decision accepted a race on the premise that the retirement locked only the urgency; the code never did.

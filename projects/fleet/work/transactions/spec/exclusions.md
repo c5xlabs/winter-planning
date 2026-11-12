@@ -8,7 +8,7 @@ How the two in-process exclusions move into the store, for `store-held-exclusion
 ```text
 # engineering:store-held-exclusions
 chunk dependency changes  -> one keyed lock over all tenant chunks (decision:transactions/cycle-check-lock)
-export cursor pass/reset  -> compare-and-set on the newest cursor row; no lock (Proposed)
+export cursor pass/reset  -> a compare-and-append under the EGRESS_CURSOR hub lock
 sweep locks               -> unchanged, in process
 ```
 
@@ -23,12 +23,15 @@ One `keyed_locks` row per tenant, `(tenant_id, "chunk_dependencies", "all")`, cr
 (`store/locking.py:17`), so it needs no revision. Every change to chunk dependencies declares it beside its chunk locks;
 other chunk writes do not.
 
-| Holder                                                   | Declares today                                         | Declares after                                      |
-| -------------------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------- |
-| `DependencyService.declare` (`domain/chunk/dependencies.py:155`) | `cycle_lock`; chunks `[dependent, prerequisite]` | `chunks=[dependent, prerequisite], keys=[DEPENDENCIES_LOCK]` |
-| `GroupService.group` (`domain/operations/queue.py:799`)  | `cycle_lock`; chunks `[survivor, *merged]`             | `chunks=[survivor, *merged], keys=[DEPENDENCIES_LOCK]` |
-| `DeleteService.delete` (`domain/operations/delete.py:116`) | `cycle_lock`; chunk `[chunk_id]`                     | `chunks=[chunk_id], keys=[DEPENDENCIES_LOCK]`       |
-| `DependencyService.release` (`dependencies.py:179`)      | `cycle_lock` alone, in its own implicit unit           | `begin()`, `keys=[DEPENDENCIES_LOCK]`               |
+| Holder                                                           | Declares today                                   | Declares after                                                 |
+| ---------------------------------------------------------------- | ------------------------------------------------ | -------------------------------------------------------------- |
+| `DependencyService.declare` (`domain/chunk/dependencies.py:155`) | `cycle_lock`; chunks `[dependent, prerequisite]` | `chunks=[dependent, prerequisite], keys=[DEPENDENCIES_LOCK]`   |
+| `GroupService.group` (`domain/operations/queue.py:799`)          | `cycle_lock`; chunks `[survivor, *merged]`       | `chunks=[survivor, *merged], keys=[DEPENDENCIES_LOCK]`         |
+| `DeleteService.delete` (`domain/operations/delete.py:116`)       | `cycle_lock`; chunk `[chunk_id]`                 | `chunks=[chunk_id], keys=[DEPENDENCIES_LOCK, *work_item_keys]` |
+| `DependencyService.release` (`dependencies.py:179`)              | `cycle_lock` alone, in its own implicit unit     | `begin()`, `keys=[DEPENDENCIES_LOCK]`                          |
+
+The delete's `WORK_ITEM` keys come from a pre-read of its chunk's `hub:` refs, re-checked under the lock
+([store-judgments.md](./store-judgments.md#garden-proposals-work-items-and-urgency-moves)).
 
 `release` stops running as its own implicit unit: it takes `transaction: LockedTransaction` and its service opens the
 unit. `cycle_lock` leaves `TenantStores` (`composition.py:621,677`) and the three services' constructors, and each
@@ -46,10 +49,14 @@ append are separate transactions. The pass lock (`composition.py:1771`) keeps an
 by the advanced cursor a pass in flight appends: the sweep skips a tick while a reset holds it (`egress/sweep.py:111`),
 and the reset blocks on a pass (`egress/reset.py:84`).
 
-**Proposed.** The pass reads the newest cursor row's id per dataset when it starts, and appends its advanced cursor only
-if that id is still the newest; a reset appends unconditionally. A pass that loses appends nothing, and its next tick
-starts from the reset cursor. This is the compare-and-set form `bzh:write-reestablishes-read` prefers: it takes no lock
-and needs no revision.
+A compare-and-set with no lock does not hold on Postgres: `egress_cursor` has no uniqueness a predecessor could key, and
+under read committed a pass's conditional insert cannot see a reset's uncommitted row, so both commit and the pass's can
+still land newest. The append instead runs under a `hub_locks` row, `HubLock.EGRESS_CURSOR`
+([hub-locks.md](./hub-locks.md)), held only for the append, not across the pass:
+
+- A pass reads the newest cursor row's id per dataset when it starts. When it appends, it takes `EGRESS_CURSOR`,
+  re-reads the newest id, and appends its advanced cursor only if that id is still the one it started from.
+- A reset takes `EGRESS_CURSOR` and appends unconditionally.
 
 ```python
 # domain/observability/egress/repository.py                                  engineering:store-held-exclusions
@@ -59,11 +66,17 @@ class EgressCheckpoint:
 
 class IWriteEgressCursor(IReadEgress, Protocol):
     def append_cursor(self, record: EgressCheckpoint, *, after: int | None) -> bool: ...
-    # Inserts when the dataset's newest cursor id is ``after`` (``None``: none yet); False when another append moved it.
+    # Under EGRESS_CURSOR, inserts when the dataset's newest cursor id is ``after`` (``None``: none yet); False when
+    # another append moved it.
+    def reset_cursor(self, record: EgressCheckpoint) -> None: ...   # under EGRESS_CURSOR, unconditionally
 ```
 
-A pass places its files before it appends its cursor, so a pass that loses has already placed the files for the range it
-covered. The reset that beat it re-exports from an earlier cursor, so the next pass places that range again.
+The egress store is hub-wide and has no tenant unit to declare a lock in, so `EgressStore` takes `EGRESS_CURSOR` on the
+one short write it opens for the append: the declared exception to `write-entry.md`'s rule that a store never locks a
+connection it opened for itself. The sweep no longer skips a tick while a reset runs, and no write is held open across a
+pass. A pass that loses has already placed the files and manifest for its range, the same state the crash point between
+manifest and cursor leaves today (`egress/sweep.py:63-67`); the next pass places that range again from the reset cursor,
+which the delivery semantics already accept.
 
 ## Flows
 
@@ -76,12 +89,6 @@ covered. The reset that beat it re-exports from an earlier cursor, so the next p
 ### A reset during a pass
 
 1. The pass starts and reads the newest cursor id `n`.
-2. A reset appends cursor `n+1`.
-3. The pass's append, conditioned on `after=n`, inserts nothing; the pass ends without moving the cursor.
-
-## Open questions
-
-- **The export cursor's form.** The engineering requirement asks for a store lock; the compare-and-set above meets its
-  acceptance with no lock at all. A lock instead takes a `hub_locks` row ([hub-locks.md](./hub-locks.md)) seeded by a
-  revision, and holds a write open across a whole pass. Either way, the sweep no longer skips a tick while a reset runs;
-  and whether the files a losing pass already placed are harmless beside the re-export is unverified.
+2. A reset takes `EGRESS_CURSOR` and appends cursor `n+1`.
+3. The pass takes `EGRESS_CURSOR` once the reset commits, re-reads `n+1`, and appends nothing; its next tick starts from
+   the reset cursor.

@@ -1,32 +1,29 @@
 ---
 name: converge-graph
 depends-on:
-  - store-judgments
-  - converge-chunk-lifecycle
-  - converge-chunk-movement
-  - converge-chunk-route
-  - converge-chunk-dependencies
-  - converge-decisions-and-escalations
-  - converge-hub-execution
-  - converge-record-and-work-refs
+  - config-judgments
+  - converge-cross-area
 ---
 
 # Converge the graph
 
-Moves the writes of the graph onto the one write entry and deletes their `*_locked` twins. Delivers
-`engineering:one-write-entry` for this area; spec [areas.md](../spec/areas.md) and
+Moves the writes of the graph onto the one write entry, deletes their `*_locked` twin, and removes the legacy seam with
+its last caller. Delivers `engineering:one-write-entry`; spec
+[areas.md](../spec/areas.md#the-graph-and-the-seams-removal-converge-graph) and
 [write-entry.md](../spec/write-entry.md).
 
 ## Change
 
-- Each plain write in the area takes its `transaction` parameter, or a `LockedTransaction` with no default where it is
-  correct only under a lock.
-- Every caller in the area opens its unit through `IHubTransactions.begin`.
-- The area's `*_locked` twins, and the locked-handle reads it used, are deleted.
-- The legacy seam (`IChunkExclusiveWrites`, `ILockedChunkRead`, `ILockedWorkRefRead`,
-  `IWriteGraphRepository.locked_name`) is deleted with its last caller.
+- `IWriteGraphRepository.mint_locked` folds into `mint`, taking a `LockedTransaction`; `get_enabled_by_name` and
+  `any_minted` take `transaction`; the `GRAPH_NAME` key builder moves to the domain.
+- The default-graph mint opens its unit through `IHubTransactions.begin`, and `GraphStore` stops opening its own write
+  for `locked_name`.
+- The legacy seam is deleted: everything write-entry.md §Removed lists, including `effective_locked` and
+  `_retire_locked`, renamed to drop the marker.
 
 ## Acceptance
 
-- No `*_locked` method of the area remains, and no caller in the area reaches the legacy seam.
+- No `*_locked` method or helper and no locked-handle type remains under `hub/`.
+- Every write that must win exactly once takes its locks through one `begin` declaration, but the declared exceptions
+  (write-entry.md §Opening a write).
 - Behavior is unchanged at every route and command (`engineering:behavior-preserving-landings`).

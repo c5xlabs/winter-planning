@@ -4,13 +4,15 @@ Engineering requirements for `epic:transactions`.
 
 ## What already holds
 
-Measured on `master` at `7d984dad8`:
+Measured on `master` at `eda353d55`:
 
-- 25 repository port methods exist only as a `*_locked` twin of a write.
-- 17 domain and delivery modules reach the store through the legacy locked seam (`IChunkExclusiveWrites`); 12 open the
+- 23 repository port methods exist only as a `*_locked` twin of a write.
+- 18 domain and delivery modules reach the store through the legacy locked seam (`IChunkExclusiveWrites`); 16 open the
   unit of work directly, and several do both.
-- Store writes judge a domain predicate, rather than refusing only a stale write, in fifteen places: the four
-  `bzh:store-exclusive-write` lists as Known debt, and eleven it does not.
+- Store writes judge a domain predicate, rather than refusing only a stale write, in fourteen places: the four
+  `bzh:store-exclusive-write` lists as Known debt, and ten it does not.
+- No store write publishes: `5ae6ebf28` removed the store's path to the broker, so `engineering:announce-after-commit`
+  already holds, and no slice builds it.
 - Two exclusions live in the hub process's memory: the per-tenant lock that keeps the dependency graph free of cycles,
   and the lock that keeps an operator's reset of the export cursor from being overwritten by a pass in flight.
   `bzh:store-exclusive-write` lists them as residual debt.
@@ -66,13 +68,14 @@ Acceptance:
 An event is published only after the write it describes has committed, by the code that asked for the write. A unit
 returns what it changed, and its caller publishes from that. The store's own path to the broker, the publisher a scoped
 write carries and the callback a store queues on its commit, is removed, and the event it announces today moves to its
-caller. Serves `product:one-way-to-write`.
+caller. Holds at `eda353d55`; `final-form-rules`' broker gate keeps it. Serves `product:one-way-to-write`.
 
 ## Adapters stay apart (engineering:adapters-stay-apart)
 
 No adapter writes another repository's facts through a sibling's private helper. Each such write is handed back to the
-domain, which composes both repositories in one unit; `WorkItemStore`'s composite mints are the largest case. Serves
-`product:one-way-to-write`.
+domain, which composes both repositories in one unit; `WorkItemStore`'s composite mints are the largest case. Config
+apply, config import, and tenant creation stay one bulk write across their siblings' tables by design, as declared
+exceptions. Serves `product:one-way-to-write`.
 
 ## Exclusions live in the store (engineering:store-held-exclusions)
 
@@ -86,12 +89,13 @@ is `decision:transactions/cycle-check-lock`. Serves `epic:transactions`.
 
 A lock on a concept no tenant owns is a row in one `hub_locks` table, seeded by the revision that creates it, named by
 one `HubLock` enum. The identity lock moves onto it, and tenant creation and close take a `TENANT_LIFECYCLE` lock, in
-place of a close locking every tenant row. Every unit takes these in one order: `IDENTITY`, then tenant rows, then
-`TENANT_LIFECYCLE`. Serves `product:one-way-to-write`.
+place of a close locking every tenant row; the export cursor's append takes an `EGRESS_CURSOR` lock. Every unit takes
+these in one order: `IDENTITY`, then tenant rows, then `TENANT_LIFECYCLE`. Serves `product:one-way-to-write`.
 
 Acceptance:
 
 - The identity lock is a `hub_locks` row, still the identity unit's first statement.
+- An operator's reset of the export cursor and a pass's append take the `EGRESS_CURSOR` row.
 - Two concurrent closes of the last two open tenants: one is refused `LastTenant`.
 - A close holds no tenant's row but its own.
 
@@ -100,7 +104,8 @@ Acceptance:
 `blizzard:postgres-uow-concurrency` covers what SQLite cannot show: the closed-tenant check a scoped write opens with,
 the tenant lifecycle lock that keeps two closes from closing the last two open tenants, the drain's delete order under
 enforced foreign keys, and keyed locks of different keys not excluding each other. A gap the proof closes is removed
-from `gaps.md`, and a mechanism the proof finds broken is fixed in this epic. Serves `epic:transactions`.
+from `gaps.md`, and a mechanism the proof finds broken is fixed in this epic. The proof runs nightly, never on a pull
+request or a `master` push. Serves `epic:transactions`.
 
 ## Rules in final form (engineering:final-form-rules)
 

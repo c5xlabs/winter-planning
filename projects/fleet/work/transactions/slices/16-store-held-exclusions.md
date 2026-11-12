@@ -1,26 +1,28 @@
 ---
 name: store-held-exclusions
 depends-on:
-  - converge-chunk-dependencies
-  - converge-graph
+  - tenant-judgments
+  - garden-and-work-item-judgments
+  - converge-cross-area
 ---
 
 # Store-held exclusions
 
 Moves the dependency graph's cycle check, the delete and release that share its lock, and the export cursor's pass lock
-onto locks the store holds. Delivers `engineering:store-held-exclusions`; waits on
-`decision:transactions/cycle-check-lock`. Spec [exclusions.md](../spec/exclusions.md).
+onto locks the store holds. Delivers `engineering:store-held-exclusions`. Spec [exclusions.md](../spec/exclusions.md).
 
 ## Change
 
-- The cycle check, dependency delete, and dependency release take a store lock in place of the per-tenant in-process
-  lock.
-- The export cursor's reset and pass take a store lock in place of the in-process lock.
-- A lock needing a store row no table holds lands as an expansion; a `keyed_locks` row needs no revision.
+- The cycle check, dependency group, delete, and release declare `DEPENDENCIES_LOCK` in place of the per-tenant
+  in-process lock (`decision:transactions/cycle-check-lock`); release opens a unit of its own service.
+- An additive revision seeds the `EGRESS_CURSOR` hub lock; a pass appends its cursor under it only when the newest
+  cursor is still the one it started from, and a reset appends under it. The in-process pass lock is removed.
 - The sweep locks stay in process.
 
 ## Acceptance
 
 - Neither in-process lock remains.
-- Two concurrent dependency changes that would together close a cycle: one is refused.
-- An operator's reset of the export cursor is not overwritten by a pass in flight.
+- Every dependency declare, group, delete, and release declares `DEPENDENCIES_LOCK`; no other chunk write does.
+- A pass whose starting cursor a reset moved appends nothing, and its next pass starts from the reset cursor.
+- Behavior is unchanged at every route and command, once the store is migrated
+  (`engineering:behavior-preserving-landings`); the change note's `## Upgrade` section names the migration.

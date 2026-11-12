@@ -12,30 +12,36 @@ sibling's rows, or embedding a sibling's lookup as a subquery of one's own inser
 
 ### `WorkItemStore`'s composite mints
 
-| Method                                       | Writes beyond `work_items`                                                                  | Caller                                                                 |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
-| `create_with_chunk` (`work_item_store.py:104`) | `chunks`, `chunk_work_refs` (`chunk_rows.insert_chunk_rows`)                              | `WorkItemEditService.create` (`domain/work_items/editing.py:196`)      |
-| `create_run_with_chunk` (`:146`)             | the above, and `work_item_runs` (`run_context_store.insert_run_context_row`)                | `RunService.run` (`domain/garden/runs/run.py:267`); `CadenceMint.mint` (`domain/cadence/mint.py:203`) |
-| `accept_create` (`:287`)                     | `garden_proposal_closures` and a lock on `garden_proposals` (`insert_garden_proposal_closure_row`), then the above | `WorkItemEditService.accept_create` (`editing.py:208`), from `GardenProposalClosureService.accept` (`domain/garden/proposals/closure.py:320`) |
+| Method                                         | Writes beyond `work_items`                                                                                         | Caller                                                                                                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `create_with_chunk` (`work_item_store.py:104`) | `chunks`, `chunk_work_refs` (`chunk_rows.insert_chunk_rows`)                                                       | `WorkItemEditService.create` (`domain/work_items/editing.py:196`)                                                                             |
+| `create_run_with_chunk` (`:146`)               | the above, and `work_item_runs` (`run_context_store.insert_run_context_row`)                                       | `RunService.run` (`domain/garden/runs/run.py:267`); `CadenceMint.mint` (`domain/cadence/mint.py:203`)                                         |
+| `accept_create` (`:287`)                       | `garden_proposal_closures` and a lock on `garden_proposals` (`insert_garden_proposal_closure_row`), then the above | `WorkItemEditService.accept_create` (`editing.py:208`), from `GardenProposalClosureService.accept` (`domain/garden/proposals/closure.py:320`) |
 
 Each becomes a domain composition in one unit over the work-item, chunk-record, run-context, and proposal-closure
 repositories (`IWriteWorkItemRepository`, `IWriteChunkRecordRepository`, `IWriteRunContextRepository`,
 `IWriteGardenProposalClosureRepository`), each write taking the unit's transaction. The work-item port loses its three
 composite methods for a plain create; the proposal-closure port gains the accept-with-mint closure `accept_create`
-writes today. `accept_create`'s insert-if-absent closure stays the gate on the rest: when it finds the proposal already
-closed, the unit writes nothing further and the domain raises `GardenProposalAlreadyClosed`, as today.
+writes today. Each unit declares the `WORK_REF` keys of the chunk's pointers beside the urgency keys it declares today
+(`domain/work_items/editing.py:194`, `domain/garden/runs/run.py:265`, `domain/cadence/mint.py:196`), because the
+chunk-record `mint` it calls checks that every pointer key is locked ([areas.md](./areas.md)); a concurrent ingest of
+the same pointer then waits on the mint. `accept_create`'s insert-if-absent closure stays the gate on the rest: when it
+finds the proposal already closed, the unit writes nothing further and the domain raises `GardenProposalAlreadyClosed`,
+as today.
 
 ### Other adapters writing a sibling's tables
 
-| Adapter                                                  | Sibling's tables it writes                                    | Through                                          |
-| -------------------------------------------------------- | ------------------------------------------------------------- | ------------------------------------------------ |
-| `RoutineScopeStore.link`, `unlink` (`routine_scope_store.py:97,104`) | `routine_scopes`; CAS on `routines.revision`      | `routine_store.link_scope`, `move_revision`      |
-| `RoutineStore.create`, `update` (`routine_store.py:222,261`) | `scopes`, `config_changes`                                | `scope_store.ensure_scope`                       |
-| `ReviewFindingsStore.deliver` (`review_findings_store.py:80`) | `scopes`, `config_changes`; `findings`, `finding_facts` directly | `ensure_scope`; inline inserts          |
-| `GardenDeliveryStore.deliver` (`garden_delivery_store.py:75`) | `findings`, `finding_facts`, `finding_sets`, `garden_proposals`, `garden_proposal_findings` directly; a lock on `findings` | `finding_store.lock_findings`; inline inserts |
-| `TenantAdministrationStore` (`tenant_admin_store.py:37`)  | graph, project, urgency, and tenant-settings rows; `work_item_sequence` directly | adapters built on its connection (`_TenantCreation`, `:73`); `seed_hub_sequence` (`:102`) |
-| `ConfigApplyStore` (`config_apply_store.py:43`)          | the cadence, forge, project-link, project, repository, routine, scope, settings, urgency, and work-source tables | those adapters' write bodies |
-| `ConfigImportStore` (`config_import_store.py:34`)        | forge, project-link, repository, work-source, and secret tables | `insert_forge`, `insert_link`, `insert_record`, `insert_secret` |
+The first four move to the domain in this slice; the last three are declared exceptions (§Declared exceptions).
+
+| Adapter                                                              | Sibling's tables it writes                                                                                                 | Through                                                                                   |
+| -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| `RoutineScopeStore.link`, `unlink` (`routine_scope_store.py:97,104`) | `routine_scopes`; CAS on `routines.revision`                                                                               | `routine_store.link_scope`, `move_revision`                                               |
+| `RoutineStore.create`, `update` (`routine_store.py:222,261`)         | `scopes`, `config_changes`                                                                                                 | `scope_store.ensure_scope`                                                                |
+| `ReviewFindingsStore.deliver` (`review_findings_store.py:80`)        | `scopes`, `config_changes`; `findings`, `finding_facts` directly                                                           | `ensure_scope`; inline inserts                                                            |
+| `GardenDeliveryStore.deliver` (`garden_delivery_store.py:75`)        | `findings`, `finding_facts`, `finding_sets`, `garden_proposals`, `garden_proposal_findings` directly; a lock on `findings` | `finding_store.lock_findings`; inline inserts                                             |
+| `TenantAdministrationStore` (`tenant_admin_store.py:37`)             | graph, project, urgency, and tenant-settings rows; `work_item_sequence` directly                                           | adapters built on its connection (`_TenantCreation`, `:73`); `seed_hub_sequence` (`:102`) |
+| `ConfigApplyStore` (`config_apply_store.py:43`)                      | the cadence, forge, project-link, project, repository, routine, scope, settings, urgency, and work-source tables           | those adapters' write bodies                                                              |
+| `ConfigImportStore` (`config_import_store.py:34`)                    | forge, project-link, repository, work-source, and secret tables                                                            | `insert_forge`, `insert_link`, `insert_record`, `insert_secret`                           |
 
 ### Shared row helpers
 
@@ -45,7 +51,16 @@ closed, the unit writes nothing further and the domain raises `GardenProposalAlr
 chunk write owes atomically, under the chunk lock its caller holds. `config_change_store.append_change`, the audit row
 twelve adapters append beside their own write, stays shared for the same reason.
 
-## Open questions
+### Declared exceptions
 
-- **How far the slice reaches.** The engineering requirement names `WorkItemStore` as the largest case. The table above
-  holds seven more; config apply and import are a bulk transaction by design and may stay a declared exception.
+Three adapters stay one bulk write across their siblings' tables by design, and keep reaching them through the siblings'
+write bodies on one connection:
+
+- `ConfigApplyStore`, which applies a whole planned config change atomically;
+- `ConfigImportStore`, which imports a config whole or not at all;
+- `TenantAdministrationStore`'s creation, which seeds a new tenant's graph, project, urgency, settings, and sequence
+  rows.
+
+Each keeps its `ast-grep-ignore: bzh:hub-store-adapter-imports` with a comment naming it a declared exception of
+`engineering:adapters-stay-apart`, in place of the debt comment it carries today. Each still takes its locks only
+through its unit's declaration ([store-judgments.md](./store-judgments.md#config-applys-key-lock)).

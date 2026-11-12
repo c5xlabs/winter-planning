@@ -31,12 +31,17 @@ not been migrated.
 class HubLock(StrEnum):
     IDENTITY = "identity"
     TENANT_LIFECYCLE = "tenant_lifecycle"
+    EGRESS_CURSOR = "egress_cursor"              # store-held-exclusions
 ```
 
-| Lock               | Taken by                                     | Excludes                                                        |
-| ------------------ | -------------------------------------------- | --------------------------------------------------------------- |
-| `IDENTITY`         | Every identity unit, as its first statement  | Two identity units deciding a hub-level identity rule at once, such as the last hub administrator |
-| `TENANT_LIFECYCLE` | Tenant creation and tenant close             | Two closes each seeing the other's tenant open, and a close missing a tenant being created |
+The revision `tenant-judgments` lands seeds `IDENTITY` and `TENANT_LIFECYCLE`; `store-held-exclusions` lands a second
+additive revision seeding `EGRESS_CURSOR`.
+
+| Lock               | Taken by                                    | Excludes                                                                                          |
+| ------------------ | ------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `IDENTITY`         | Every identity unit, as its first statement | Two identity units deciding a hub-level identity rule at once, such as the last hub administrator |
+| `TENANT_LIFECYCLE` | Tenant creation and tenant close            | Two closes each seeing the other's tenant open, and a close missing a tenant being created        |
+| `EGRESS_CURSOR`    | The export pass's append and a reset        | A pass's advanced cursor overwriting a reset ([exclusions.md](./exclusions.md))                   |
 
 ## Interfaces
 
@@ -53,7 +58,21 @@ class Transaction(Protocol):
 ```
 
 `lock_set` takes chunks, then keys, then hub locks. A tenant unit may declare `TENANT_LIFECYCLE` only: `IDENTITY` is the
-identity unit's alone.
+identity unit's alone, and `EGRESS_CURSOR` the egress store's.
+
+Tenant creation runs in an identity unit (`TenantAdministrationStore.create`,
+`store/internal/tenant_admin_store.py:164`, through `founding`), and an identity unit has no `lock_set`
+(`auth/internal/identity_transaction.py:66`). It gains one hub-lock declaration, taken after `IDENTITY` and before any
+other statement:
+
+```python
+# auth/identity_transaction.py
+class IIdentityTransactions(Protocol):
+    def begin(self, *, hub: Sequence[HubLock] = ()) -> AbstractContextManager[IdentityWrites]: ...
+    # Takes IDENTITY, then each of ``hub`` in order; TENANT_LIFECYCLE is the only one an identity unit may name.
+```
+
+Tenant creation opens `begin(hub=[HubLock.TENANT_LIFECYCLE])`.
 
 The identity lock moves onto the table: `_lock_identities` takes `lock_hub(conn, HubLock.IDENTITY)` in place of the
 revision-row `UPDATE`, and still as the unit's first statement. Its error for a missing row, and
@@ -67,16 +86,20 @@ new row.
 Every unit that takes more than one of these takes them in one order:
 
 1. `IDENTITY`
-2. tenant rows: a tenant unit's opening lock, or the row a tenant's creation inserts
+2. the rows of tenants that exist: a tenant unit's opening lock
 3. `TENANT_LIFECYCLE`
 
-| Unit                       | Takes, in order                                              |
-| -------------------------- | ------------------------------------------------------------ |
-| An identity unit           | `IDENTITY`, then the rows of the tenants its writes join     |
-| Tenant creation            | `IDENTITY`, the new tenant's row it inserts, `TENANT_LIFECYCLE` |
-| Tenant close               | the closing tenant's row, `TENANT_LIFECYCLE`                 |
+`EGRESS_CURSOR` is taken alone, by a write that takes no other lock.
 
-No unit holding a later lock waits on an earlier one, so no two of them wait on each other.
+| Unit             | Takes, in order                                                   |
+| ---------------- | ----------------------------------------------------------------- |
+| An identity unit | `IDENTITY`, then the rows of the tenants its writes join          |
+| Tenant creation  | `IDENTITY`, `TENANT_LIFECYCLE`, then inserts the new tenant's row |
+| Tenant close     | the closing tenant's row, `TENANT_LIFECYCLE`                      |
+
+No unit holding a later lock waits on an earlier one, so no two of them wait on each other. Creation holds
+`TENANT_LIFECYCLE` while it inserts its new tenant's row, which no other unit can hold, so it waits on no existing
+tenant's row and a close holding one cannot deadlock with it.
 
 ### Closing a tenant
 

@@ -1,15 +1,10 @@
 ---
 name: final-form-rules
 depends-on:
-  - store-judgments
-  - config-judgments
-  - garden-and-work-item-judgments
-  - flow-judgments
-  - tenant-judgments
-  - announce-after-commit
   - converge-graph
   - adapters-stay-apart
   - store-held-exclusions
+  - postgres-proof
 ---
 
 # Final-form rules
@@ -19,10 +14,13 @@ at review. Delivers `engineering:final-form-rules` and `product:one-way-to-write
 
 ## Change
 
-- `bzh:transaction-participation`, `bzh:store-exclusive-write`, and `bzh:store-refuses-stale` lose their legacy clauses
-  and Known debt.
-- Gates fail on a store write that reads a status-family fact to refuse, and on a broker call inside a store write.
+- In blizzard-context, `bzh:transaction-participation`, `bzh:store-exclusive-write`, and `bzh:store-refuses-stale` lose
+  their legacy clauses and Known debt (`architecture/system-shape/exclusive-writes.md`,
+  `architecture/repository-access.md`).
+- In blizzard, ast-grep gates fail on a store write that reads a status-family fact to refuse, and on a broker call
+  inside a store write.
 
 ## Acceptance
 
 - Each gate fails on a planted instance of its departure and passes on the tree.
+- No write rule carries a legacy clause or a Known-debt entry this epic resolves.
