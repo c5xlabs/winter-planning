@@ -42,7 +42,7 @@ treats them as absent ([runner-store.md](../spec/runner-store.md) §The reader).
   sweep runs only at start.
 - `lease_spawns` gains the two revisions (the host's null until 06) and `transcripts_root`, and `LeaseView` gains the
   two revisions.
-- `require_superuser`, the runner's settings routes, and the `settings show|set|unset|changes` verbs, without `--host`,
+- `require_superuser`, the runner's settings routes, and the `settings get|set|unset|changes` verbs, without `--host`,
   `apply`, or `export`.
 - Every per-runner key becomes an entry in this change, so no key is ignored in the file without a way to change it.
 - `reconfigure()` writes a `pass` or `session` key through the settings API on the running host, and keeps editing the

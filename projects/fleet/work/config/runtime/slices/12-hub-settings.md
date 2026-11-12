@@ -25,8 +25,9 @@ export ([hub.md](../spec/hub.md) §Domain, §Data, §Interfaces; [settings.md](.
 `product:hub-settings-record`, `product:hub-pass-settings`, `product:hub-file-seeds`, and
 `product:hub-settings-document`, and the hub's side of `product:independent-daemon-settings`. It is bound by
 `engineering:one-hub-process`, `engineering:upgrade-migration`, `engineering:unedited-daemon-unchanged`, and
-`engineering:off-fleet-wire`, and shaped by `decision:config/runtime/hub-settings-admin-reads`. Its write and seed are
-the shared ones ([lifetimes.md](../spec/lifetimes.md) §The shared settings record).
+`engineering:off-fleet-wire`, and shaped by `decision:config/runtime/hub-settings-admin-reads` and
+`decision:settings-cli-scopes`. Its write and seed are the shared ones ([lifetimes.md](../spec/lifetimes.md) §The shared
+settings record).
 
 ## Change
 
@@ -35,8 +36,8 @@ the shared ones ([lifetimes.md](../spec/lifetimes.md) §The shared settings reco
   write.
 - Each holder in [hub.md](../spec/hub.md) §Reading per pass takes its snapshot at its pass's start or its request's
   arrival, and an interval write wakes the waiting sweep.
-- The `/api/admin/settings` routes, their wire models named `HubSettings*`, and the `blizzard hub settings` verbs, apply
-  and export among them.
+- The `/api/admin/settings` routes, their wire models named `HubSettings*`, and the `blizzard hub admin settings` verbs,
+  apply and export among them.
 - The operator pages on hub configuration and on config documents; the upgrade note that the file now seeds these keys
   (`engineering:contracts-follow-code`).
 - Context: `bzh:configured-record` gains the hub-wide record; `bzh:config-read-on-use` binds the hub's entries and

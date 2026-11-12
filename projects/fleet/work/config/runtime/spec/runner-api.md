@@ -140,17 +140,20 @@ class ConfigApplyOutcome(WireModel):
 Verbs under `blizzard runner`, declared in `contracts/cli/runner.json`, each reaching the host through
 `runner/cli/daemon.py::RunnerDaemon.reach` (the unix socket, or `--runner-url`):
 
-| Verb                                                    | Route                                                                                          |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `settings show [KEY] [--runner NAME] [--host]`          | The view; one key's row with `KEY`                                                             |
-| `settings set KEY VALUE [--runner NAME] [--host]`       | A write; `VALUE` parsed as a TOML value, so a table or list is written as TOML inline          |
-| `settings unset KEY [--runner NAME] [--host]`           | A write                                                                                        |
-| `settings changes [--runner NAME] [--host]`             | The change log                                                                                 |
-| `settings apply FILE [--dry-run]`                       | An apply; `FILE` is TOML decoded by `runner/host_config.py::decode_host_text`, sent as JSON    |
-| `settings export`                                       | The export, emitted as TOML on stdout by `foundation/toml_emit.py` ([hub.md](./hub.md) §Apply) |
-| `workspace create\|list\|show\|edit\|retire\|enable`    | The workspace routes                                                                           |
-| `subscription create\|list\|show\|edit\|retire\|enable` | The subscription routes                                                                        |
+| Verb                                                   | Route                                                                                          |
+| ------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `settings get [KEY] [--runner NAME] [--host]`          | The view; one key's row with `KEY`                                                             |
+| `settings set KEY VALUE [--runner NAME] [--host]`      | A write; `VALUE` parsed as a TOML value, so a table or list is written as TOML inline          |
+| `settings unset KEY [--runner NAME] [--host]`          | A write                                                                                        |
+| `settings changes [--runner NAME] [--host]`            | The change log                                                                                 |
+| `settings apply FILE [--dry-run]`                      | An apply; `FILE` is TOML decoded by `runner/host_config.py::decode_host_text`, sent as JSON    |
+| `settings export`                                      | The export, emitted as TOML on stdout by `foundation/toml_emit.py` ([hub.md](./hub.md) §Apply) |
+| `workspace create\|list\|get\|edit\|retire\|enable`    | The workspace routes                                                                           |
+| `subscription create\|list\|get\|edit\|retire\|enable` | The subscription routes                                                                        |
 
+- `blizzard runner settings` is the runner host's scope of settings, with no tenant layer
+  (`decision:settings-cli-scopes`). `--host` and `--runner` choose between the host's record and a runner's.
+- Each group's read verb is `get`, with `show` and `read` as hidden aliases (`bzh:cli-get-verb`).
 - `--runner` takes a name or an id and defaults to the host's only runner, refusing to guess between several, as the
   existing operator verbs do.
 - `set`, `unset`, and `edit` read the current revision and send it as `If-Match`, so two concurrent operators get a

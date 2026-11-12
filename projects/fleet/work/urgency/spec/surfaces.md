@@ -90,9 +90,19 @@ blizzard hub urgency enable SLUG
 blizzard hub urgency order SLUG...                  # the whole live order
 blizzard hub urgency position SLUG (--after SLUG | --first)
 
-blizzard hub settings get
-blizzard hub settings edit --default-urgency SLUG
+blizzard hub settings get [KEY]                     # every tenant setting, or one: value, revision, who wrote it
+blizzard hub settings set KEY VALUE                 # e.g. set default_urgency high
+blizzard hub settings unset KEY
+blizzard hub settings changes                       # the tenant settings' change rows, newest first
 ```
+
+`blizzard hub settings` is the tenant's scope of settings, and speaks the verbs `blizzard hub admin settings` and
+`blizzard runner settings` do (`decision:settings-cli-scopes`): its read verb is `get`, with `show` and `read` as hidden
+aliases (`bzh:cli-get-verb`), and a key is named as the configuration document spells it under `settings`.
+`default_urgency` is the one key, so `unset default_urgency` is refused, since every new chunk needs a live default.
+Reads take `fleet:view` and writes `config:edit`, as the tenant's settings routes do today. The tenant's settings keep
+their document in `blizzard hub config apply` and `export`, so the group has no `apply` or `export`; `changes` reads the
+same rows as `blizzard hub config changes --kind tenant_settings`.
 
 `retire` without `--move-to`, on an urgency open work carries, prints the refusal's count and the command to run with
 `--move-to`. The existing groups each gain the urgency where they mint or configure work: `chunk set --urgency`,
