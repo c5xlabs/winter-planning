@@ -1,22 +1,20 @@
 # Advanced forge authentication decisions
 
-## Claim-time credential gate (decision:advanced-forge-auth/claim-time-gate)
-
-**Decider:** product
-
-**Open.** Whether claiming a chunk is refused when a repository its project lands on holds a credential whose runtime
-offer cannot serve the repository's landing policy, so no worker starts on work that cannot land. The configuration and
-pass-start gates cover every declared credential, and the hub-start warning names the rest. It blocks no requirement of
-this epic; deciding yes adds an acceptance bullet to `product:readiness-check`.
-
 ## Fine-grained tokens and checks (decision:advanced-forge-auth/fine-grained-checks)
 
 **Decider:** engineering
 
-**Open.** Whether a fine-grained token is offered `checks.read`, decided by the private-repository proof's fine-grained
-run: offered if it reads the check runs, withheld if refused. Until it is made, `FINE_GRAINED_WITHHELD` holds
-`checks.read`, following GitHub's documented fine-grained limitations and the fleet's escalation on that read. It blocks
-`product:supplied-tokens`, whose setup must say what a fine-grained token supports.
+A fine-grained token is not offered `checks.read`: GitHub lists the Checks API among fine-grained token limitations, and
+the fleet's `forge-auth` escalation on a private repository came from exactly that read. The private-checks proof's
+fine-grained run confirms it; a run that reads the check runs reopens this decision.
+
+## Claim-time credential gate (decision:advanced-forge-auth/claim-time-gate)
+
+**Decider:** product
+
+Claiming a chunk is not refused for a credential that cannot serve its repository's landing policy. The configuration
+gate, the hub-start warning, and the pass-start gate already catch the incompatibility, and a gate on the claim path
+would add a token reveal to every claim for the one case they leave: an undeclared token whose warning was ignored.
 
 ## Slice cut (decision:advanced-forge-auth/three-slices)
 

@@ -17,8 +17,8 @@ Adds the credential as a configured record, with nothing calling it yet but `Con
 of `product:credential-records` and `engineering:no-credential-crosses-tenants`. Builds the
 [Domain](../spec/credential-record.md#domain) of credential-record.md and the `<ts>_credentials` revision of its
 [Data](../spec/credential-record.md#data). Shaped by `decision:advanced-forge-auth/one-credential-per-authority` and
-`decision:advanced-forge-auth/no-app-registration-record`. Builds `FINE_GRAINED_WITHHELD` as
-`decision:advanced-forge-auth/fine-grained-checks` stands when it lands.
+`decision:advanced-forge-auth/no-app-registration-record`. Builds `FINE_GRAINED_WITHHELD` per
+`decision:advanced-forge-auth/fine-grained-checks`.
 
 ## Change
 

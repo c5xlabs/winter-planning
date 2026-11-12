@@ -15,7 +15,8 @@ Adds the read-only credential check at every door and the recovery step in a `fo
 recovery loop. Delivers `product:readiness-check` and the recovery half of `product:actionable-refusals`. Builds
 readiness-check.md's [Domain](../spec/readiness-check.md#domain) and check interfaces, and the detail's `Then run:` line
 in [refusals.md](../spec/refusals.md#interfaces). Shaped by `decision:advanced-forge-auth/readiness-not-kept` and
-`decision:advanced-forge-auth/recover-with-requeue`; `decision:advanced-forge-auth/claim-time-gate` stays open.
+`decision:advanced-forge-auth/recover-with-requeue`. Leaves out a claim-time gate, per
+`decision:advanced-forge-auth/claim-time-gate`.
 
 ## Change
 

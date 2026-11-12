@@ -21,7 +21,7 @@ secret fields working. Delivers the API and CLI parts of `product:credential-rec
 `engineering:additive-transition` for both doors. Builds the API and CLI of credential-record.md's
 [Interfaces](../spec/credential-record.md#interfaces), apart from the App binding's settings, and the
 configuration-write and credential-edit gates of [readiness-check.md](../spec/readiness-check.md#interfaces). Builds
-`FINE_GRAINED_WITHHELD` as `decision:advanced-forge-auth/fine-grained-checks` stands when it lands.
+`FINE_GRAINED_WITHHELD` per `decision:advanced-forge-auth/fine-grained-checks`.
 
 ## Change
 

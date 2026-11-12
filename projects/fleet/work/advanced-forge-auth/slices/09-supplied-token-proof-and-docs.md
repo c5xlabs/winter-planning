@@ -11,7 +11,7 @@ depends-on:
 
 Proves the supplied-token path end to end on the mock forge and documents it for operators. Delivers the end-to-end and
 documentation acceptance of `product:supplied-tokens` and `product:credential-records`. Builds `FINE_GRAINED_WITHHELD`
-as `decision:advanced-forge-auth/fine-grained-checks` stands when it lands.
+per `decision:advanced-forge-auth/fine-grained-checks`.
 
 ## Change
 

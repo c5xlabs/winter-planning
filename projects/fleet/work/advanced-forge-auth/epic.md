@@ -1,6 +1,6 @@
 ---
 epic: advanced-forge-auth
-refinement: outline
+refinement: refined
 status: planned
 ---
 
