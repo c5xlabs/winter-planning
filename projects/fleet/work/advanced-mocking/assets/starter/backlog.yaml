@@ -1,0 +1,185 @@
+# Issues on the mock forge, and work items the hub authors.
+fixture: 1
+kind: backlog
+name: storefront
+
+labels:
+  - {repo: blizzard/toy-api, names: [bug, feature, chore, security, performance]}
+  - {repo: blizzard/toy-web, names: [bug, feature, a11y, design]}
+  - {repo: blizzard/billing-service, names: [bug, data]}
+
+issues:
+  - key: checkout-500
+    repo: blizzard/toy-api
+    title: Checkout returns 500 when the cart holds a discontinued SKU
+    labels: [bug]
+    author: sam
+    body: |
+      Adding a SKU to the cart, then marking it discontinued in the admin, makes `POST /checkout` fail with a 500.
+      The order service looks the SKU up in the active catalog only. Expected: a 409 naming the SKU, so the web
+      client can ask the shopper to remove it.
+    comments:
+      - {author: lee, body: "Reproduced on staging. `KeyError: 'sku-2291'` in `price_line()`."}
+
+  - key: search-rate-limit
+    repo: blizzard/toy-api
+    title: Add rate limiting to /api/search
+    labels: [security, performance]
+    author: dana
+    body: |
+      A scraper hit `/api/search` at 400 rps on Tuesday. Limit to 20 rps per client IP with a 429 and
+      `Retry-After`. Authenticated sessions get 60 rps.
+
+  - key: mobile-images
+    repo: blizzard/toy-web
+    title: Product images load at full resolution on mobile
+    labels: [performance]
+    author: lee
+    body: |
+      The product grid requests the 2400px originals at every width. Serve `srcset` with 480, 960, and 1600 widths
+      and lazy-load below the fold.
+
+  - key: session-redis
+    repo: blizzard/toy-api
+    title: Move the session store from signed cookies to Redis
+    labels: [feature]
+    author: dana
+    body: |
+      Cookies are near the 4 KB limit once a cart has 30 lines. Move sessions server-side.
+    thread:
+      generate: {comments: 14, authors: [dana, lee, sam]}
+
+  - key: drop-v1-orders
+    repo: blizzard/toy-api
+    title: Remove the deprecated v1 /orders endpoint
+    labels: [chore]
+    author: lee
+    body: Traffic to `/v1/orders` has been zero for 60 days. Remove the route, its serializer, and its tests.
+
+  - key: python-313
+    repo: blizzard/toy-api
+    title: Upgrade to Python 3.13
+    labels: [chore]
+    author: dana
+    body: Bump the runtime, the CI image, and the lockfile. `asyncpg` needs 0.30 or later.
+
+  - key: refund-double-count
+    repo: blizzard/billing-service
+    title: Nightly export double-counts partial refunds
+    labels: [bug, data]
+    author: sam
+    body: |
+      An order refunded in two parts appears twice in the ledger export, once per refund, each with the full order
+      total. Finance caught it in the October close.
+
+  - key: dark-mode
+    repo: blizzard/toy-web
+    title: Dark mode for the account pages
+    labels: [design]
+    author: sam
+    body: Follow the system preference; add a toggle on the profile page.
+
+  - key: graphql-spike
+    repo: blizzard/toy-api
+    title: "Spike: evaluate GraphQL for the catalog API"
+    labels: [feature]
+    author: lee
+    body: Time-boxed to two days. Write up the findings; no production code.
+
+  - key: webhook-logging
+    repo: blizzard/toy-api
+    title: Structured logging in the payment webhook handler
+    labels: [chore]
+    author: dana
+    body: Log the event id, type, and outcome as JSON fields. Never log the card fingerprint.
+
+  - key: card-alt-text
+    repo: blizzard/toy-web
+    title: "Accessibility: product cards have no alt text"
+    labels: [a11y, bug]
+    author: sam
+    body: Screen readers announce every card as "image". Use the product name, then the variant.
+
+  - key: reset-email-typo
+    repo: blizzard/toy-api
+    title: Typo in the password reset email
+    labels: [bug]
+    author: sam
+    body: '"Your pasword reset link" in the subject line.'
+
+  - key: long-title
+    repo: blizzard/toy-web
+    title: >-
+      When a shopper switches currency on the cart page while a promotion code is applied and the promotion is
+      restricted to the original currency the discount line stays visible but is no longer subtracted
+    labels: [bug]
+    author: lee
+    body: The discount should be removed, with a notice that the code does not apply in the new currency.
+
+  - key: cart-badge
+    repo: blizzard/toy-web
+    title: Cart badge count is stale after removing an item
+    labels: [bug]
+    author: lee
+    body: The header badge keeps the old count until a full reload.
+
+  - key: cart-badge-api
+    repo: blizzard/toy-api
+    title: "Cart API: return the line count with every mutation"
+    labels: [feature]
+    author: lee
+    body: So the web client can update the badge without a second request.
+
+  - key: delivery-estimate-api
+    repo: blizzard/toy-api
+    title: Estimated delivery date for a cart
+    labels: [feature]
+    author: dana
+    body: "`GET /cart/{id}/delivery-estimate` from the warehouse's cutoff times and the shipping method."
+
+  - key: delivery-estimate-web
+    repo: blizzard/toy-web
+    title: Show the estimated delivery date at checkout
+    labels: [feature]
+    author: dana
+    body: Under the shipping method selector, as "Arrives Thu, Nov 20".
+
+  - key: search-client-backoff
+    repo: blizzard/toy-web
+    title: Back off when search returns 429
+    labels: [bug]
+    author: lee
+    body: Depends on the API rate limit. Honour `Retry-After` and show "Searching is busy, retrying…".
+
+  - key: unicode-title
+    repo: blizzard/toy-web
+    title: "Größentabelle zeigt „undefined“ für Kinderschuhe 👟"
+    labels: [bug]
+    author: sam
+    body: The size chart for children's shoes renders `undefined` in the German locale.
+
+  - key: invoice-pdf-auth
+    repo: blizzard/billing-service
+    title: Invoice PDFs are served without checking the account
+    labels: [bug]
+    author: dana
+    body: "`GET /invoices/{id}.pdf` returns any invoice to any signed-in user."
+
+  # Never ingested: the backlog a fresh agent can ingest.
+  - {key: wishlist,        repo: blizzard/toy-web, title: Wishlist page, labels: [feature], author: sam,
+     body: {generate: {paragraphs: 2}}}
+  - {key: sitemap,         repo: blizzard/toy-api, title: Generate sitemap.xml nightly, labels: [chore], author: lee,
+     body: {generate: {paragraphs: 1}}}
+  - {key: gift-cards,      repo: blizzard/toy-api, title: Gift card balance endpoint, labels: [feature], author: dana,
+     body: {generate: {paragraphs: 3}}}
+  - {key: footer-links,    repo: blizzard/toy-web, title: Footer links open in the same tab, labels: [bug], author: sam,
+     body: {generate: {paragraphs: 1}}}
+  - {key: closed-wontfix,  repo: blizzard/toy-web, title: Add a carousel to the home page, labels: [design],
+     author: sam, state: closed, state_reason: not_planned, body: Declined in design review.}
+
+hub_items:                      # work items the hub authors, no forge issue behind them
+  - key: rotate-staging-creds
+    source: hub
+    title: Rotate the staging database credentials
+    body: The staging password was pasted into a support ticket. Rotate it and update the deploy secret.
+    stated_priority: high

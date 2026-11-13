@@ -1,0 +1,130 @@
+# The billing-service repository, its files written commit by commit. toy-api and toy-web keep the fixture
+# workspace's own seeds, because the env's runner works in them.
+fixture: 1
+kind: codebase
+name: billing
+
+repo: {owner: blizzard, name: billing-service, default_branch: main}
+
+history:                         # oldest first; each commit writes the files it lists, whole
+  - message: "chore: scaffold billing service"
+    author: dana
+    at: -60d
+    files:
+      README.md: |
+        # billing-service
+
+        Invoices, refunds, and the nightly ledger export for the storefront.
+
+        ```sh
+        uv sync
+        uv run pytest
+        ```
+      pyproject.toml: |
+        [project]
+        name = "billing-service"
+        version = "0.1.0"
+        requires-python = ">=3.12"
+        dependencies = []
+
+        [dependency-groups]
+        dev = ["pytest>=8"]
+      src/billing/__init__.py: |
+        """Invoices, refunds, and the ledger export."""
+
+  - message: "feat: invoice model and totals"
+    author: lee
+    at: -41d
+    files:
+      src/billing/invoice.py: |
+        from dataclasses import dataclass, field
+        from decimal import Decimal
+
+
+        @dataclass(frozen=True)
+        class Line:
+            sku: str
+            quantity: int
+            unit_price: Decimal
+
+
+        @dataclass
+        class Invoice:
+            order_id: str
+            lines: list[Line] = field(default_factory=list)
+            refunds: list[Decimal] = field(default_factory=list)
+
+            def total(self) -> Decimal:
+                return sum((line.unit_price * line.quantity for line in self.lines), Decimal("0"))
+
+            def net(self) -> Decimal:
+                return self.total() - sum(self.refunds, Decimal("0"))
+      tests/test_invoice.py: |
+        from decimal import Decimal
+
+        from billing.invoice import Invoice, Line
+
+
+        def test_net_subtracts_refunds():
+            invoice = Invoice("ord-1", [Line("sku-1", 2, Decimal("10.00"))], [Decimal("5.00")])
+            assert invoice.net() == Decimal("15.00")
+
+  - message: "feat: nightly ledger export"
+    author: lee
+    at: -20d
+    files:
+      src/billing/export.py: |
+        import csv
+        from collections.abc import Iterable
+        from typing import TextIO
+
+        from billing.invoice import Invoice
+
+
+        def export_ledger(invoices: Iterable[Invoice], out: TextIO) -> None:
+            writer = csv.writer(out)
+            writer.writerow(["order_id", "total", "refund"])
+            for invoice in invoices:
+                for refund in invoice.refunds or [None]:
+                    writer.writerow([invoice.order_id, invoice.total(), refund or ""])
+      tests/test_export.py: |
+        import io
+        from decimal import Decimal
+
+        from billing.export import export_ledger
+        from billing.invoice import Invoice, Line
+
+
+        def test_one_row_per_invoice_without_refunds():
+            out = io.StringIO()
+            export_ledger([Invoice("ord-1", [Line("sku-1", 1, Decimal("9.99"))])], out)
+            assert out.getvalue().splitlines()[1:] == ["ord-1,9.99,"]
+
+  - message: "fix: round refunds half-even"
+    author: dana
+    at: -6d
+    files:
+      src/billing/invoice.py: |
+        from dataclasses import dataclass, field
+        from decimal import ROUND_HALF_EVEN, Decimal
+
+
+        @dataclass(frozen=True)
+        class Line:
+            sku: str
+            quantity: int
+            unit_price: Decimal
+
+
+        @dataclass
+        class Invoice:
+            order_id: str
+            lines: list[Line] = field(default_factory=list)
+            refunds: list[Decimal] = field(default_factory=list)
+
+            def total(self) -> Decimal:
+                return sum((line.unit_price * line.quantity for line in self.lines), Decimal("0"))
+
+            def net(self) -> Decimal:
+                refunded = sum((r.quantize(Decimal("0.01"), ROUND_HALF_EVEN) for r in self.refunds), Decimal("0"))
+                return self.total() - refunded

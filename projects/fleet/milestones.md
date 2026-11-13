@@ -101,6 +101,7 @@ Ideas for where the fleet goes next, not yet needed by any milestone.
 | `epic:terraform-provider`                 | planned |
 | `epic:tenant-telemetry`                   | planned |
 | `epic:demo`                               | planned |
+| `epic:advanced-mocking`                   | planned |
 | `epic:code-harness-window/agent-observer` | planned |
 | `epic:code-harness-window/swarm-view`     | planned |
 | `epic:lab/bench`                          | planned |

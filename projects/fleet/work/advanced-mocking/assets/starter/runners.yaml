@@ -1,0 +1,72 @@
+# Hosts and runners on the hub. The env's own runner is not declared here; activity names it as `self`.
+fixture: 1
+kind: runners
+name: mixed-fleet
+
+hosts:
+  - key: rack-a
+    name: rack-a
+    workspaces: [{workspace_id: rack-a-ws, env_capacity: 4}]
+    subscriptions:
+      - {slug: team-max, name: Team Max, provider: anthropic}
+      - {slug: codex-pro, name: Codex Pro, provider: openai}
+
+runners:
+  - key: build-box-1
+    name: build-box-1
+    host: rack-a
+    presence: online
+    capabilities:
+      - {harness_id: claude_code, version: 2.4.1, default: true, available: true,
+         supported_models: [claude-opus-5-5, claude-sonnet-5-5]}
+    subscriptions: [team-max]
+    projects: [default]
+    usage_samples:
+      - {subscription: team-max, at: -10m, windows: [{window: 5h, utilization_pct: 42.0, resets_at: +3h}]}
+
+  - key: build-box-2
+    name: build-box-2
+    host: rack-a
+    presence: offline
+    last_seen: -8h
+    capabilities: [{harness_id: opencode, version: 1.9.0, default: true, available: true}]
+    subscriptions: [codex-pro]
+    projects: [default, billing]
+
+  - key: build-box-1-twin          # same display name, different runner
+    name: build-box-1
+    presence: online
+    capabilities: [{harness_id: claude_code, version: 2.4.1, default: true, available: true}]
+    subscriptions: [team-max]
+    projects: [billing]
+    usage_samples:
+      - {subscription: team-max, at: -5m, windows: [{window: 5h, utilization_pct: 96.0, resets_at: +40m},
+                                                    {window: 7d, utilization_pct: 71.5, resets_at: +3d}]}
+    declining:
+      - {lever: subscription-ceiling, subscription: team-max, detail: "96% of the 5h window", until: +40m}
+
+  - key: ci-spare
+    name: ci-spare
+    presence: never-connected
+
+  - key: gpu-01
+    name: gpu-01
+    presence: online
+    fleet_paused: {at: -2h, by: dana}
+    capabilities: [{harness_id: claude_code, version: 2.4.1, default: true, available: true}]
+    subscriptions: []              # a declared empty roster, distinct from none declared
+
+  - key: night-shift
+    name: night-shift
+    presence: online
+    local_paused: {at: -30m, reason: "Spend ceiling reached for today"}
+    capabilities: [{harness_id: claude_code, version: 2.3.0, default: true, available: true}]
+    subscriptions: [team-max]
+    usage_misses:
+      - {subscription: team-max, at: -20m, reason: "token expired"}
+
+  - key: old-mac
+    name: old-mac
+    presence: offline
+    last_seen: -30d
+    retired: {at: -21d, by: dana}

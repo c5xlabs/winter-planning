@@ -1,0 +1,37 @@
+# Graph definitions, each posted to the hub as its definition_yaml. Packaged graphs are synced by the hub at boot.
+fixture: 1
+kind: graphs
+name: review-gated
+
+packaged: [bas-dwf]
+
+graphs:
+  - definition:
+      entry: build
+      nodes:
+        build:
+          executor: runner
+          prompt: Implement the work item. Run the tests before you finish.
+          produces: {name: change, kind: git_commit}
+          retries: {max: 2, exhausted: escalate}
+          judgement:
+            prompt: Is the change complete and tested?
+            choices:
+              built: {description: Built and tested., to: signoff}
+              blocked: {description: Cannot proceed without help., to: escalate}
+        signoff:
+          executor: runner
+          judgement:
+            by: human
+            choices:
+              approve: {description: Ship it., to: deliver}
+              rework: {description: Send it back., to: build}
+        deliver:
+          executor: hub
+          action: land
+          judgement:
+            choices:
+              landed: {description: Landed., to: done}
+              conflict: {description: Conflicts with main., to: build}
+              failure: {description: Landing failed., to: build}
+              inherited-failure: {description: Main was already red., to: build}

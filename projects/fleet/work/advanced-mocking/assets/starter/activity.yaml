@@ -1,0 +1,183 @@
+# Chunks and everything that happened to them, and the event log. Chunks run by `self` are mirrored into the
+# env's runner store with its local pause engaged, so it claims none of the ready chunks.
+fixture: 1
+kind: activity
+name: storefront-night
+
+# status is the derived status the board must show; history is optional and oldest first
+defaults:
+  graph: bas-dwf
+  project: default
+  urgency: normal
+
+chunks:
+  - key: checkout-500
+    work: [checkout-500]
+    status: done
+    runner: build-box-1
+    history:
+      - {node: build, at: -2d}
+      - {node: review, at: -2d+40m}
+      - {node: pre-push, at: -2d+55m}
+      - {node: deliver, at: -2d+1h}
+    pull_requests:
+      - {repo: blizzard/toy-api, branch: fix/checkout-discontinued-sku, state: merged, at: -2d+1h10m,
+         title: Return 409 for discontinued SKUs at checkout, body: {generate: {paragraphs: 2}}}
+    artifacts:
+      - {name: change, kind: git_commit, repo: toy-api, branch: fix/checkout-discontinued-sku, node: build}
+      - {name: review-notes, kind: asset, node: review, content: {generate: {paragraphs: 4}}}
+    usage:
+      - {kind: spawn, node: build, model: claude-sonnet-5-5, input_tokens: 182000, output_tokens: 14200, cost_usd: 1.94}
+      - {kind: judge, node: review, model: claude-opus-5-5, input_tokens: 61000, output_tokens: 3100, cost_usd: 1.18}
+
+  - key: search-rate-limit
+    work: [search-rate-limit]
+    status: running
+    node: build
+    runner: build-box-1
+    usage:
+      - {kind: spawn, node: build, model: claude-sonnet-5-5, input_tokens: 90000, output_tokens: 6000, cost_usd: null}
+
+  - key: search-client-backoff
+    work: [search-client-backoff]
+    status: ready
+    after: [search-rate-limit]     # prerequisite; the board marks this chunk blocked
+
+  - key: mobile-images
+    work: [mobile-images]
+    status: delivering
+    node: deliver
+    runner: build-box-1
+    pull_requests:
+      - {repo: blizzard/toy-web, branch: perf/responsive-images, state: open, checks: pending,
+         title: Serve responsive product images, body: {generate: {paragraphs: 2}}}
+
+  - key: cart-badge
+    work: [cart-badge, cart-badge-api]   # two work refs on one chunk
+    status: delivering
+    node: deliver
+    runner: build-box-1-twin
+    bounces:
+      - {cause: conflict, at: -5h}
+      - {cause: conflict, at: -2h}
+    pull_requests:
+      - {repo: blizzard/toy-web, branch: fix/cart-badge, state: open, checks: failed,
+         title: Update the cart badge from the mutation response, body: {generate: {paragraphs: 1}}}
+
+  - key: delivery-estimate
+    work: [delivery-estimate-api, delivery-estimate-web]
+    repositories: [toy-api, toy-web]
+    status: waiting_on_human
+    graph: review-gated
+    node: signoff
+    runner: build-box-1
+    landed: [toy-api]
+    pull_requests:
+      - {repo: blizzard/toy-api, branch: feat/delivery-estimate, state: merged, at: -3h}
+      - {repo: blizzard/toy-web, branch: feat/delivery-estimate, state: open, checks: failed}
+    decision:
+      imposed_by: build-box-1      # a runner-imposed gate
+      checks: red
+      choices: {approve: Ship it., rework: Send it back.}
+
+  - key: drop-v1-orders
+    work: [drop-v1-orders]
+    status: waiting_on_human
+    graph: review-gated
+    node: signoff                          # the graph's own human gate
+    runner: self
+    decision:
+      choices: {approve: Ship it., rework: Send it back.}
+
+  - key: session-redis
+    work: [session-redis]
+    status: waiting_on_human
+    runner: self                   # mirrored: an active lease parked on an open ask
+    question:
+      text: Sessions in Redis need a TTL. Match the current cookie lifetime (14 days), or use 24 hours with sliding renewal?
+      options: [14 days, 24 hours sliding]
+      at: -40m
+    transcript:
+      generate: {turns: 36, tool_use: 0.35}
+      then:
+        - {role: assistant, text: "I need a decision on the session TTL before I wire the Redis client."}
+
+  - key: webhook-logging
+    work: [webhook-logging]
+    status: waiting_on_human
+    runner: build-box-1
+    question:
+      text: Should the webhook log include the customer id?
+      answer: {text: "Yes, but hashed.", by: lee, at: -10m}   # answered, not yet delivered
+
+  - key: python-313
+    work: [python-313]
+    status: needs_human
+    runner: self                   # mirrored: a closed, escalated lease under an open takeover
+    escalation: {cause: retries-exhausted, at: -1h}
+    transcript: {generate: {turns: 80, tool_use: 0.4}, finalized: true}
+
+  - key: refund-double-count
+    work: [refund-double-count]
+    project: billing
+    status: needs_human
+    runner: night-shift
+    escalation: {cause: spend-cap, at: -35m}
+    usage:
+      generate: {every: 15m, for: 6h, models: [claude-opus-5-5], cost_per_call: [0.10, 0.90]}
+
+  - key: invoice-pdf-auth
+    work: [invoice-pdf-auth]
+    project: billing
+    urgency: urgent
+    status: needs_human
+    runner: build-box-2
+    escalation: {cause: forge-auth, at: -9h, detail: "403 from the forge reading check runs on billing-service"}
+
+  - key: unicode-title
+    work: [unicode-title]
+    status: needs_human
+    runner: build-box-1-twin
+    bounces:
+      - {cause: checks, at: -7h}
+      - {cause: master-moved, at: -6h}
+      - {cause: checks, at: -5h}
+    escalation: {cause: bounce-cap, at: -5h}
+
+  - key: dark-mode
+    work: [dark-mode]
+    status: paused
+    urgency: someday
+    node: build
+    paused: {at: -1d, by: sam}
+
+  - key: graphql-spike
+    work: [graphql-spike]
+    status: stopped
+    stopped: {at: -4d, by: dana}
+
+  - key: card-alt-text
+    work: [card-alt-text]
+    status: ready
+    urgency: urgent
+
+  - key: rotate-staging-creds
+    work: [rotate-staging-creds]   # hub-authored work item
+    status: ready
+    urgency: urgent
+
+  - key: reset-email-typo
+    work: [reset-email-typo]
+    status: not_ready
+
+  - key: long-title
+    work: [long-title]
+    status: not_ready
+    urgency: someday
+
+events:
+  - {kind: worker-lost, chunk: python-313, runner: self, at: -1h10m, message: "worker exited without a verdict"}
+  - {kind: needs-human, chunk: python-313, at: -1h}
+  - {kind: forge-rate-limited, runner: build-box-1, at: -3h, message: "secondary rate limit; backing off 60s"}
+  - {kind: flow-landed, chunk: checkout-500, at: -2d+1h10m}
+generate: {count: 30, over: 2d, severities: {info: 0.6, warning: 0.3, critical: 0.1}}
