@@ -6,7 +6,22 @@ For `epic:rust-adoption/parity-validation`.
 
 Executable tests assert final Rust command behavior using recorded legacy observations, source-derived fixtures, and
 approved differences; they do not depend on importing Python implementation types or running Python in the routine Rust
-verification loop. Serves `product:capability-accounting`.
+verification loop. A recorded observation is compared by function, under `decision:functional-parity`. Serves
+`product:capability-accounting`.
+
+Acceptance:
+
+- A recorded scenario stores the exit code, stdout, stderr, and the resulting filesystem and git state of one invocation
+  against a fixture workspace. Where the invocation hands work to another program, it also stores the argument vector,
+  working directory, and contract environment variables each such program received.
+- Replay fails on a different exit code, on `--json` output that differs as parsed JSON (documents, and their order
+  within a stream), or on different filesystem or git state.
+- A JSON string value that the output formats spec classes as message text is compared for presence and type, not
+  content.
+- Where a command hands work to another program, replay fails on a different argument vector, working directory, or
+  contract environment variable given to that program.
+- Human output, help, and error and warning texts are stored for reference and never fail a replay.
+- A registered deviation replays against an expectation written with its decision, not against the legacy record.
 
 ## Failure and concurrency evidence (engineering:adversarial-scenarios)
 

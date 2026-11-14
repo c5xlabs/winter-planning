@@ -18,7 +18,7 @@ Acceptance:
 ## Understand shared and local settings (product:effective-configuration)
 
 An engineer can combine committed team settings with private local settings and predict which values apply. The merge
-choices remain open under `decision:parallel-workspaces/workspace-configuration/layering-policy`.
+rules are settled by `decision:parallel-workspaces/workspace-configuration/layering-policy`.
 
 Acceptance:
 
@@ -60,5 +60,8 @@ Acceptance:
 - Shared definitions, local overrides, committed reproducibility records, and machine-local state have distinct roles.
 - A supported version change either reads existing input with stated meaning or requests explicit conversion under
   `decision:configuration-transition`; inspection never performs conversion implicitly.
-- A missing optional local layer differs from an unreadable or corrupt existing layer; corruption is not an empty file.
-- Concurrent supported configuration edits preserve unrelated changes or report a conflict rather than losing one.
+- A missing optional local layer differs from an unreadable or corrupt one, which is a configuration error. The one
+  exception is machine-local `state.toml`, which reads as empty when it fails to parse, under
+  `decision:parallel-workspaces/workspace-configuration/state-file-compatibility`.
+- Concurrent supported configuration edits preserve unrelated changes; they are serialised, not reported as conflicts,
+  under `decision:parallel-workspaces/workspace-configuration/write-conflicts`.

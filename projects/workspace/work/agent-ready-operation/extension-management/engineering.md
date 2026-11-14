@@ -18,9 +18,9 @@ inspection, and dispatch evaluate the same rules for a configuration snapshot. S
 
 ## Manifest validation boundary (engineering:manifest-validation)
 
-The declaration contract distinguishes absence, invalid values, unsupported fields or versions, and deliberate opt-out.
-Path-bearing declarations and namespace components are validated before projection or execution, including resolved
-symlink escapes; schema evolution and error-isolation choices remain blocked by
+The declaration contract distinguishes absence, invalid values, and deliberate opt-out. Path-bearing declarations and
+namespace components are validated before projection or execution, including resolved symlink escapes; unknown keys, the
+legacy alias, and the scope at which each kind of invalid content fails follow
 `decision:agent-ready-operation/extension-management/manifest-policy`. Serves `product:extension-inventory` and
 `product:declared-contributions`.
 

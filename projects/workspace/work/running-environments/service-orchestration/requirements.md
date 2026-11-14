@@ -60,12 +60,13 @@ Acceptance:
   available; unavailable fields and unsupported observations are explicit, not fabricated.
 - Partial provider failure preserves valid observations but marks their incompleteness and returns an unsuccessful
   aggregate observation when promised coverage was not obtained.
-- A wait names its selected targets, finite timeout, and unresolved services; missing, failed, or malformed observation
-  is not counted as readiness success unless a deliberate decision defines and visibly labels a weaker outcome.
-- Unprobed services follow an explicit rule; provider-native startup gates and Winter's requested wait disclose their
-  different scope and guarantees rather than silently granting equivalent readiness.
-- A workload cannot be reported safely prepared merely because no persisted provision record exists or no unhealthy
-  service was observed. The chosen enforcement policy exposes unmet preparation/readiness before claiming usable state.
+- A wait names its selected targets, finite timeout, and the services still unhealthy when it gives up. It passes as
+  soon as no observed service reports unhealthy, so an unprobed service, or a missing or malformed observation, does not
+  hold it.
+- Provider-native startup gates and Winter's requested wait disclose their different scope and guarantees rather than
+  silently granting equivalent readiness.
+- Winter records no provision state and does not gate startup on an earlier provision; a passed wait claims only that no
+  observed service was unhealthy, not that the workload is prepared.
 
 ## Read attributable logs fairly (product:aggregate-service-logs)
 

@@ -6,7 +6,8 @@ For `epic:parallel-workspaces/component-runtime`.
 
 `engineering:rust-product-clis` constrains the implementation language. `epic:platform/cli-foundation` establishes the
 platform's Rust executable and development-only sample process boundary, not a completed Workspace plugin API or
-installed-product resolver; `epic:platform/launcher-shim` owns the production handoff.
+installed-product resolver. Workspace is invoked directly and reads no launcher handoff, under
+`decision:rust-replacement`.
 
 ## Reproducible local development (engineering:reproducible-build)
 
@@ -39,15 +40,16 @@ Acceptance:
 
 ## Native invocation fidelity (engineering:handoff-fidelity)
 
-The Workspace component consumes the production platform handoff once defined and preserves native argument/path values,
-caller cwd, standard streams, and signal/exit behavior without re-parsing arguments through a shell. Invocation metadata
-affects help presentation, not component identity or version. Serves `product:component-help-version` and
-`product:automation-boundary`.
+The binary is invoked directly and takes its arguments, caller cwd, standard streams, and signals from the operating
+system as given, without re-parsing arguments through a shell and without reading handoff metadata. The name in usage
+lines and the version line is fixed and never derived from the invoking path. Serves `product:component-help-version`
+and `product:automation-boundary`.
 
 ## Machine-output discipline (engineering:machine-output-boundary)
 
-Commands that offer structured output emit their documented result without color, progress, provider chatter, or debug
-logs on that output channel. Public result categories and compatibility tests are fixed before release under
+Commands that offer structured output write their result to stdout without color, progress, provider chatter, or debug
+logs; the only non-JSON text on that channel is the set the output formats spec lists as JSON-mode departures, under
+`decision:parallel-workspaces/component-runtime/json-mode-purity`. Result shapes are fixed under
 `decision:command-vocabulary`; malformed extension output cannot be passed off as a valid Workspace result. Serves
 `product:automation-boundary`.
 

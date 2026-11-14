@@ -27,19 +27,21 @@ Acceptance:
 
 ## Complete or stop external work (product:controlled-execution)
 
-An unattended agent can tell whether an external contribution completed or needs intervention, rather than waiting
-indefinitely or mistaking executable chatter for a Workspace result.
+An unattended agent can tell whether an external contribution completed or failed, and does not mistake executable
+chatter for a Workspace result. Workspace runs external work as the reference tool does, with no time or output limit of
+its own except on an environment lookup command, under
+`decision:agent-ready-operation/executable-extensions/execution-policy`.
 
 Acceptance:
 
 - Launch failure, refusal, unsuccessful exit, invalid response, timeout, and cancellation are distinguishable outcomes.
 - A failing contribution does not hide unrelated target outcomes or prevent supported inspection and recovery commands.
 - Execution identifies the effective workspace, extension, scope, writable asset location, and interaction policy.
-- Cancellation and execution limits report unfinished work and known partial effects; they do not claim to roll back an
-  external program's changes.
-- Finite operations have documented finite execution and output limits; deliberately long-lived modes have bounded
-  buffering and finite cancellation/cleanup budgets rather than an arbitrary total stream duration. Interaction policy
-  is explicit under `decision:agent-ready-operation/executable-extensions/execution-policy`.
+- Cancellation and the one execution limit report unfinished work and known partial effects; they do not claim to roll
+  back an external program's changes.
+- External work other than an environment lookup command has no execution or output limit, and a timeout is an outcome
+  of that command only. Interaction policy is explicit under
+  `decision:agent-ready-operation/executable-extensions/execution-policy`.
 
 ## Observe lifecycle contributions (product:lifecycle-contributions)
 
@@ -58,18 +60,19 @@ Acceptance:
   names; `decision:agent-ready-operation/executable-extensions/hook-policy` owns the unresolved choices.
 - Hooks do not silently replace the provisioning phases owned by `epic:running-environments/resource-provisioning`.
 
-## Check an extension without surprising effects (product:safe-conformance)
+## Check an extension's conformance (product:safe-conformance)
 
-An extension author can create a starting extension and assess its declared compatibility without the check silently
-mutating a live workspace.
+An extension author can create a starting extension and assess its declared compatibility. The check runs the
+extension's real program in the live workspace, with no isolation, as the reference tool does, under
+`decision:agent-ready-operation/executable-extensions/conformance-policy`.
 
 Acceptance:
 
 - Scaffolding refuses to overwrite existing user content without explicit authorization and identifies generated files.
 - The starting extension explains its supported and refused operations; recognition is not presented as implemented
   service behavior.
-- Default conformance checks do not start/stop services, run lifecycle setup, or mutate live resources; effectful checks
-  require an explicitly isolated target and authorization.
+- A conformance check invokes the extension's real entrypoint against the workspace it is run in; nothing stands in for
+  the entrypoint or the workspace.
 - Results distinguish contract recognition, output validity, compatibility, and behavior not established by the check.
 - An author's external program may choose its runtime, but a generated example does not impose Python on first-party
   Workspace behavior.

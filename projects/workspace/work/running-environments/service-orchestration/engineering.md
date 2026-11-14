@@ -24,9 +24,9 @@ provider coverage and target outcomes, rather than deriving success solely from 
 ## Independent observation and launch (engineering:service-observation-boundary)
 
 Observation does not run configured value lookups, install dependencies, repair registry identity, or start services.
-Launch consumes complete scope computation; readiness retains observation failures and enforces a finite agreed budget
-without converting an absent document into an empty healthy set. Serves `product:truthful-service-readiness` and
-`product:service-control-outcomes`.
+Launch consumes complete scope computation; a readiness wait enforces a finite budget and reads an absent or unparseable
+status document as nothing unhealthy, under `decision:running-environments/service-orchestration/readiness-enforcement`.
+Serves `product:truthful-service-readiness` and `product:service-control-outcomes`.
 
 ## Bounded streaming and cleanup (engineering:service-stream-lifecycle)
 

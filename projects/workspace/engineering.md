@@ -9,15 +9,18 @@ For Winter Workspace.
   govern its contributor context; Rust conventions follow that governance, not copied Python tool requirements.
 - `engineering:cli-runtime-baseline` supplies shared CLI targets and OS/libc compatibility; Workspace owns only its
   provider-specific support and external runtime prerequisites under `decision:supported-systems`.
-- `decision:rust-replacement`, `decision:rough-parity`, and `decision:requirements-first` establish the replacement
-  scope without freezing contracts. `epic:parallel-workspaces/component-runtime` owns reproducible development, test
-  facilities, dependency checks, invocation fidelity, machine-output handling, and contributor guidance.
+- `decision:rust-replacement`, `decision:rough-parity`, `decision:functional-parity`, `decision:visible-gap-policy`, and
+  `decision:requirements-first` establish the replacement scope: functional parity with the reference tool, specified
+  before slices. `epic:parallel-workspaces/component-runtime` owns the command surface, results, and output contracts,
+  with reproducible development, test facilities, dependency checks, and contributor guidance.
 - `decision:platform/launcher-shim/component-boundary` keeps Workspace behind a separate executable. Platform owns
   discovery and version selection: Workspace runs only from the version cache with a `component.toml` manifest under
   `decision:platform/launcher-shim/component-discovery`, and a workspace pins its release in its own
   `.winter/config.toml` under `decision:platform/launcher-shim/version-selection`. The shim reads only the agreed pin
   field, not Workspace's configuration model; Hub and Runner never read this file. The foundation's sample is not a
   production protocol.
+- Workspace is one binary invoked directly under `decision:rust-replacement`; it reads no `component.toml`, `.winterrc`,
+  or launcher handoff metadata. Platform's launcher decisions do not bind it.
 - `decision:platform/version-cache` owns the released-component cache. `decision:shared-release-capability` and
   `product:homebrew-installation` supply the shared release and installation baseline;
   `epic:rust-adoption/workspace-release` owns Workspace integration, not ordinary development prerequisites.
@@ -58,10 +61,10 @@ extensions run as separate programs behind a versioned contract; user-owned prog
 
 ## Explicit shell execution (engineering:process-execution)
 
-Process execution uses native argument vectors without a shell by default; shell evaluation requires an explicit
-operator-authored configuration entry and is never inferred from command text. That exception documents its visible
-environment and substitution rules, rejects prohibited command-derived substitutions before execution, and does not
-claim to prevent the shell from expanding values present in its environment.
+Process execution uses native argument vectors without a shell by default. Shell evaluation happens only for an entry
+that workspace configuration or an extension manifest declares as a command line, at the seams the invocation contract
+spec lists, and is never inferred from other text; the spec states each such seam's environment, and nothing claims to
+prevent the shell from expanding values present there.
 
 ## Concurrent authoritative state (engineering:concurrent-state-safety)
 

@@ -1,43 +1,55 @@
 # Service orchestration decisions
 
-## Provider activation (decision:running-environments/service-orchestration/provider-activation)
+## Built-in and external provider coexistence (decision:running-environments/service-orchestration/builtin-external-coexistence)
 
-**Decider:** product owner and engineering
+**Decider:** product owner
 
-**Open.** Choose explicit-only versus implicit sole/all-provider activation, compatibility for undeclared provider
-versions, and override precedence; this blocks finalizing `product:provider-binding`, not consistent validity checking
-or explicit reporting of the selected set.
+**Open.** Choose how a built-in tmux, docker, or process-compose provider coexists with an external extension that
+provides the same backend: naming, precedence, and whether a built-in binds without a declaration. This blocks
+finalizing `engineering:service-provider-conformance` and provider dispatch in the three provider epics, not the
+external provider contract; it is settled when `epic:running-environments/service-orchestration` is refined.
 
 ## Readiness enforcement (decision:running-environments/service-orchestration/readiness-enforcement)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose launch-time preparation enforcement, whether evidence is persisted or checked live and how it is
-invalidated, unprobed-service behavior, workspace coverage, and timeout composition with provider gates; this blocks
-finalizing `product:truthful-service-readiness` and working-state acceptance for
-`product:running-environments/resource-provisioning/composed-environment-bringup`, without claiming the Python baseline
-has a persisted provision gate or accepting missing status as readiness success by accident.
+Readiness follows the reference tool: `service up --wait` polls status and passes as soon as no service reports
+`unhealthy`, so an unknown, empty, or unparseable status passes. No provision state is recorded, and nothing gates
+`service up` on an earlier `provision`.
 
 ## Log selection policy (decision:running-environments/service-orchestration/log-selection-policy)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose aggregate backlog ordering, global versus per-service tail, follow backlog guarantees, and retained
-behavior when providers lack timestamps or rotation history; this blocks finalizing `product:aggregate-service-logs`,
-not fairness or cleanup of live streams.
+Logs follow the reference tool: without `--follow`, providers are read one after another and one tail limit applies to
+the combined lines; with `--follow`, lines are merged in arrival order with no backlog re-ordering. Time filters apply
+only to lines that carry a timestamp.
 
-## Built-in execution placement (decision:running-environments/service-orchestration/builtin-execution-placement)
+## Service manifest quoting (decision:running-environments/service-orchestration/service-manifest-quoting)
 
 **Decider:** engineering
 
-**Open.** Choose execution placement for native built-ins while retaining the same Winter-owned semantics and
-conformance as external providers; this blocks finalizing `engineering:service-provider-conformance`, not independent
-delivery of the three provider epics or the rule that external extension code runs out of process.
+The service manifest file quotes its strings with the reference tool's string representation, not TOML quoting. Existing
+providers parse that form, so the binary writes it byte for byte.
+
+## Built-in execution placement (decision:running-environments/service-orchestration/builtin-execution-placement)
+
+**Decider:** product owner
+
+The tmux, docker, and process-compose providers are built into the binary and need no Python. The external provider
+contract is kept unchanged, and external extension code still runs out of process.
+
+## Provider activation (decision:running-environments/service-orchestration/provider-activation)
+
+**Decider:** product owner and engineering
+
+Binding follows the reference tool: an explicit `[capabilities] service` list is validated in order, and without one a
+sole candidate binds implicitly and several all bind, sorted by name. An undeclared spec version is compatible, and the
+`--service-orchestrator` option wins over `WINTER_SERVICE_ORCHESTRATOR`, which wins over configuration.
 
 ## Declaration continuity (decision:running-environments/service-orchestration/declaration-continuity)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose how startup-contributed services remain available for later ownership, observation, restart, logs, and
-teardown, including changes or removal of their declaration; this blocks finalizing
-`product:service-declaration-continuity` without prescribing a manifest schema or persistence mechanism.
+Contributed service definitions reach a provider only on `service up`, through the manifest file. Their availability to
+later actions is the provider's own state, as in the reference tool.

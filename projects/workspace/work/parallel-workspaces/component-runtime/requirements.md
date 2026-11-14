@@ -11,8 +11,8 @@ Acceptance:
 
 - Help and version work outside a workspace without Fleet, Python, configuration, or provider processes.
 - Direct invocation identifies the Workspace component, not the platform version.
-- Help and usage guidance use the entry point selected by the caller, including nested commands, under
-  `product:platform/launcher-shim/invocation-aware-help`.
+- Usage, help, and the version line name the component `winter-workspace` whatever name it was invoked under, under
+  `decision:parallel-workspaces/component-runtime/program-name`.
 - Unsupported commands are refused rather than forwarded to a legacy executable.
 
 ## Drive commands unattended (product:automation-boundary)
@@ -22,24 +22,27 @@ terminal screen. Command vocabulary and compatibility are settled by `decision:c
 
 Acceptance:
 
-- Non-interactive commands never stop at an undisclosed prompt; missing approval or input is reported as an actionable
-  refusal.
-- Supported structured modes describe the command result separately from progress and diagnostics.
+- Every confirmation prompt is skipped by an explicit force or dry-run option; a prompt that cannot read an answer ends
+  as a failure before the mutation starts. Structured mode alone suppresses no prompt, except when pruning orphans,
+  where it removes the safe ones without asking.
+- Supported structured modes describe the command result separately from progress and diagnostics, except for the
+  plain-text lines the reference tool writes in structured mode, which are kept under
+  `decision:parallel-workspaces/component-runtime/json-mode-purity`.
+- Errors are plain text on the diagnostic stream in every mode; an agent decides success from the exit code, under
+  `decision:parallel-workspaces/component-runtime/error-rendering`.
 - Invalid operands and unknown commands report usage without starting the requested mutation.
-- Calling the selected component through the platform preserves its input, output, exit, and interruption behavior.
 
-## Learn the replacement vocabulary (product:discover-command-scope)
+## Learn the command scope (product:discover-command-scope)
 
-The engineer can distinguish creating a new workspace from reconciling an existing declaration, and discover which
-commands require a workspace or environment.
+The engineer can discover which commands require a workspace or an environment, and what each one converges or destroys.
+Names and flags are the reference tool's, under `decision:command-vocabulary`.
 
 Acceptance:
 
-- Creation refuses an already initialized target instead of treating it as a repair operation.
 - Reconciliation describes the existing scope it converges and is safe to repeat under the capability's safety rules.
-- Help names destructive effects and required scope rather than relying on an old command spelling to imply them.
-- Final names and flags are chosen together before public contracts freeze; illustrative strategy commands are not
-  advertised as already supported.
+- Help names destructive effects and required scope rather than relying on a command spelling to imply them.
+- Help lists only commands the binary implements; the launcher's workspace-creation command is not among them, under
+  `decision:parallel-workspaces/component-runtime/launcher-only-surface`.
 
 ## Evaluate a modified component (product:local-component-evaluation)
 
