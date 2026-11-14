@@ -43,6 +43,10 @@ findings intended for public planning; it does not make that earlier direction a
   destructive operations. The historical requirement to first freeze behavior in Python, forward unfinished commands to
   Python, run mixed implementations, and retire Python only at the end is invalidated by the replacement baseline.
 
+`decision:platform/singleton-launcher-succession` separately permits an opt-in Python application launch path and
+temporary legacy bootstrap in the platform launcher. Replacing that singleton is not Rust Workspace adoption and does
+not permit the Rust component to delegate unfinished operations to Python.
+
 The roadmap's proposed crate split, Git library choices, async policy, dashboard library, and phase ordering are not
 accepted implementation constraints. Legacy source and observations can inform fixtures without importing Python types
 or requiring Python in the Rust verification loop.
@@ -89,10 +93,11 @@ Python startup measurements nor exporter timing thresholds establish a new Rust 
 
 The [Platform foundation specs](../../../platform/work/cli-foundation/spec/system.md) define a planned Rust foundation
 and a development-only sample process boundary, not a completed product plugin API. The
-[launcher-shim decisions](../../../platform/work/launcher-shim/decisions.md) establish separate product executables but
-leave `decision:platform/launcher-shim/component-discovery` and `decision:platform/launcher-shim/version-selection`
-open. Discovery, role/protocol proof, precedence, workspace pin schema, root discovery, and unpinned selection must not
-be independently invented by Workspace.
+[launcher-shim decisions](../../../platform/work/launcher-shim/decisions.md) settle separate product executables,
+cache/manifest discovery, Workspace configuration pins, inherited `.winterrc` selections, and per-role user-selected
+defaults under `decision:platform/launcher-shim/component-discovery` and
+`decision:platform/launcher-shim/version-selection`. Workspace consumes those contracts rather than independently
+inventing discovery, role/protocol proof, precedence, or unpinned selection.
 
 Invocation-aware help is promised by `product:platform/launcher-shim/invocation-aware-help`; its production metadata
 transport is not the sample-path variable. Current shim requirements report missing components without downloading them
@@ -103,10 +108,10 @@ Platform's mission assigns it the shared extension contract, but the inspected P
 contract. Platform and Workspace must establish ownership of common protocol/versioning rules versus Workspace provider
 actions and capability binding before freezing either side; these findings do not select an ABI or wire schema.
 
-Selecting a development checkout against an existing workspace remains a source-override need from the earlier
-direction, not delivered shim functionality. Its owner, component selection/build behavior, and separation from released
-caches need an explicit decision. Any such override must continue to make clear that changing the executable does not
-isolate its target workspace.
+`decision:workspace/development-component-selection` settles local evaluation as building in the feature-environment
+worktree and invoking its `winter-workspace` executable directly, not adding a shim source override. The code repository
+owns agent/runtime guidance for rebuilding, locating the executable, and preserving the intended target cwd; changing
+the executable does not isolate its target workspace or alter installed releases and their cache.
 
 Workspace's open `decision:workspace/command-vocabulary` and `decision:workspace/configuration-transition` retain their
 stated ownership. `engineering:cli-runtime-baseline` makes Platform's release target and minimum OS/libc decisions

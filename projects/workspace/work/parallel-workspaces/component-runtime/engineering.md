@@ -55,7 +55,19 @@ logs on that output channel. Public result categories and compatibility tests ar
 
 Repository-owned context documents Rust conventions, command registration, dependency direction, wiring, errors,
 reporting, test tiers, and concrete verification commands under the suite's shared context governance. Implementation
-and review discover the same guidance through the code repository's entry point. Serves `product:governed-context`.
+and review discover the same guidance through the code repository's entry point. Serves `product:governed-context` and
+`product:local-component-evaluation`.
+
+Acceptance:
+
+- Repository-owned agent/runtime guidance gives the actual build command and resulting executable path for local
+  `winter-workspace` development, with examples for a feature-environment worktree.
+- Examples distinguish the source/build directory from the command's target cwd, preserve the intended target workspace,
+  and explain that a locally built executable has the same mutation authority as an installed component.
+- Guidance tells agents to rebuild after source changes, invoke the built sub-executable directly, and avoid replacing
+  installed commands or writing mutable build output into the released-version cache.
+- The repository's agent entry point routes to this guidance; essential invocation instructions do not live only in the
+  planning repository or a human-only development guide.
 
 ## Production handoff agreement (engineering:production-handoff-agreement)
 

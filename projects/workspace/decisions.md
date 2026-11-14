@@ -36,10 +36,10 @@ blocks acceptance of `engineering:observability-isolation` as failure isolation,
 
 **Decider:** product owner and Platform and Workspace engineering
 
-**Open.** Choose the owner and supported workflow for selecting a modified Workspace build without replacing the
-installed release or changing a workspace pin; this blocks finalizing
-`product:parallel-workspaces/component-runtime/local-component-evaluation`, not direct local development. The current
-launcher-shim epic excludes source builds and overrides, so this plan cannot imply that it already supplies them.
+Engineers and agents build Workspace in their feature-environment worktree and invoke its `winter-workspace` executable
+directly, leaving the installed launcher, release selections, and version cache unchanged. The `winter-workspace` code
+repository owns discoverable agent/runtime guidance for this workflow because direct invocation needs no launcher
+override, environment-selection flag, or automatic build-and-run mechanism.
 
 ## Initiatives toward parity (decision:parity-initiative)
 
@@ -58,7 +58,9 @@ the rewrite; a capability is not silently dropped because its implementation doe
 
 The replacement is a Rust `winter-workspace` component in the `winter-workspace` code repository, independently usable
 and invoked through the platform's `winter workspace` group. It does not forward unfinished commands to the Python CLI
-or require Python for first-party Workspace behavior; user-owned external programs remain the user's runtime choice.
+or require Python for first-party Workspace behavior; Platform's separate, temporary Python launch adapter under
+`decision:platform/singleton-launcher-succession` preserves existing workspaces without making Python part of the Rust
+component, and user-owned external programs remain the user's runtime choice.
 
 ## Requirements before contracts (decision:requirements-first)
 

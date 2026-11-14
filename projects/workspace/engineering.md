@@ -14,8 +14,10 @@ For Winter Workspace.
   facilities, dependency checks, invocation fidelity, machine-output handling, and contributor guidance.
 - `decision:platform/launcher-shim/component-boundary` keeps Workspace behind a separate executable. Platform owns
   discovery and version selection: Workspace runs only from the version cache with a `component.toml` manifest under
-  `decision:platform/launcher-shim/component-discovery`, and a workspace pins its release in a root `.winterrc` under
-  `decision:platform/launcher-shim/version-selection`. The foundation's sample is not a production protocol.
+  `decision:platform/launcher-shim/component-discovery`, and a workspace pins its release in its own
+  `.winter/config.toml` under `decision:platform/launcher-shim/version-selection`. The shim reads only the agreed pin
+  field, not Workspace's configuration model; Hub and Runner never read this file. The foundation's sample is not a
+  production protocol.
 - `decision:platform/version-cache` owns the released-component cache. `decision:shared-release-capability` and
   `product:homebrew-installation` supply the shared release and installation baseline;
   `epic:rust-adoption/workspace-release` owns Workspace integration, not ordinary development prerequisites.

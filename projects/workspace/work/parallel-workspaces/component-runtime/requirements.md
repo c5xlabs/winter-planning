@@ -43,14 +43,17 @@ Acceptance:
 
 ## Evaluate a modified component (product:local-component-evaluation)
 
-An engineer changing Workspace can run their locally built component against an intended workspace without replacing the
-installed tool or changing that workspace's release selection. The supported selection workflow remains in
+An engineer or agent changing Workspace can invoke their locally built component directly against an intended workspace
+without replacing the installed tool or changing that workspace's release selection. The workflow follows
 `decision:development-component-selection`.
 
 Acceptance:
 
-- A local build can be evaluated through an explicit executable selection rather than silently replacing a release.
+- A local build is evaluated by invoking its `winter-workspace` executable directly, not by replacing a release or
+  selecting a feature environment through the installed launcher.
+- Agent/runtime guidance in the `winter-workspace` code repository explains how to build and invoke that executable
+  from a feature-environment worktree and is discoverable through the repository's agent entry point.
 - Choosing different code does not change or sandbox the target workspace; guidance states the actual mutation scope.
 - Evaluation leaves the installed component, other workspaces' pins, and immutable released cache entries unchanged.
-- The workflow has no dependency on the old Python launcher, and does not promise the old `--winter` flag or automatic
-  rebuild behavior before its ownership is settled.
+- Guidance states that source changes require rebuilding before the next invocation; the workflow requires neither the
+  old Python `--winter` flag nor a new launcher override or automatic rebuild mechanism.

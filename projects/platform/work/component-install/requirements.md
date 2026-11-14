@@ -20,8 +20,8 @@ A person can fetch every release their current selections need without first wor
 
 Acceptance:
 
-- `winter install` with no component fetches the Workspace release selected for the current directory and the hub and
-  runner defaults, skipping any already cached and any role with no selection.
+- `winter install` with no component fetches each role's effective selection using the dispatch precedence, including
+  inherited `.winterrc` selections and user-selected defaults, skipping cached releases and roles with no selection.
 - The result lists each selected version and whether it was fetched, already present, or failed.
 - One failed fetch does not stop the others, and the command reports failure if any fetch failed.
 
@@ -46,4 +46,6 @@ Acceptance:
   and a failed verification.
 - A `winter <role>` invocation that stops because its selected version is not cached names the `winter install` command
   that would fetch it.
-- Fetching needs network access only to download; every other `winter` command keeps working offline.
+- Fetching needs network access only to download; modern dispatch of cached releases remains offline. The temporary
+  legacy adapter's Python dependency synchronization has its own prerequisites under
+  `product:launcher-shim/legacy-workspace-dispatch`.

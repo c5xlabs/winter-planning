@@ -4,34 +4,35 @@
 
 **Decider:** product owner and engineering
 
-A workspace pins its Workspace release with `versions.workspace` in a `.winterrc` at its root, found as the nearest
-`.winterrc` above the caller's directory, and each role's user-wide default lives under `versions` in
-`$XDG_CONFIG_HOME/winter/config.toml`; both hold exact release versions only. A root dotfile follows the per-project pin
-convention of `.nvmrc` and `.tool-versions` and lets the shim find a pin without parsing Workspace's own configuration,
-and the user file sits in XDG config to match `decision:version-cache`.
+A workspace owns its Workspace pin as `versions.workspace` in `.winter/config.toml`; platform-owned `.winterrc` files
+can live in any directory and supply exact per-role versions, merged from filesystem root through the caller's directory
+with child values overriding only the keys they set, and platform-owned `$XDG_CONFIG_HOME/winter/config.toml` records
+each role's user-selected default under `versions`. This separates Workspace configuration from platform selection:
+Hub and Runner never read `.winter/config.toml`, and `~/.winterrc` participates only when it is on the ancestor path,
+not as the user-wide default file.
 
 ## Component discovery (decision:launcher-shim/component-discovery)
 
 **Decider:** engineering
 
-The shim runs a component only from the version cache, at `<role>/<version>/<target>/`, after its `component.toml`
-confirms role, version, target, and a supported handoff version; it never searches PATH and recognizes no third-party
-groups. PATH order is the ambiguity this epic removes, and a manifest check proves compatibility without starting an
-extra process.
+The modern shim path runs a component only from the version cache, at `<role>/<version>/<target>/`, after its
+`component.toml` confirms role, version, target, and a supported handoff version; it never searches PATH or recognizes
+third-party groups. PATH order is the ambiguity this epic removes, and a manifest check proves compatibility without
+starting an extra process.
 
 ## Version scope (decision:launcher-shim/version-scope)
 
 **Decider:** product owner and engineering
 
-Each role selects its version independently: a workspace invocation uses the workspace's pin when one applies and the
-Workspace role's user-wide default otherwise, while hub and runner invocations use their own role's default regardless
-of the current directory, and an unresolved selection is an error rather than a fallback. Hub and runner releases move
-on their own schedule rather than with a workspace's pin, and a single version per role per machine is enough until a
-per-invocation version or local-build override is added.
+Each role selects independently: Workspace uses the nearest `.winter/config.toml` pin when present and the inherited
+`.winterrc` Workspace selection otherwise, while Hub and Runner use their inherited `.winterrc` selections, with each
+role falling back to its user-selected default only when no applicable directory selection exists. Directory-scoped
+selections let deployments move components independently without requiring a Winter workspace; a missing selected
+release or unresolved selection is an error, never a fallback to a different cached version or a PATH executable.
 
 ## Component boundary (decision:launcher-shim/component-boundary)
 
-The shim launches separate product executables and contains no Workspace or Fleet implementation; its contract is
-verified with stand-in executables, without adapting or invoking the current Python Workspace CLI. It extends the
-foundation's dev-only sample handoff with product discovery and version selection rather than owning a second sample
-implementation.
+The shim launches separate product executables and contains no Rust Workspace or Fleet implementation; the bounded
+Python-launch preparation and temporary bootstrap follow `decision:singleton-launcher-succession`, not a fallback from
+modern dispatch. Verification uses stand-in Rust and Python entrypoints and a stub dependency synchronizer rather than
+the installed launcher or live products, so compatibility testing cannot mutate a real workspace.
