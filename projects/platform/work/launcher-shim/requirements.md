@@ -41,13 +41,20 @@ Acceptance:
 
 ## Respect the selected version (product:respect-component-version)
 
-A person can work in two workspaces that select different component versions without one changing the other's command.
-The pin and unpinned-selection rules are settled by `decision:launcher-shim/version-selection`.
+A person can work in two workspaces that select different component versions without one changing the other's command,
+and can run hub and runner versions that move independently of each other and of any workspace. Selection follows
+`decision:launcher-shim/version-scope`; the pin and default records are settled by
+`decision:launcher-shim/version-selection`.
 
 Acceptance:
 
 - Each workspace's invocation reaches the component version selected for that workspace.
-- A selected version that is missing produces a clear error rather than silently falling back to another version.
+- A workspace invocation without an applicable workspace pin reaches the Workspace role's default version.
+- Hub and runner invocations reach their own role's default version, whatever the current directory and whatever version
+  the surrounding workspace pins.
+- Changing one role's default does not change the version another role or a pinned workspace reaches.
+- A selected version that is missing, or a role with no selectable version, produces a clear error rather than silently
+  falling back to another version.
 - Reusing a cached release does not require a compiler or network access.
 - Platform help and version remain usable without resolving component pins or loading workspace configuration.
 

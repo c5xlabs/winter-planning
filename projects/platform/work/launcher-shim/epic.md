@@ -13,7 +13,8 @@ A standalone capability epic supporting the Workspace and Fleet entry points; it
 
 A person using independently installed Winter products should not have to remember a different executable and version
 selection procedure for each. In two workspaces pinned to different versions, a command must reach the selected product
-version rather than whichever binary happens to come first on PATH.
+version rather than whichever binary happens to come first on PATH, and the hub and runner a person runs must be able to
+move to a new release without waiting on every workspace's pin.
 
 ## The outcome
 
@@ -32,6 +33,10 @@ executables, not by connecting to the current Python Workspace CLI (`decision:la
 - Workspace operations, Fleet business logic, or starting and supervising Fleet services.
 - Component downloads, installers, self-update, or release publishing. Missing components are reported, not installed.
 - Building components from source or introducing a development-source override.
+- Choosing a version for a single invocation, or running more than one version of the same role side by side on one
+  machine outside workspace pins.
+- Compatibility between hub and runner versions, and the identity of separate hub or runner instances; those belong to
+  Fleet.
 
 ## Depends on
 

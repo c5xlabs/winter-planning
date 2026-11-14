@@ -15,4 +15,6 @@ Acceptance:
 - Fixture-based tests cover shim and direct entry points and assert the command prefix in help, nested-command help, and
   usage errors without changing component identity or version.
 - Version-selection cases use isolated cache entries and prove that an unavailable selection does not start a fallback.
-- Verification does not read or modify the user's real version cache or workspace pins.
+- Version-selection cases give the workspace, hub, and runner roles different default versions and assert that each
+  role, invoked inside and outside a pinned workspace, reaches its own selection.
+- Verification does not read or modify the user's real version cache, workspace pins, or role defaults.
