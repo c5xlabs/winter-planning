@@ -101,17 +101,19 @@ inventing discovery, role/protocol proof, precedence, or unpinned selection.
 
 Invocation-aware help is promised by `product:platform/launcher-shim/invocation-aware-help`; its production metadata
 transport is not the sample-path variable. Current shim requirements report missing components without downloading them
-and exclude building source overrides. Historical generic PATH dispatch, automatic downloads, and source rebuilds are
-therefore not current shim contracts.
+and exclude building or selecting Rust source overrides; the retained legacy Python `--winter=PATH` path does not select
+Rust code. Historical generic PATH dispatch, automatic component downloads, and source rebuilds are not current shim
+contracts.
 
 Platform's mission assigns it the shared extension contract, but the inspected Platform work does not yet define that
 contract. Platform and Workspace must establish ownership of common protocol/versioning rules versus Workspace provider
 actions and capability binding before freezing either side; these findings do not select an ABI or wire schema.
 
 `decision:workspace/development-component-selection` settles local evaluation as building in the feature-environment
-worktree and invoking its `winter-workspace` executable directly, not adding a shim source override. The code repository
-owns agent/runtime guidance for rebuilding, locating the executable, and preserving the intended target cwd; changing
-the executable does not isolate its target workspace or alter installed releases and their cache.
+worktree and invoking its Rust `winter-workspace` executable directly, not adding a Rust shim source override; legacy
+Python agents retain `--winter=PATH` under `decision:platform/singleton-launcher-succession`. The code repository owns
+agent/runtime guidance for rebuilding, locating the executable, and preserving the intended target cwd; changing the
+implementation does not isolate its target workspace or alter installed releases and their cache.
 
 Workspace's open `decision:workspace/command-vocabulary` and `decision:workspace/configuration-transition` retain their
 stated ownership. `engineering:cli-runtime-baseline` makes Platform's release target and minimum OS/libc decisions

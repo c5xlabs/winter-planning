@@ -5,11 +5,12 @@
 **Decider:** product owner and engineering
 
 The Rust platform replaces the installed singleton launcher before Rust Workspace parity by keeping explicit
-`workspace`, `hub`, and `runner` groups on Rust components while routing a defined legacy command set to the discovered
-workspace's existing Python application only when `enable-legacy-winter` is true, with temporary `winter init` bootstrap
-available independently of that flag. Launcher replacement is separate from workspace adoption so existing automation
-can stay on Python until deliberately migrated; the legacy adapter and bootstrap are retired after that transition,
-never used as fallback for Rust component failures or delegation of unfinished Rust Workspace operations.
+`workspace`, `hub`, and `runner` groups on Rust components while routing a defined legacy command set to Python only
+when the target workspace's `enable-legacy-winter` is true, retaining first-argument `--winter=PATH` implementation
+selection while only temporary `winter init` bootstrap operates independently of the flag. Launcher replacement is
+separate from workspace adoption so existing automation can stay on Python until deliberately migrated; the legacy
+adapter, Python source override, and bootstrap are retired after that transition, never used as fallback for Rust
+component failures or delegation of unfinished Rust Workspace operations.
 
 ## Separate development from release delivery (decision:release-delivery-separation)
 

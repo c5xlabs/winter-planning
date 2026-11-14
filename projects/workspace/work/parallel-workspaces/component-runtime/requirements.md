@@ -55,5 +55,6 @@ Acceptance:
   from a feature-environment worktree and is discoverable through the repository's agent entry point.
 - Choosing different code does not change or sandbox the target workspace; guidance states the actual mutation scope.
 - Evaluation leaves the installed component, other workspaces' pins, and immutable released cache entries unchanged.
-- Guidance states that source changes require rebuilding before the next invocation; the workflow requires neither the
-  old Python `--winter` flag nor a new launcher override or automatic rebuild mechanism.
+- Guidance states that Rust source changes require rebuilding before the next invocation and distinguishes direct Rust
+  execution from the Python-only `--winter=PATH` compatibility path under
+  `decision:platform/singleton-launcher-succession`; no Rust launcher override or automatic rebuild is required.

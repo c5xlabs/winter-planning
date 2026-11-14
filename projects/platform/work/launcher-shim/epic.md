@@ -31,8 +31,9 @@ from filesystem root to the caller's directory, with child values overriding anc
 available when no directory selection applies.
 
 Under `decision:singleton-launcher-succession`, the same executable preserves opt-in legacy commands by launching the
-workspace's existing Python application and temporarily retains the old `winter init` bootstrap. Explicit product
-groups always select Rust components, so launcher replacement does not imply workspace adoption or Rust parity.
+workspace's existing Python application, retains agents' first-argument `--winter=PATH` implementation override without
+changing the target workspace, and temporarily retains the old `winter init` bootstrap. Explicit product groups always
+select Rust components, so launcher replacement does not imply workspace adoption or Rust parity.
 
 This epic extends the development-sample process boundary owned by `epic:cli-foundation` with installed-component
 discovery, compatibility checks, version selection, and bounded legacy launch preparation. Both dispatch paths are
@@ -48,10 +49,11 @@ verified with controlled stand-in executables and isolated filesystems (`decisio
 - Workspace operations, Fleet business logic, or starting and supervising Fleet services.
 - Self-update or release publishing. Missing Rust components are reported, not installed; legacy Python dependency
   synchronization is a separate compatibility behavior.
-- Building components from source or introducing a development-source override.
-- Choosing a version through a per-invocation flag or environment override. Directory-scoped selections are in scope.
-- Restoring `--winter` or adding `--env` and build-and-run conveniences; local Rust development invokes sub-executables
-  directly under `decision:workspace/development-component-selection`.
+- Building Rust components from source or introducing a Rust development-source override.
+- Choosing a Rust release through a per-invocation flag or environment override. Directory-scoped selections and the
+  existing Python-only `--winter=PATH` source override are in scope.
+- Adding `--env` or Rust build-and-run conveniences; local Rust development invokes sub-executables directly under
+  `decision:workspace/development-component-selection`.
 - Compatibility between hub and runner versions, and the identity of separate hub or runner instances; those belong to
   Fleet.
 

@@ -33,6 +33,7 @@ release or unresolved selection is an error, never a fallback to a different cac
 ## Component boundary (decision:launcher-shim/component-boundary)
 
 The shim launches separate product executables and contains no Rust Workspace or Fleet implementation; the bounded
-Python-launch preparation and temporary bootstrap follow `decision:singleton-launcher-succession`, not a fallback from
-modern dispatch. Verification uses stand-in Rust and Python entrypoints and a stub dependency synchronizer rather than
-the installed launcher or live products, so compatibility testing cannot mutate a real workspace.
+Python-launch preparation, legacy `--winter=PATH` source override, and temporary bootstrap follow
+`decision:singleton-launcher-succession`, not a fallback from modern dispatch. Verification uses stand-in Rust and
+Python entrypoints and a stub dependency synchronizer rather than the installed launcher or live products, so
+compatibility testing cannot mutate a real workspace.

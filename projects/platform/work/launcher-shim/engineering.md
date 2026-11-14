@@ -28,19 +28,26 @@ Acceptance:
   leading and unknown Python options, raw native arguments, and explicit modern groups bypassing legacy configuration.
 - Routing cases cover Python options before the command with both separate and equals-form values, stop scanning after
   the routing token, and prove root help/version work without any configuration or usable cwd.
+- Source-override fixtures use separate target and implementation trees and prove the target's flag controls permission,
+  only the initial `--winter=PATH` control is consumed, and all remaining native arguments keep their order and bytes.
+- Cases cover relative, absolute, spaced, and non-UTF-8 override paths, malformed/empty controls, missing source
+  directories, disabled targets with enabled source configs, and modern groups rejecting a launcher-level override
+  without resolving its path or preparing Python.
+- Override fixtures assert selected-source dependency inputs, venv/stamp and PATH, target-anchored process cwd, and
+  original invocation cwd; invalid sources never cause fallback or bootstrap config creation.
 - A stub `uv` and fixture venv entrypoint cover cold and warm starts, each dependency input becoming newer than the sync
   stamp, relocated venvs, synchronization failure, and cancellation during synchronization without orphaned processes.
 - Fixture entrypoints assert the legacy cwd/environment adjustments and original invocation directory, stream purity,
   exit status, and signals; a decoy `winter` on PATH must never run.
 - Bootstrap fixtures cover absent and existing config, root-only eligibility, preservation of operator content, and
-  partial failure without invoking real Workspace reconciliation.
+  partial failure with and without a Python source override, without invoking real Workspace reconciliation.
 - Filesystem fixtures isolate the complete root-to-cwd discovery tree, including ancestors above the fixture directory;
   verification never reads or modifies real ancestor selections, the user's version cache, or workspace pins.
 
 ## Isolate legacy launch preparation (engineering:legacy-adapter-boundary)
 
-The legacy adapter owns Python environment preparation and temporary bootstrap separately from modern component
-resolution, with filesystem and synchronizer effects behind injected boundaries. Serves
+The legacy adapter owns Python source selection, environment preparation, and temporary bootstrap separately from
+modern component resolution, with filesystem and synchronizer effects behind injected boundaries. Serves
 `product:legacy-workspace-dispatch` and `product:legacy-init` under `decision:singleton-launcher-succession`.
 
 Acceptance:

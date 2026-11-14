@@ -66,6 +66,8 @@ Acceptance:
   and explain that a locally built executable has the same mutation authority as an installed component.
 - Guidance tells agents to rebuild after source changes, invoke the built sub-executable directly, and avoid replacing
   installed commands or writing mutable build output into the released-version cache.
+- Guidance identifies retained `--winter=PATH` as a Python-only implementation override, not a way to select a Rust
+  component or change the target workspace.
 - The repository's agent entry point routes to this guidance; essential invocation instructions do not live only in the
   planning repository or a human-only development guide.
 

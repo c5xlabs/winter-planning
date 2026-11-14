@@ -36,10 +36,11 @@ blocks acceptance of `engineering:observability-isolation` as failure isolation,
 
 **Decider:** product owner and Platform and Workspace engineering
 
-Engineers and agents build Workspace in their feature-environment worktree and invoke its `winter-workspace` executable
-directly, leaving the installed launcher, release selections, and version cache unchanged. The `winter-workspace` code
-repository owns discoverable agent/runtime guidance for this workflow because direct invocation needs no launcher
-override, environment-selection flag, or automatic build-and-run mechanism.
+Engineers and agents build Rust Workspace in their feature-environment worktree and invoke its `winter-workspace`
+executable directly, leaving the installed launcher, release selections, and version cache unchanged. The
+`winter-workspace` code repository owns discoverable agent/runtime guidance for this workflow, distinguishing direct
+Rust invocation from the Python-only `--winter=PATH` compatibility path retained under
+`decision:platform/singleton-launcher-succession`, not adding a Rust environment-selection or build-and-run mechanism.
 
 ## Initiatives toward parity (decision:parity-initiative)
 
