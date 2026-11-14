@@ -79,6 +79,9 @@ Acceptance:
 - Recognizing the command is sufficient for routing: after consuming the optional first-argument `--winter=PATH`
   launcher control, the remaining legacy argument vector is forwarded unchanged, including leading options, unknown
   options, option values, delimiters, and nested commands, without a Python option schema in the launcher.
+- After an opaque Python option prefix begins, values such as `init`, `workspace`, `hub`, and `runner` do not select
+  bootstrap or Rust dispatch; the invocation remains flag-gated legacy forwarding under
+  `decision:launcher-shim/routing-boundary`.
 - `--service-orchestrator` and other Python-owned options are interpreted by Python, not reimplemented in the launcher.
 - Explicit `winter workspace`, `winter hub`, and `winter runner` always use Rust components regardless of the legacy
   flag; missing Rust components never trigger Python fallback.
@@ -93,6 +96,8 @@ Acceptance:
   configuration used for legacy opt-in, original invocation directory, Rust pins, or role defaults.
 - Selected-source dependency files, venv, and sync stamp control preparation; Python still runs with cwd anchored at the
   target workspace's `tools/winter-cli`.
+- Reusing a relocated venv prepared from a different source requires synchronization with the selected source, even when
+  the selected source's dependency files are older than the previous synchronization.
 - A malformed override or missing/unusable source fails explicitly without falling back to the target's implementation.
   Override-source configuration does not grant legacy permission for the target workspace.
 - Launcher-level `--winter=PATH` is rejected for explicit Rust groups rather than interpreted as a Rust source selector;
@@ -109,12 +114,12 @@ Acceptance:
   directory pin, or user-selected default.
 - It creates `.winter/config.toml` only when absent, leaves an existing configuration untouched, and launches that
   target's selected Python entrypoint with `ws init` followed by the supplied arguments.
-- It does not silently enable ordinary legacy dispatch; guidance names the flag required for subsequent old-style
-  commands.
+- It does not silently enable ordinary legacy dispatch; disabled-command diagnostics name the required flag.
 - First-argument `--winter=PATH` may select the Python implementation used for bootstrap but never relocates the target
   from cwd or bypasses its `tools/winter-cli/` eligibility check; the source is validated before creating config.
-- A setup or Python failure reports failure and preserves existing files; a newly created configuration may remain and
-  is identified in recovery guidance.
+- An empty CLI directory or one without the Python project and entry module is rejected before creating configuration.
+- A setup or Python failure reports failure and preserves existing configuration; a newly created configuration may
+  remain. Dependency synchronization may update its lockfile and environment.
 
 ## Explain platform verbosity (product:launcher-verbosity)
 
@@ -126,27 +131,25 @@ Acceptance:
 - On modern invocations, root verbosity controls launcher diagnostics on stderr; component verbosity is requested after
   the role group and is passed through unchanged.
 - On legacy invocations, original verbosity options are also forwarded to Python with the remaining Python arguments.
-- Root help and version remain configuration-independent even when verbosity is enabled.
+- Bare `winter` and root verbosity without a command show successful platform help; `-V` and `--version` identify the
+  platform. Root help and version remain configuration-independent even when verbosity is enabled.
 
 ## Replace the singleton deliberately (product:singleton-cutover)
 
-An engineer can replace the installed wrapper before Rust Workspace parity while choosing each workspace's adoption
-separately, under `decision:singleton-launcher-succession`.
+An engineer can manually replace the installed wrapper before Rust Workspace parity while choosing each workspace's
+adoption separately, under `decision:singleton-launcher-succession` and `decision:launcher-shim/manual-cutover`.
 
 Acceptance:
 
-- Cutover guidance enables legacy dispatch in existing Python workspaces before replacing the singleton and separates
-  this installation change from adopting Rust Workspace or converting workspace state.
-- Existing Python agents retain their `winter --winter=PATH …` workflow during the transition; guidance distinguishes
-  that compatibility path from direct executable evaluation of Rust components.
-- Guidance identifies PATH precedence, existing `~/.local/bin/winter` files and links, and old installer scripts that
-  could restore the old wrapper; no conflicting installation is silently overwritten.
+- Installation and rollback are manual; no cutover documentation, automated installer, or launcher-migration tooling is
+  required by this epic.
+- Replacing the singleton does not adopt Rust Workspace, convert workspace state, or silently enable legacy dispatch.
+- Existing Python agents retain their `winter --winter=PATH …` workflow during the transition; Rust development uses
+  direct executable evaluation instead.
 - Launcher replacement requires accepted modern and legacy dispatch evidence, not completion of Rust Workspace parity.
   Rust Workspace adoption retains its own capability, provider, and migration gates.
-- Recovery explains how to restore the prior launcher without claiming that Python can read Rust-converted state.
-- Migration guidance moves consumers to explicit Rust groups before retiring the legacy adapter and temporary init;
-  it does not add implicit Python fallback or undocumented aliases, and retirement follows the suite's release
-  deprecation policy.
+- The legacy adapter and temporary init remain until consumers deliberately migrate to explicit Rust groups; retirement
+  follows the suite's release deprecation policy without adding implicit Python fallback or undocumented aliases.
 
 ## Reuse cached releases (product:reuse-component-release)
 

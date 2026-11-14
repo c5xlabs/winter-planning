@@ -164,7 +164,8 @@ legacy implementation selection:
   first --winter=PATH -> resolve PATH from original cwd, canonicalize directory, require PATH/tools/winter-cli/
                         selected-cli = resolved PATH/tools/winter-cli
   never discover or read override-source .winter/config.toml for target selection or permission
-  validate override before dependency setup or bootstrap writes; failure -> InvalidSource, no fallback
+  canonicalize selected-cli and validate its project/entry module before setup or bootstrap writes
+  missing/unreadable/malformed/wrong-project source -> InvalidSource; no fallback
   selected-cli owns Python code, dependency inputs, venv, and stamp; target/tools/winter-cli remains process cwd
 
 temporary init:
@@ -172,6 +173,7 @@ temporary init:
   create cwd/.winter/config.toml as an empty file only if absent; never truncate/replace existing content
   do not add enable-legacy-winter; subsequent ordinary legacy commands still require explicit opt-in
   optional first --winter=PATH selects only its Python implementation, not its bootstrap destination
+  only leading platform-position init selects bootstrap; an opaque Python option value cannot activate it
   validate selected source, then replace the init token with ws init; retain all non-launcher arguments in place
 ```
 
@@ -195,18 +197,30 @@ before classification, recognize optional FIRST argument --winter=PATH:
   --winter without "=" or --winter= with empty PATH -> usage error, exit 2; do not consume the next argument
   do not resolve PATH yet; it cannot change routing, target discovery, or the legacy-enable flag
 
-scan argv after argv[0] left-to-right for the first exact routing/control token:
-  workspace | hub | runner   -> modern route; reject launcher --winter override; prefix only --verbose/-v
-  LEGACY_COMMANDS             -> flag-gated legacy route; forward original argv except consumed --winter=PATH
-  init                       -> unconditional legacy bootstrap; remaining argv changes only by init -> ws init
-  --help | -h | --version     -> foundation controls; do not resolve an optional override or read config/cache
-  sample                     -> existing foundation adapter, development builds only
-  other platform commands    -> foundation owns their routing; never forward them to Python
-no recognized token -> foundation usage error, exit 2; no implicit legacy fallback
+leading platform position (decision:launcher-shim/routing-boundary):
+  skip leading exact --verbose/-v tokens for classification only; retain their positions in legacy argv
+  no remaining token + no source override -> foundation Help, exit 0 (including bare winter and verbosity only)
+  no remaining token + source override    -> usage error, exit 2; no path lookup
+  inspect only the next token:
+    workspace | hub | runner -> modern route; reject launcher --winter override before path lookup
+    init                     -> unconditional bootstrap; remaining argv changes only by init -> ws init
+    --help | -h | --version | -V -> foundation controls; no cwd/config/cache/source lookup
+    sample                   -> existing sample adapter in development; unsupported in production
+    registered platform command -> foundation owns its route; never forward it to Python
+    LEGACY_COMMANDS          -> flag-gated legacy route
+    unrecognized non-option -> foundation usage error, exit 2
+    other option / --       -> opaque Python prefix; use the legacy-only scan below
 
-stop classification at the routing token; never inspect or reclassify the selected application's tail
-legacy prefixes after optional first --winter=PATH are opaque: no Python option allowlist or parsing of their values
-the first routing/control token wins even in an opaque prefix; use --option=value for a value equal to a routing word
+legacy-only scan:
+  scan remaining tokens left-to-right for an exact member of LEGACY_COMMANDS
+  match -> flag-gated Python route; forward original argv except consumed first --winter=PATH
+  no match -> foundation root parser handles inspection-only flag combinations or returns usage error, exit 2
+  never recognize modern groups, init, sample, or platform controls inside this opaque prefix
+  no option allowlist, option-arity tracking, or value parsing; Python validates the entire forwarded vector
+  a legacy-name match inside an option value is harmless: it selects the same gated route without rewriting argv
+
+stop classification when a route is selected; never inspect or reclassify that application's tail
+foundation root parsing retains its help/version aliases and standard clap flag/control handling
 non-first --winter tokens are not launcher controls; they remain in the selected application's argv
 an override with a non-legacy platform command other than help/version -> usage error, exit 2; no path lookup
 modern argv = unchanged tokens AFTER the group; root verbosity controls launcher stderr only
@@ -223,10 +237,14 @@ component help/version after a routing token belongs to that application, not th
 | `winter --winter=./alpha/winter service status alpha` | Selected Python source; argv `service status alpha`; original target and its flag |
 | `winter --winter=./alpha/winter --service-orchestrator=./alpha/provider service status alpha` | Selected Python source; provider option and remaining argv unchanged |
 | `winter --service-orchestrator ./alpha/provider service status alpha` | Python, entire original argv; no option parsing |
+| `winter --service-orchestrator init service status alpha` | Flag-gated Python, argv unchanged; never bootstrap |
+| `winter --service-orchestrator hub service status alpha` | Flag-gated Python, argv unchanged; never Rust Hub |
 | `winter service --unknown-option runner` | Python; `runner` is not reclassified as a modern group |
 | `winter init --json` | Temporary Python bootstrap, argv `ws init --json`; no flag/default required |
 | `winter --winter=./alpha/winter init --json` | Bootstrap original cwd with selected Python, argv `ws init --json` |
 | `winter --winter=./alpha/winter workspace ws init` | Usage error, exit 2; no Python/Rust launch or source lookup |
+| `winter` / `winter --verbose` | Identical successful platform help; no cwd or configuration lookup |
+| `winter -V` / `winter --verbose --version` | Platform version; no cwd or configuration lookup |
 | `winter --help` | Platform help; no workspace, Python, default, or cache lookup |
 
 ```rust
@@ -249,7 +267,7 @@ pub enum LegacyError {
     NoWorkspace,                                      // 1
     Disabled { file: PathBuf },                        // 2; show flag and explicit modern entry point
     MissingCli { dir: PathBuf },                       // 1
-    InvalidSource { path: PathBuf, reason: String },    // 1; explicit override, no fallback
+    InvalidSource { path: PathBuf, reason: String },    // 1; selected Python source, no fallback
     InvalidConfig { file: PathBuf, reason: String },    // 126
     Setup { path: PathBuf, source: std::io::Error },    // 126; includes bootstrap/venv/stamp effects
     Sync { executable: PathBuf, status: std::process::ExitStatus }, // propagate nonzero status/signal
@@ -276,7 +294,8 @@ pub fn run_legacy(req: LegacyRequest, env: &LegacyEnv, setup: &mut dyn LegacySet
 Every dispatch diagnostic starts with `winter: cannot run`; legacy failures use `winter: cannot run legacy workspace`
 with the relevant workspace/path and cause, not a fabricated Rust version. Modern dispatch never retries another
 version, searches PATH, or writes files (`product:explain-dispatch-failure`). Legacy setup may locate `uv` on inherited
-PATH, synchronize its venv, write its sync stamp, and perform temporary init, but never searches PATH for a product.
+PATH, synchronize its selected source and dependency environment, publish its sync stamp, and perform temporary init,
+but never searches PATH for a product.
 
 | Handoff field  | Contract                                                                                            |
 | -------------- | --------------------------------------------------------------------------------------------------- |
@@ -308,6 +327,7 @@ The shim supports handoff version `1` only. A later handoff version adds to this
 | Invocation metadata | Remove inherited `WINTER_INVOKED_AS`; legacy Python keeps its existing `winter` usage prefix |
 | Streams and process | Inherit fds 0/1/2; same PID after exec; Python owns exit status and signals |
 | Synchronizer | `uv sync --project <absolute selected-cli>`, no shell, cwd = target/tools/winter-cli, output on stderr |
+| Synchronizer environment | Setup environment with `UV_PROJECT_ENVIRONMENT` set to the resolved absolute venv |
 | Setup failure/cancellation | Do not exec Python; preserve failure status or interruption and terminate/reap setup children |
 
 ## Flows
@@ -361,6 +381,14 @@ legacy/init:
       resolve override relative to ORIGINAL cwd, canonicalize directory, require its tools/winter-cli/
       error -> InvalidSource with supplied path and reason; do not retry target-cli or write config
       success -> selected-cli = resolved override/tools/winter-cli
+  canonicalize selected-cli; failure -> InvalidSource
+  validate selected-cli BEFORE config creation, stamp changes, or uv:
+      pyproject.toml must be a readable regular file and valid TOML, with:
+          project.name = "winter-cli"
+          project.scripts.winter = "winter_cli.cli:cli"
+      src/winter_cli/cli.py must be a readable regular file
+      failure -> InvalidSource with offending path/reason; no fallback, bootstrap write, or synchronization
+      validation does not import Python or prove dependencies load; installation/runtime failures remain separate
   init only -> create target/.winter/ and empty config only if absent; never overwrite existing content
                rewrite init token to ws init in args from which first --winter=PATH was already removed
   setup_env = inherited snapshot with original WINTER_INVOCATION_CWD and launcher-entry WINTER_LAUNCH_TIME,
@@ -368,14 +396,23 @@ legacy/init:
   venv = inherited UV_PROJECT_ENVIRONMENT when nonempty, otherwise selected-cli/.venv
          relative venv paths resolve against selected-cli, not target-cli or original cwd
   stamp = venv/.winter-sync-stamp
-  stale = entrypoint not executable OR stamp missing OR any existing
+  source-id = native bytes of canonical selected-cli
+  stale = entrypoint not executable OR stamp missing/malformed/old-format OR stamp source-id differs OR any existing
           selected-cli/{uv.lock,pyproject.toml,.python-version} has mtime newer than stamp
+          stamp read/stat errors other than not-found -> Setup; do not treat an I/O failure as warm
   stale?
     no  -> do not locate or run uv
-    yes -> resolve uv on inherited PATH, then run uv sync --project selected-cli in setup_env,
-           with cwd = target-cli and setup stdout/stderr on stderr
-           fail/cancel -> no stamp refresh, no Python launch; report failed setup
-           success     -> touch stamp; a failed stamp write also prevents Python launch
+    yes -> resolve uv on inherited PATH; invalidate any old stamp BEFORE uv can mutate the venv
+           invalidation failure -> Setup; do not run uv or Python
+           sync_env = setup_env with UV_PROJECT_ENVIRONMENT = absolute resolved venv
+           run uv sync --project selected-cli in sync_env, cwd = target-cli, stdout/stderr on stderr
+           do not add --locked/--frozen; honor inherited uv configuration:
+               uv may update selected-source uv.lock, install/build dependencies, use its caches,
+               and download managed Python according to inherited uv configuration
+           fail/cancel -> stamp stays absent, no Python launch; report failed setup
+           success     -> atomically publish source-aware stamp with completion mtime
+                          stamp publication failure -> Setup; no Python launch or valid success marker
+                          remove any unpublished temporary stamp on failure
   exec_env = setup_env without PYTHONHOME, VIRTUAL_ENV = venv, PATH = venv/bin prepended to inherited PATH
   Process.replace(venv/bin/winter, args without launcher override / init-rewritten args,
                   cwd = target-cli, env = exec_env)
@@ -385,9 +422,18 @@ legacy/init:
 # Modern paths never enter this flow, even when enable-legacy-winter is true.
 # Init and uv sync are the only documented exceptions to modern dispatch's no-write/no-install contract.
 # No init failure rolls back by deleting an existing config or other operator-owned content.
+# Singleton installation and rollback are manual; this epic adds no cutover documentation or migration tooling.
 ```
 
 ## Data
+
+```text
+# <resolved venv>/.winter-sync-stamp
+# Exact bytes: "winter-sync-v1\n" + lowercase hex of canonical selected-cli native bytes + "\n"
+# mtime = successful synchronization completion; publish by atomic rename of a same-directory temporary file
+# Empty Bash-era stamps, unknown formats, or a different source-id require synchronization.
+# Remove prior success evidence before synchronization; failure/cancellation never preserves a valid old marker.
+```
 
 ```toml
 # <workspace root>/.winter/config.toml — top-level compatibility flag, independent of Rust pin
@@ -444,4 +490,6 @@ executable = "bin/winter-runner" # relative; normalized result must stay inside 
 Unknown keys are ignored so later fields can be added without breaking older shims. A `.winterrc` merges only recognized
 `versions` keys, not unrelated tables or arbitrary Workspace configuration. Modern dispatch never writes these files;
 temporary init may create an absent workspace config but never edits an existing one. Legacy setup writes only its
-dependency environment and sync stamp in addition to that bootstrap exception.
+source-aware sync stamp directly in addition to that bootstrap exception; delegated uv synchronization may update the
+selected source's lockfile, dependency/build environment, uv caches, and managed Python installations. These legacy
+effects never select or install Rust components, edit role defaults or workspace pins, or replace the installed command.

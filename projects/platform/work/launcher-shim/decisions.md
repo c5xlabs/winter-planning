@@ -1,5 +1,21 @@
 # Winter launcher shim decisions
 
+## Manual singleton replacement (decision:launcher-shim/manual-cutover)
+
+**Decider:** product owner
+
+Singleton installation and rollback are manual operator actions; this epic requires neither cutover documentation nor
+migration tooling because the operator owns the affected installations. Dispatch compatibility remains separate from
+Rust Workspace adoption and its capability, provider, and migration gates.
+
+## Routing boundary (decision:launcher-shim/routing-boundary)
+
+**Decider:** product owner and engineering
+
+Modern groups, bootstrap, and platform controls are recognized only at the leading platform position, after the optional
+initial Python source override and root verbosity. After an opaque Python option prefix begins, only defined legacy
+names select flag-gated forwarding, so option values cannot activate Rust dispatch, bootstrap, or platform controls.
+
 ## Version selection (decision:launcher-shim/version-selection)
 
 **Decider:** product owner and engineering

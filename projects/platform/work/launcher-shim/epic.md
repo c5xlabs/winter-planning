@@ -49,6 +49,8 @@ verified with controlled stand-in executables and isolated filesystems (`decisio
 - Workspace operations, Fleet business logic, or starting and supervising Fleet services.
 - Self-update or release publishing. Missing Rust components are reported, not installed; legacy Python dependency
   synchronization is a separate compatibility behavior.
+- Cutover documentation, automated singleton installation, or rollback tooling; replacement is a manual operator action
+  under `decision:launcher-shim/manual-cutover`.
 - Building Rust components from source or introducing a Rust development-source override.
 - Choosing a Rust release through a per-invocation flag or environment override. Directory-scoped selections and the
   existing Python-only `--winter=PATH` source override are in scope.
