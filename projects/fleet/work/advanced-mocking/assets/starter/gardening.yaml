@@ -30,6 +30,6 @@ proposals:
      title: Pin Node to 22 LTS, body: {generate: {paragraphs: 1}}, closure: {kind: passed, by: dana, at: -8d}}
   - {key: retry-webhook-test, routine: flaky-tests, class: flaky-test, at: -12d,
      title: Add a retry to test_webhook_delivery, body: {generate: {paragraphs: 1}},
-     closure: {kind: accepted-minted, by: lee, at: -11d, ref: webhook-logging}}
+     closure: {kind: accepted, item_outcome: minted, by: lee, at: -11d}}
   - {key: drop-pytest-xdist, routine: dependency-hygiene, class: dependency-update, at: -15d,
-     title: Drop pytest-xdist, body: {generate: {paragraphs: 1}}, closure: {kind: accepted-declined, by: dana, at: -14d}}
+     title: Drop pytest-xdist, body: {generate: {paragraphs: 1}}, closure: {kind: accepted, item_outcome: declined, by: dana, at: -14d}}

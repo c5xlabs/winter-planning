@@ -3,16 +3,17 @@ fixture: 1
 kind: graphs
 name: review-gated
 
-packaged: [bas-dwf]
+packaged: [bas-dwf, garden-routine]
 
 graphs:
   - definition:
+      name: review-gated
       entry: build
       nodes:
         build:
           executor: runner
           prompt: Implement the work item. Run the tests before you finish.
-          produces: {name: change, kind: git_commit}
+          produces: [{name: commit, kind: git_commit}]
           retries: {max: 2, exhausted: escalate}
           judgement:
             prompt: Is the change complete and tested?
@@ -35,3 +36,16 @@ graphs:
               conflict: {description: Conflicts with main., to: build}
               failure: {description: Landing failed., to: build}
               inherited-failure: {description: Main was already red., to: build}
+
+  - definition:                    # overflow: a long node name producing a long artifact name
+      name: overflow
+      entry: custom-a-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checks
+      nodes:
+        custom-a-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checks:
+          executor: runner
+          prompt: Do the work item.
+          produces: [artifact-a-very-long-produced-artifact-name-for-overflow-checksa-very-long-produced-artifact-name-for-overflow-checksa-very-long-produced-artifact-name-for-overflow-checks]
+          judgement:
+            prompt: Is it done?
+            choices:
+              finished: {description: Finished., to: done}

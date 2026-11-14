@@ -1,5 +1,6 @@
 # Chunks and everything that happened to them, and the event log. Chunks run by `self` are mirrored into the
-# env's runner store with its local pause engaged, so it claims none of the ready chunks.
+# env's runner store with its local pause engaged, so it claims none of the ready chunks. Other runners are rows only:
+# none of them polls, so a ready chunk stays ready.
 fixture: 1
 kind: activity
 name: storefront-night
@@ -8,7 +9,7 @@ name: storefront-night
 defaults:
   graph: bas-dwf
   project: default
-  urgency: normal
+  urgency: standard
 
 chunks:
   - key: checkout-500
@@ -21,11 +22,11 @@ chunks:
       - {node: pre-push, at: -2d+55m}
       - {node: deliver, at: -2d+1h}
     pull_requests:
-      - {repo: blizzard/toy-api, branch: fix/checkout-discontinued-sku, state: merged, at: -2d+1h10m,
+      - {repo: toy-api, branch: fix/checkout-discontinued-sku, state: merged, at: -2d+1h10m,
          title: Return 409 for discontinued SKUs at checkout, body: {generate: {paragraphs: 2}}}
     artifacts:
-      - {name: change, kind: git_commit, repo: toy-api, branch: fix/checkout-discontinued-sku, node: build}
-      - {name: review-notes, kind: asset, node: review, content: {generate: {paragraphs: 4}}}
+      - {name: commit, kind: git_commit, repo: toy-api, branch: fix/checkout-discontinued-sku, node: build}
+      - {name: review-findings, kind: asset, node: review, content: {generate: {paragraphs: 4}}}
     usage:
       - {kind: spawn, node: build, model: claude-sonnet-5-5, input_tokens: 182000, output_tokens: 14200, cost_usd: 1.94}
       - {kind: judge, node: review, model: claude-opus-5-5, input_tokens: 61000, output_tokens: 3100, cost_usd: 1.18}
@@ -49,11 +50,12 @@ chunks:
     node: deliver
     runner: build-box-1
     pull_requests:
-      - {repo: blizzard/toy-web, branch: perf/responsive-images, state: open, checks: pending,
+      - {repo: toy-web, branch: perf/responsive-images, state: open, checks: pending,
          title: Serve responsive product images, body: {generate: {paragraphs: 2}}}
 
   - key: cart-badge
     work: [cart-badge, cart-badge-api]   # two work refs on one chunk
+    repositories: [toy-web]        # cart-badge-api is a toy-api issue, but the change is toy-web's alone
     status: delivering
     node: deliver
     runner: build-box-1-twin
@@ -61,24 +63,26 @@ chunks:
       - {cause: conflict, at: -5h}
       - {cause: conflict, at: -2h}
     pull_requests:
-      - {repo: blizzard/toy-web, branch: fix/cart-badge, state: open, checks: failed,
+      - {repo: toy-web, branch: fix/cart-badge, state: open, checks: pending,
          title: Update the cart badge from the mutation response, body: {generate: {paragraphs: 1}}}
 
   - key: delivery-estimate
     work: [delivery-estimate-api, delivery-estimate-web]
     repositories: [toy-api, toy-web]
-    status: waiting_on_human
-    graph: review-gated
-    node: signoff
+    status: delivering
+    node: deliver
     runner: build-box-1
-    landed: [toy-api]
-    pull_requests:
-      - {repo: blizzard/toy-api, branch: feat/delivery-estimate, state: merged, at: -3h}
-      - {repo: blizzard/toy-web, branch: feat/delivery-estimate, state: open, checks: failed}
-    decision:
-      imposed_by: build-box-1      # a runner-imposed gate
-      checks: red
-      choices: {approve: Ship it., rework: Send it back.}
+    pull_requests:                 # one repository landed, the other still waiting on its checks
+      - {repo: toy-api, branch: feat/delivery-estimate, state: merged, at: -3h}
+      - {repo: toy-web, branch: feat/delivery-estimate, state: open, checks: pending}
+
+  - key: order-confirmation
+    work: [order-confirmation]
+    status: waiting_on_human
+    node: pre-push
+    runner: build-box-1
+    decision:                      # a gate the runner imposed, not one the graph declares; choices are pre-push's
+      imposed_by: build-box-1
 
   - key: drop-v1-orders
     work: [drop-v1-orders]
@@ -86,17 +90,22 @@ chunks:
     graph: review-gated
     node: signoff                          # the graph's own human gate
     runner: self
-    decision:
-      choices: {approve: Ship it., rework: Send it back.}
+    decision: {}                   # choices are signoff's own
 
   - key: session-redis
     work: [session-redis]
     status: waiting_on_human
+    node: build
     runner: self                   # mirrored: an active lease parked on an open ask
-    question:
-      text: Sessions in Redis need a TTL. Match the current cookie lifetime (14 days), or use 24 hours with sliding renewal?
-      options: [14 days, 24 hours sliding]
-      at: -40m
+    questions:                     # three open question trails on one chunk
+      - text: Sessions in Redis need a TTL. Match the current cookie lifetime (14 days), or use 24 hours with sliding renewal?
+        options: [14 days, 24 hours sliding]
+        at: -40m
+      - text: Should a signed-in shopper's cart survive a session expiry, or start empty?
+        at: -35m
+      - text: Is a single Redis instance acceptable for staging, or should staging match production's replica?
+        options: [Single instance, Match production]
+        at: -30m
     transcript:
       generate: {turns: 36, tool_use: 0.35}
       then:
@@ -105,22 +114,26 @@ chunks:
   - key: webhook-logging
     work: [webhook-logging]
     status: waiting_on_human
+    node: build
     runner: build-box-1
-    question:
-      text: Should the webhook log include the customer id?
-      answer: {text: "Yes, but hashed.", by: lee, at: -10m}   # answered, not yet delivered
+    questions:
+      - text: Should the webhook log include the customer id?
+        answer: {text: "Yes, but hashed.", by: lee, at: -10m}   # answered, not yet delivered
 
   - key: python-313
     work: [python-313]
     status: needs_human
+    node: build
     runner: self                   # mirrored: a closed, escalated lease under an open takeover
     escalation: {cause: retries-exhausted, at: -1h}
+    takeover: {by: dana, at: -50m}   # open: no `closed_at`
     transcript: {generate: {turns: 80, tool_use: 0.4}, finalized: true}
 
   - key: refund-double-count
     work: [refund-double-count]
     project: billing
     status: needs_human
+    node: build
     runner: night-shift
     escalation: {cause: spend-cap, at: -35m}
     usage:
@@ -131,17 +144,22 @@ chunks:
     project: billing
     urgency: urgent
     status: needs_human
+    node: deliver
     runner: build-box-2
     escalation: {cause: forge-auth, at: -9h, detail: "403 from the forge reading check runs on billing-service"}
 
   - key: unicode-title
     work: [unicode-title]
     status: needs_human
+    node: deliver
     runner: build-box-1-twin
-    bounces:
-      - {cause: checks, at: -7h}
-      - {cause: master-moved, at: -6h}
-      - {cause: checks, at: -5h}
+    bounces:                                 # bas-dwf deliver's choice names; one past the cap of five
+      - {cause: failure, at: -10h}
+      - {cause: conflict, at: -9h}
+      - {cause: failure, at: -8h}
+      - {cause: poll-timeout, at: -7h}
+      - {cause: failure, at: -6h}
+      - {cause: conflict, at: -5h}
     escalation: {cause: bounce-cap, at: -5h}
 
   - key: dark-mode
@@ -162,13 +180,23 @@ chunks:
     urgency: urgent
 
   - key: rotate-staging-creds
-    work: [rotate-staging-creds]   # hub-authored work item
+    work: [rotate-staging-creds]   # hub-authored work item; adopts the chunk the hub mints for it
+    graph: default-delivery
     status: ready
     urgency: urgent
 
   - key: reset-email-typo
     work: [reset-email-typo]
     status: not_ready
+
+  - key: overflow-check
+    work: [overflow-check]
+    graph: overflow
+    status: running
+    node: custom-a-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checks
+    runner: long-name
+    artifacts:
+      - {name: artifact-a-very-long-produced-artifact-name-for-overflow-checksa-very-long-produced-artifact-name-for-overflow-checksa-very-long-produced-artifact-name-for-overflow-checks, kind: asset, node: custom-a-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checksa-very-long-graph-node-name-for-overflow-checks, content: {generate: {paragraphs: 1}}}
 
   - key: long-title
     work: [long-title]
@@ -177,7 +205,7 @@ chunks:
 
 events:
   - {kind: worker-lost, chunk: python-313, runner: self, at: -1h10m, message: "worker exited without a verdict"}
-  - {kind: needs-human, chunk: python-313, at: -1h}
+  - {kind: needs-human, chunk: python-313, at: -1h, message: "retries exhausted at build"}
   - {kind: forge-rate-limited, runner: build-box-1, at: -3h, message: "secondary rate limit; backing off 60s"}
-  - {kind: flow-landed, chunk: checkout-500, at: -2d+1h10m}
+  - {kind: flow-landed, chunk: checkout-500, at: -2d+1h10m, message: "landed on toy-api main"}
 generate: {count: 30, over: 2d, severities: {info: 0.6, warning: 0.3, critical: 0.1}}

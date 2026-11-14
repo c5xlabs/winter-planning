@@ -25,7 +25,7 @@ Acceptance:
 
 ## A fixture holds one kind of thing (product:fixture-modules)
 
-**Proposed.** Each fixture says which kind of thing it holds, so a reader knows what it represents from its first lines.
+Each fixture says which kind of thing it holds, so a reader knows what it represents from its first lines.
 The kinds are a tenant's shell (its projects, people, forges, sources, and repositories), a codebase (a repository's
 files and history), a backlog (issues with their bodies, threads, and labels), graphs, gardening, runners (each runner
 added to the tenant, with the subscriptions it declares and the brakes it holds), and activity (chunks and everything
@@ -34,13 +34,11 @@ that happens to them).
 Acceptance:
 
 - A fixture holding something its kind does not cover is refused, naming the kind.
-- A fixture naming something the env does not hold, such as an issue its chunk came from, is refused, naming what is
-  missing.
 
 ## Copies of a fixture never collide (product:fixture-targets)
 
-**Proposed.** The same fixture can be applied to one env many times as separate copies, each told apart by a prefix given
-when it is applied, so a fixture never needs editing to be reused.
+The same fixture can be applied to one env many times as separate copies, each told apart by a prefix
+given when it is applied, so a fixture never needs editing to be reused.
 
 Acceptance:
 
@@ -48,18 +46,18 @@ Acceptance:
 
 ## Runners online or offline (product:runner-presence)
 
-**Proposed.** A fixture says which of its runners are online, which are offline, and which never connected, and the board
-shows each as declared.
+A fixture says which of its runners are online, which are offline, and which never connected, and the
+board shows each as declared.
 
 Acceptance:
 
 - A runner declared online reads online for four hours after the apply.
 - A runner declared offline reads offline from the moment of the apply.
-- No seeded chunk is claimed by a runner declared online.
+- A seeded runner, online or not, takes no work: a ready chunk stays ready until a real runner claims it.
 
 ## Filler generated from a few numbers (product:generated-filler)
 
-**Proposed.** Where a fixture needs bulk that nobody will read closely, such as a transcript, a long thread, a usage
+Where a fixture needs bulk that nobody will read closely, such as a transcript, a long thread, a usage
 history, or a stream of events, it asks for it by shape (a transcript of forty turns, a week of hourly usage) instead
 of spelling it out, and the filler is generated to look like the real thing at a glance.
 
@@ -67,13 +65,13 @@ Acceptance:
 
 - A fixture asks for a transcript by its number of turns and gets one the board renders as a real conversation, with
   turns from both sides and tool use among them.
-- Applying the same fixture twice gives the same filler, word for word.
+- The same fixture applied to two freshly reset envs gives the same filler, word for word.
 - Changing a fixture's seed gives different filler of the same shape.
 - A fixture can mix the two in one place: a transcript of generated turns that ends on a turn it spells out.
 
 ## Worlds at stress scale (product:fixture-scale)
 
-**Proposed.** An agent can grow a tenant to the size where the fleet's limits show, hundreds of projects or thousands of
+An agent can grow a tenant to the size where the fleet's limits show, hundreds of projects or thousands of
 chunks and on to a hundred thousand, by a short script that applies fixtures over and over while changing only a few
 values, such as the prefix, the seed, and a count.
 
@@ -89,26 +87,30 @@ Acceptance:
 
 ## Every env starts from the same world (product:starter-world)
 
-**Proposed.** A freshly provisioned feature env already holds the starter world, so every agent starts from the same
-believable fleet with its edge cases in place, and an empty board is something an agent asks for rather than finds.
+A freshly provisioned feature env already holds the starter world, applied when the env is provisioned, so
+every agent starts from the same believable fleet with its edge cases in place, and an empty board is something an agent
+asks for rather than finds.
 
 Acceptance:
 
 - A newly provisioned env's board shows every chunk status, runners online and offline, and a backlog not yet ingested,
   with no command run by the agent.
 - The runner panel of a newly provisioned env shows a parked ask and an open takeover.
-- An agent that needs an empty env gets one by resetting its stores.
+- Provisioning an env that already holds state resets it first, so it too holds exactly the starter world afterwards.
+- An agent that needs an empty env gets one by resetting it: the hub and runner stores, the mock forge's issues and pull
+  requests, and the record of what earlier applies created.
+- A reset env's hub holds no forge, source, or repository until a shell fixture is applied, and says so when asked to
+  ingest.
 
 ## A starter library (product:starter-library)
 
-**Proposed.** The library starts with at least one fixture of every kind, so a newcomer to fixtures copies a working
+The library starts with at least one fixture of every kind, so a newcomer to fixtures copies a working
 example rather than starting blank.
 
 Acceptance:
 
-- Each kind has a fixture that applies on top of a shell fixture alone.
-- The library holds fixtures that rebuild `scenario board` and `scenario fleet`, and a set whose backlog and activity
-  read as a believable night of a team's work.
+- Each kind has a fixture that applies on top of the fixtures its kind depends on.
+- The library holds a set whose backlog and activity read as a believable night of a team's work.
 
 ## Applying a fixture reconciles (product:fixture-reconcile)
 
@@ -120,11 +122,16 @@ Acceptance:
 - Applying the same fixture to the same env a second time writes nothing.
 - After a fixture is extended, applying it again creates what was added without a reset.
 - Nothing an apply finds that the fixture does not declare is removed, whether an earlier fixture or a person made it.
+- A record the env already holds that the fixture declares differently is left as it is and reported unreconciled,
+  naming the field. Changing a world's existing records is a reset and a fresh apply, or the product's own routes.
+- The records the hub creates with every new tenant, its first project and urgency, are the one exception: a fixture
+  that declares them adopts them, and its first apply brings them to what it declares.
 - An apply reports what it created, what it left alone, and what it could not reconcile.
 
 ## One world across every holder of state (product:one-world)
 
-One fixture keeps the hub store, the runner store, the mock forge, and the git origins consistent with each other.
+The fixtures of one apply keep the hub store, the runner store, the mock forge, and the git origins consistent with each
+other.
 
 Acceptance:
 
@@ -139,8 +146,10 @@ A fixture's text reads like a real team's work, and the world it builds is the s
 
 Acceptance:
 
-- An agent turns a short brief into a fixture whose titles, bodies, questions, and threads a reader takes for real work.
-- Applying that fixture spends no tokens and reaches no network.
+- The library's fixtures carry titles, bodies, questions, and threads written for their world, with no placeholder text.
+- The fixture schema and a guide to writing fixtures are published beside the library, so an agent turns a short brief
+  into a fixture that applies.
+- Applying a fixture makes no model calls.
 
 ## Fixtures replace scenarios (product:scenario-retirement)
 
@@ -148,5 +157,5 @@ Fixtures are the one surface for whole worlds.
 
 Acceptance:
 
-- The worlds `scenario board` and `scenario fleet` build, `--stress` included, exist as fixtures.
-- Once they do, the `scenario` verbs are removed.
+- Every edge state `scenario board` and `scenario fleet` build, `--stress` included, is in the starter world.
+- Once it is, the `scenario` verbs are removed.

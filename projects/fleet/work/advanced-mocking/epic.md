@@ -1,13 +1,13 @@
 ---
 epic: advanced-mocking
-refinement: outline
+refinement: refined
 status: planned
 ---
 
 # Advanced mocking
 
-A standalone epic; its requirements are in `requirements.md`. Research on how the mock fleet is composed, and on what a second
-forge vendor would take, is in `research/`.
+A standalone epic; its requirements are in `requirements.md`. Research on how the mock fleet is composed, and on what a
+second forge vendor would take, is in `research/`.
 
 ## The problem
 
@@ -22,7 +22,7 @@ a new world means a code change, and they compose nothing: a tenant with one tea
 graphs, and a third's backlog is not something either can be asked for. They write only the hub and runner stores, so a
 chunk has no issue behind it and the board shows no title, description, or discussion, and the mock forge, which could
 hold all three, starts every env empty. The text they do write is placeholder. Each one runs once against a clean store,
-so changing a world means resetting it and starting over.
+so adding to a world means resetting it and starting over.
 
 That cost lands at a concrete moment. An engineer reworking the runner panel wants a screen that looks like a real
 night: a handful of chunks with readable titles, one stuck on a question worth reading, one bounced on a conflict. The
@@ -43,9 +43,9 @@ env lacks is created, what is already there is left alone, and applying the same
 engineer adds to a fixture and applies it again to see the addition, without resetting first. Nothing is ever removed by
 an apply; removing state is what the product's own routes are for.
 
-One fixture describes one world across every place its state lives, and the mock-data CLI keeps the hub store, the
-runner store, the mock forge, and the git origins consistent with each other. A fixture's parts sit side by side as
-files, each one feeding the service that holds it, so the forge's issues sit next to the chunks that came from them.
+The fixtures of one apply describe one world across every place its state lives, and the mock-data CLI keeps the hub
+store, the runner store, the mock forge, and the git origins consistent with each other, so a chunk shows the forge
+issue it came from and a chunk in delivery has the pull request and branch that go with it.
 
 Fixtures are where a model helps and a script takes over. An agent writes a fixture once from a short brief, with
 realistic titles, issue bodies, questions, and review threads. Applying it is deterministic, costs no tokens, and gives
@@ -64,12 +64,18 @@ The `scenario` verbs stop growing. They are kept until fixtures can build what t
 
 ## What this epic is not
 
-- A replacement for `reset` and the `create` verbs. They stay as they are, and fixtures are built on them.
+- A replacement for `reset` and the `create` verbs. Fixtures are built on them; `reset` is extended to clear the mock
+  forge and what earlier applies recorded, and the `create` verbs stay as they are.
 - Real fleet data. Snapshots of the hosted hub's store are already the way to see that, and a fixture never copies from
   one.
 - A way to seed a live fleet. Fixtures are applied to a feature env's own stores and mocks, never to a deployment.
 
 ## Depends on
 
-- `epic:config/sweep`, which makes the hub's offline cutoff a setting a feature env can raise
-  (`product:runner-presence`).
+- `product:config/sweep/constants-promoted`, which makes the hub's runner offline cutoff, `STALE_AFTER` today, a setting
+  a feature env can raise, once `decision:config/sweep/constant-owners` does not keep it fixed.
+  `product:runner-presence` waits on both. A feature env that raises the cutoff accepts that its own runner also reads
+  online for up to four hours after it stops.
+- `product:workspace/running-environments/resource-provisioning/required-service-preconditions`, which lets a
+  provisioning step start the services it needs, so `winter provision` can apply the starter world
+  (`product:starter-world`).

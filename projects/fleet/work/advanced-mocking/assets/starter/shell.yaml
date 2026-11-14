@@ -1,23 +1,25 @@
 # Projects, sources, repositories, and urgencies (records of the hub's config document), and the people who use it.
+# This file owns these records: the hub's startup script declares none of them. `${VAR}` is read from the env.
 fixture: 1
 kind: shell
 name: storefront
 
 forges:
-  - {slug: mock, kind: github, api_base: "${BZ_FORGE_URL}"}
-secrets: [mock-forge]
+  - {slug: mock, kind: github, api_base: "http://127.0.0.1:${BZ_FORGE_PORT}"}
+secrets:                          # name in the config document, value through the secret API
+  - {name: mock-forge, value: mock-forge-token}
 work_sources:
   - {slug: toy-api, name: Storefront API, provider: github, locator: blizzard/toy-api, forge: mock, secret: mock-forge}
   - {slug: toy-web, name: Storefront Web, provider: github, locator: blizzard/toy-web, forge: mock, secret: mock-forge}
   - {slug: billing, name: Billing, provider: github, locator: blizzard/billing-service, forge: mock, secret: mock-forge}
 repositories:
-  - {slug: toy-api, forge: mock, owner: blizzard, repo: toy-api, base_branch: main, secret_name: mock-forge,
-     landing_policy: merge-on-checks}
-  - {slug: toy-web, forge: mock, owner: blizzard, repo: toy-web, base_branch: main, secret_name: mock-forge,
-     landing_policy: merge-on-checks}
+  - {slug: toy-api, forge: mock, owner: blizzard, repo: toy-api, base_branch: "${BZ_BASE_BRANCH}",
+     secret_name: mock-forge, landing_policy: merge-on-checks}
+  - {slug: toy-web, forge: mock, owner: blizzard, repo: toy-web, base_branch: "${BZ_BASE_BRANCH}",
+     secret_name: mock-forge, landing_policy: merge-on-checks}
   - {slug: billing-service, forge: mock, owner: blizzard, repo: billing-service, base_branch: main,
      secret_name: mock-forge, landing_policy: park, park_timeout_hours: 24}
-projects:
+projects:                        # `default` is the project every new tenant holds, adopted and renamed
   - {slug: default, name: Storefront, color: teal,
      description: "The customer-facing shop: catalog, cart, and checkout.",
      sources: [toy-api, toy-web], repositories: [toy-api, toy-web], landing_order: [toy-api, toy-web]}
@@ -26,10 +28,10 @@ projects:
      sources: [billing], repositories: [billing-service]}
 urgencies:
   - {slug: urgent, name: Urgent, color: red}
-  - {slug: normal, name: Normal, color: slate}
+  - {slug: standard, name: Normal, color: slate}    # the tenant's own default urgency, adopted and renamed
   - {slug: someday, name: Someday, color: "#8a8f98", emoji: "🌙"}
-urgency_order: [urgent, normal, someday]
-settings: {default_urgency: normal}
+urgency_order: [urgent, standard, someday]
+settings: {default_urgency: standard}
 
 people:
   - {key: dana, username: dana, display_name: Dana Okafor, email: dana@example.test, role: admin}

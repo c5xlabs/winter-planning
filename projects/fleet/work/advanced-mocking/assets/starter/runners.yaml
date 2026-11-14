@@ -21,6 +21,7 @@ runners:
          supported_models: [claude-opus-5-5, claude-sonnet-5-5]}
     subscriptions: [team-max]
     projects: [default]
+    gates: [pre-push]              # holds a human decision at pre-push
     usage_samples:
       - {subscription: team-max, at: -10m, windows: [{window: 5h, utilization_pct: 42.0, resets_at: +3h}]}
 
@@ -37,13 +38,13 @@ runners:
     name: build-box-1
     presence: online
     capabilities: [{harness_id: claude_code, version: 2.4.1, default: true, available: true}]
-    subscriptions: [team-max]
-    projects: [billing]
+    subscriptions: [{slug: team-max, name: Team Max, provider: anthropic}]   # no host: its own roster
+    projects: [default, billing]
     usage_samples:
       - {subscription: team-max, at: -5m, windows: [{window: 5h, utilization_pct: 96.0, resets_at: +40m},
                                                     {window: 7d, utilization_pct: 71.5, resets_at: +3d}]}
     declining:
-      - {lever: subscription-ceiling, subscription: team-max, detail: "96% of the 5h window", until: +40m}
+      - {lever: utilization, subscription: team-max, detail: "96% of the 5h window", until: +40m}
 
   - key: ci-spare
     name: ci-spare
@@ -61,12 +62,19 @@ runners:
     presence: online
     local_paused: {at: -30m, reason: "Spend ceiling reached for today"}
     capabilities: [{harness_id: claude_code, version: 2.3.0, default: true, available: true}]
-    subscriptions: [team-max]
+    subscriptions: [{slug: team-max, name: Team Max, provider: anthropic}]   # no host: its own roster
+    projects: [billing]
     usage_misses:
-      - {subscription: team-max, at: -20m, reason: "token expired"}
+      - {subscription: team-max, at: -20m, reason: credential_lapsed}
 
   - key: old-mac
     name: old-mac
     presence: offline
     last_seen: -30d
     retired: {at: -21d, by: dana}
+
+  - key: long-name                 # overflow: a name past any column width
+    name: runner-extremely-long-runner-name-for-narrow-viewport-checksextremely-long-runner-name-for-narrow-viewport-checksextremely-long-runner-name-for-narrow-viewport-checks
+    presence: online
+    capabilities: [{harness_id: claude_code, version: 2.4.1, default: true, available: true}]
+    projects: [default]
