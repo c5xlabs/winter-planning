@@ -27,11 +27,15 @@ This epic extends the development-sample process boundary owned by `epic:cli-fou
 discovery, compatibility checks, and version selection. Product dispatch is verified with controlled stand-in
 executables, not by connecting to the current Python Workspace CLI (`decision:launcher-shim/component-boundary`).
 
+## Left for later
+
+- Fetching published component releases into the version cache: `epic:component-install`.
+
 ## What this epic is not
 
 - A port, wrapper, fallback, or compatibility layer for the existing Python Workspace CLI.
 - Workspace operations, Fleet business logic, or starting and supervising Fleet services.
-- Component downloads, installers, self-update, or release publishing. Missing components are reported, not installed.
+- Self-update or release publishing. Missing components are reported, not installed.
 - Building components from source or introducing a development-source override.
 - Choosing a version for a single invocation, or running more than one version of the same role side by side on one
   machine outside workspace pins.

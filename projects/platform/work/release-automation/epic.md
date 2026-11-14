@@ -34,10 +34,14 @@ Consumer release work declares a dependency on `epic:platform/release-automation
 release milestone's chart. Feature-development work does not acquire that dependency merely because its project will
 eventually release through the shared capability.
 
+## Left for later
+
+- Fetching published component releases onto a person's machine: `epic:component-install`.
+
 ## What this epic is not
 
 - A prerequisite for completing the foundation or implementing the launcher shim.
-- Workspace or Fleet feature implementation, product dispatch, component downloads, or self-update.
+- Workspace or Fleet feature implementation, product dispatch, or self-update.
 - Enforcing a release train or published-release compatibility promises on unreleased development builds.
 - Migrating every existing Blizzard release workflow or imposing its full cadence and support windows on the suite.
 

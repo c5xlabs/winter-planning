@@ -38,3 +38,15 @@ procedure applies the shared package and versioning governance without blocking 
 | ------------------------- | ------- |
 | `epic:cli-foundation`     | planned |
 | `epic:release-automation` | planned |
+
+## Install released components (milestone:install-released-components)
+
+A person can fetch the published Workspace, hub, or runner release their workspace or machine selects, and then run it
+through the same `winter` entry point, without building it or arranging files by hand. A fetch that fails or does not
+verify leaves nothing half-installed, and fetching never changes which version anything selects.
+
+| Epic                      | Status  |
+| ------------------------- | ------- |
+| `epic:launcher-shim`      | planned |
+| `epic:release-automation` | planned |
+| `epic:component-install`  | planned |
