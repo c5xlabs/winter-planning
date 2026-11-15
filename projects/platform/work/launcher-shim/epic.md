@@ -1,6 +1,6 @@
 ---
 epic: launcher-shim
-refinement: outline
+refinement: final
 status: planned
 ---
 
@@ -14,21 +14,18 @@ A standalone capability epic supporting the Workspace and Fleet entry points; it
 A person using independently installed Winter products should not have to remember a different executable and version
 selection procedure for each. In two workspaces pinned to different versions, a command must reach the selected product
 version rather than whichever binary happens to come first on PATH, and the hub and runner a person runs must be able to
-move to a new release without waiting on every workspace's pin.
-Hub and Runner also need directory-scoped version selections without adopting Workspace's configuration or requiring a
-Winter workspace.
-Replacing the installed singleton must not break existing Python workspaces or require their immediate adoption of the
-unfinished Rust Workspace product.
+move to a new release without waiting on every workspace's pin. Hub and Runner also need directory-scoped version
+selections without adopting Workspace's configuration or requiring a Winter workspace. Replacing the installed singleton
+must not break existing Python workspaces or require their immediate adoption of the unfinished Rust Workspace product.
 
 ## The outcome
 
 The `winter` command carries the person or agent to a separately installed product executable while preserving the
 invocation they intended. The platform keeps its own commands; Workspace and Fleet keep their implementations and can be
 installed independently. The shim follows `decision:launcher-language` and is added to the foundation executable, not
-shipped as a competing command.
-Workspace owns its pin in `.winter/config.toml`; platform-owned `.winterrc` files supply inherited per-role selections
-from filesystem root to the caller's directory, with child values overriding ancestor values and user-selected defaults
-available when no directory selection applies.
+shipped as a competing command. Workspace owns its pin in `.winter/config.toml`; platform-owned `.winterrc` files supply
+inherited per-role selections from filesystem root to the caller's directory, with child values overriding ancestor
+values and user-selected defaults available when no directory selection applies.
 
 Under `decision:singleton-launcher-succession`, the same executable preserves opt-in legacy commands by launching the
 workspace's existing Python application, retains agents' first-argument `--winter=PATH` implementation override without
