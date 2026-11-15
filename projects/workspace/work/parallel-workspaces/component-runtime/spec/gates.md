@@ -97,15 +97,12 @@ the checkout under a temporary directory (never in the checkout itself), once pe
   `let _x = 1u8.clone();` in a library source    exit 1, summary names clippy          (Clippy warning)
   a new unit test in a library source whose body is `assert_eq!(std::process::id(), 0);`
                                                  exit 1, summary names test; fmt and clippy not named
-  an empty directory scenarios/x-y/z/ added      cargo scenarios -> the exit Cargo gives a failed test target,
-                                                 naming the directory;
+  an empty directory scenarios/x-y/z/ added      cargo scenarios -> exit 1, naming the directory;
                                                  cargo dev gate full -> exit 1, names scenarios;
                                                  cargo dev gate slice -> exit 0
 Success: each run ends with the stated exit and summary, every later step still ran, and `git status` of the scratch
 copy shows only the injected edit (the last fault adds no tracked file, so there it shows nothing).
-`cargo scenarios` is a Cargo test command, not a driver command: the target itself exits 1, and Cargo reports a
-failed test target with a code of its own. The contributor document states the code observed. The two gate rows
-are the driver's exit, which is 1 for any failed step.
+The exit of `cargo scenarios` is the scenario target's own exit code, which Cargo returns for it.
 The fourth fault fails when the test runs and at no other step: a process id is never 0, and the condition is not a
 constant, so the clippy step, which lints test code as well, reports nothing about it. An assertion on a constant —
 `assert!(false)` — would fail the clippy step too and is not used.
