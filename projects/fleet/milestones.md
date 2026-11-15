@@ -46,17 +46,17 @@ what is most urgent, hands each piece to the runner and the settings suited to i
 large to share it, and keeps watch over itself through agents that each hold their role alone — without the operator
 choreographing any of it.
 
-| Epic                         | Status      |
-| ---------------------------- | ----------- |
-| `epic:cadence`               | delivered   |
-| `epic:signals`               | planned     |
-| `epic:urgency`               | in-progress |
-| `epic:tagging`               | planned     |
-| `epic:worker-profiles`       | planned     |
-| `epic:chokepoint/chokepoint` | planned     |
-| `epic:chokepoint/epic-dwf`   | planned     |
-| `epic:sentinel-agents`       | planned     |
-| `epic:agent-identity`        | planned     |
+| Epic                         | Status    |
+| ---------------------------- | --------- |
+| `epic:cadence`               | delivered |
+| `epic:signals`               | planned   |
+| `epic:urgency`               | delivered |
+| `epic:tagging`               | planned   |
+| `epic:worker-profiles`       | planned   |
+| `epic:chokepoint/chokepoint` | planned   |
+| `epic:chokepoint/epic-dwf`   | planned   |
+| `epic:sentinel-agents`       | planned   |
+| `epic:agent-identity`        | planned   |
 
 ## Foundational seams (milestone:foundational-seams)
 

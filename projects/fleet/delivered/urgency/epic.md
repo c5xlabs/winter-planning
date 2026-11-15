@@ -1,7 +1,7 @@
 ---
 epic: urgency
 refinement: final
-status: in-progress
+status: delivered
 ---
 
 # Plan — `epic:urgency`
