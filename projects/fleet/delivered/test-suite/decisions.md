@@ -2,10 +2,9 @@
 
 ## The order of the epics (decision:test-suite/epic-order)
 
-The foundation lands first, then the hub, runner, and fleet tiers and the journey in that order, with the controlled
-clock free to start beside the fleet tier and optimization last, because each epic needs what the ones before it built
-and optimization measures the gate the tier epics leave behind. Each epic's dependencies are in
-[epic order](../../research/test-suite/epic-order.md).
+The foundation lands first, then the hub, runner, and fleet tiers and the journey in that order, because each epic needs
+what the ones before it built. The controlled clock is free to start beside the fleet tier; each epic's dependencies are
+in [epic order](../../research/test-suite/epic-order.md).
 
 ## The kill-9 crash sweep stays in Python (decision:test-suite/crash-sweep-stays)
 
@@ -21,8 +20,10 @@ hold them are ported, not before.
 
 ## The black-box line wins (decision:test-suite/black-box-wins)
 
-Where speed and implementation-independence pull apart, independence wins, so a shortcut such as starting a hub from a
-pre-migrated database never reaches the tier.
+Where speed and implementation-independence pull apart, independence wins: cases seed and assert through public
+surfaces, with the store-test exceptions the tier's rules admit. The harness may reuse per-run templates built by real
+daemon initialization under its existing cold-init contract, but never bypass that contract or seed live stores to make
+a behavioral case cheaper.
 
 ## The harness travels with the tests (decision:test-suite/harness-travels)
 

@@ -8,7 +8,6 @@ epics:
   - fleet-tier
   - journey
   - controlled-clock
-  - optimization
 ---
 
 # Test suite
@@ -51,15 +50,11 @@ architecture work arrives just in time rather than in advance.
 check it asks for answered by the daemons themselves, and beside it the guard that holds `blizzard-mock` to the wire it
 imitates. `epic:test-suite/controlled-clock` gives the hub, the runner host, and the mock fleet a clock a test moves
 through their surfaces, so a promise about time is proved by advancing past it rather than waiting for it.
-`epic:test-suite/optimization` speeds the tiers that stay in Python and the pipeline around them, against the gate the
-tier epics leave behind (`decision:test-suite/epic-order`).
 
 ## Stance
 
-Independence is the purpose; speed is a guard. The tier never becomes the gate's slowest job, and no port or epic
-records the tier's CI time. What a pull request waits on today is the unit and component shards, which
-`epic:test-suite/optimization` owns, so a faster service tier alone would not shorten that wait. Where speed and
-implementation-independence pull apart, independence wins (`decision:test-suite/black-box-wins`).
+Independence is the purpose; speed does not excuse weaker proof. Where speed and implementation-independence pull apart,
+independence wins (`decision:test-suite/black-box-wins`).
 
 Every epic in the initiative keeps these rules:
 
@@ -71,7 +66,6 @@ Every epic in the initiative keeps these rules:
 - blizzard-context moves in step with the tests (`decision:test-suite/harness-travels`).
 - Nothing is optimized on its way out (`decision:test-suite/no-optimizing-the-doomed`).
 
-The initiative covers every tier above the component tier save one, and the gate's speed. Unit and component tests stay
-in Python and stay coupled to it on purpose, and a test whose subject turns out to be internal machinery moves down to
-the component tier rather than being ported. The kill-9 crash sweep stays in Python too
-(`decision:test-suite/crash-sweep-stays`).
+The initiative covers every tier above the component tier save one. Unit and component tests stay in Python and stay
+coupled to it on purpose, and a test whose subject turns out to be internal machinery moves down to the component tier
+rather than being ported. The kill-9 crash sweep stays in Python too (`decision:test-suite/crash-sweep-stays`).

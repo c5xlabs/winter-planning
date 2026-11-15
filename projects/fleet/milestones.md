@@ -34,7 +34,6 @@ takes work theirs to declare, and every upgrade taken when they choose and told 
 | `epic:config/runtime`                    | in-progress |
 | `epic:ui-toolkit`                        | ready       |
 | `epic:cli-context`                       | ready       |
-| `epic:test-suite/optimization`           | planned     |
 | `epic:adopt-di`                          | planned     |
 | `epic:transactions`                      | in-progress |
 | `epic:advanced-forge-auth`               | in-progress |
