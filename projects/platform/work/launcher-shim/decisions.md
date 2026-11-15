@@ -1,5 +1,13 @@
 # Winter launcher shim decisions
 
+## Python environment leases (decision:launcher-shim/venv-ownership)
+
+**Decider:** engineering
+
+Legacy invocations hold a shared venv lease through Python execution, while synchronization requires an exclusive lease,
+so concurrent launches cannot switch the implementation under a running command. Lease contention fails with an
+actionable retry diagnostic rather than waiting indefinitely or mutating an in-use environment.
+
 ## Manual singleton replacement (decision:launcher-shim/manual-cutover)
 
 **Decider:** product owner

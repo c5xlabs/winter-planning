@@ -98,6 +98,8 @@ Acceptance:
   target workspace's `tools/winter-cli`.
 - Reusing a relocated venv prepared from a different source requires synchronization with the selected source, even when
   the selected source's dependency files are older than the previous synchronization.
+- Warm invocations can share a venv concurrently; a launch needing synchronization while that venv is in use fails with
+  an actionable retry diagnostic instead of changing the implementation beneath running commands.
 - A malformed override or missing/unusable source fails explicitly without falling back to the target's implementation.
   Override-source configuration does not grant legacy permission for the target workspace.
 - Launcher-level `--winter=PATH` is rejected for explicit Rust groups rather than interpreted as a Rust source selector;

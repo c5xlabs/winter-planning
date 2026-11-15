@@ -23,7 +23,7 @@ flowchart LR
 | `process.rs`                    | Loses its `cfg(dev-sample)` gate; `Process` and `UnixProcess` serve production dispatch          |
 | `dispatch.rs`                   | New: modern version resolution, manifest validation, `ExecRequest` construction                 |
 | `selection.rs`                  | New: ancestor `.winterrc` merge, Workspace pin discovery, version-string validation              |
-| `legacy.rs`                     | New: target/source selection, Python venv preparation, temporary init; injected effects          |
+| `legacy.rs`                     | New: target/source selection, venv leases/preparation, temporary init; injected effects          |
 | `cli.rs`                        | Classifies modern groups, legacy command names, init, and platform controls without parsing tails |
 | `sample.rs`                     | Uses extended `ExecRequest` with inherited cwd; keeps dev-only path and handoff behavior          |
 
@@ -36,7 +36,7 @@ flowchart LR
 | `XDG_CONFIG_HOME` | `var_os("XDG_CONFIG_HOME")`, absolute only | `$HOME/.config`                                        |
 | `XDG_CACHE_HOME` | `var_os("XDG_CACHE_HOME")`, absolute only   | `$HOME/.cache`                                         |
 | Host target      | Build-time `TARGET`, exported by `build.rs` | Compiled in                                            |
-| Legacy environment | `vars_os()` snapshot                    | Inherited `PATH`, optional `UV_PROJECT_ENVIRONMENT`     |
+| Inherited environment | One `vars_os()` snapshot per dispatch | Modern `DispatchEnv.inherited`; legacy `LegacyEnv.inherited` |
 | Launch instant   | Wall-clock timestamp at launcher entry     | Decimal epoch seconds for legacy `WINTER_LAUNCH_TIME`  |
 
 Relative XDG values are ignored, per the XDG base-directory specification. Legacy dispatch does not require XDG
@@ -81,6 +81,7 @@ pub struct DispatchEnv {
     pub config_home: PathBuf,
     pub cache_home: PathBuf,
     pub target: &'static str,
+    pub inherited: Vec<(OsString, OsString)>, // captured by main; preserve native keys/values
 }
 
 pub struct LegacyRequest {
@@ -101,12 +102,13 @@ pub enum Route {
     // Foundation retains platform help, version, usage errors, and gated sample dispatch.
 }
 
-// Production extension of the foundation's ExecRequest; sample uses cwd=None and its existing environment policy.
+// Production extension; modern/sample use cwd=None, inherited_fds=[], and their own environment policies.
 pub struct ExecRequest {
     pub executable: PathBuf,
     pub args: Vec<OsString>,
     pub cwd: Option<PathBuf>, // None = inherited; legacy = workspace/tools/winter-cli
     pub env: Vec<(OsString, OsString)>, // explicit inherited snapshot plus route-specific changes
+    pub inherited_fds: Vec<std::os::fd::OwnedFd>, // legacy shared lease only; retained across successful exec
 }
 ```
 
@@ -270,6 +272,7 @@ pub enum LegacyError {
     InvalidSource { path: PathBuf, reason: String },    // 1; selected Python source, no fallback
     InvalidConfig { file: PathBuf, reason: String },    // 126
     Setup { path: PathBuf, source: std::io::Error },    // 126; includes bootstrap/venv/stamp effects
+    Busy { venv: PathBuf },                            // 1; in use or changed during setup; retry when idle
     Sync { executable: PathBuf, status: std::process::ExitStatus }, // propagate nonzero status/signal
     Replacement { executable: PathBuf, source: std::io::Error },    // ENOENT=127; other errors=126
 }
@@ -295,7 +298,8 @@ Every dispatch diagnostic starts with `winter: cannot run`; legacy failures use 
 with the relevant workspace/path and cause, not a fabricated Rust version. Modern dispatch never retries another
 version, searches PATH, or writes files (`product:explain-dispatch-failure`). Legacy setup may locate `uv` on inherited
 PATH, synchronize its selected source and dependency environment, publish its sync stamp, and perform temporary init,
-but never searches PATH for a product.
+but never searches PATH for a product. `Busy` names the venv and advises retrying after the active command/setup
+finishes; it never falls back, waits indefinitely, or changes an environment/stamp without exclusive ownership.
 
 | Handoff field  | Contract                                                                                            |
 | -------------- | --------------------------------------------------------------------------------------------------- |
@@ -303,7 +307,7 @@ but never searches PATH for a product.
 | `argv[0]`      | The selected executable path                                                                        |
 | Arguments      | Every token after the group, unchanged `OsString` values                                            |
 | cwd, fds 0/1/2 | Inherited unchanged                                                                                 |
-| Environment    | Inherited snapshot plus `WINTER_INVOKED_AS=winter <group>`, replacing any inherited value           |
+| Environment    | Copy `DispatchEnv.inherited`; replace only `WINTER_INVOKED_AS` with `winter <group>`                |
 | Process        | Same PID via `execve`; the component owns exit status and signals (`product:preserve-invocation`)   |
 
 ```text
@@ -328,6 +332,7 @@ The shim supports handoff version `1` only. A later handoff version adds to this
 | Streams and process | Inherit fds 0/1/2; same PID after exec; Python owns exit status and signals |
 | Synchronizer | `uv sync --project <absolute selected-cli>`, no shell, cwd = target/tools/winter-cli, output on stderr |
 | Synchronizer environment | Setup environment with `UV_PROJECT_ENVIRONMENT` set to the resolved absolute venv |
+| Venv ownership | Shared lease retained across Python exec; exclusive lease required for synchronization |
 | Setup failure/cancellation | Do not exec Python; preserve failure status or interruption and terminate/reap setup children |
 
 ## Flows
@@ -337,6 +342,7 @@ args_os + launcher-entry instant -> classify routing token
   platform control -> foundation reply/adapter; help/version need no cwd or config
   legacy/init      -> capture cwd and environment snapshot -> run_legacy (flow below)
   modern group     -> capture cwd, environment snapshot, and XDG directories
+       -> DispatchEnv { cwd, config_home, cache_home, target, inherited = captured vars_os snapshot }
        -> DispatchRequest { role, args = unchanged tokens after group }
       -> resolve(role)
             Workspace only: walk cwd, parent, ... "/" for nearest .winter/config.toml
@@ -359,7 +365,8 @@ args_os + launcher-entry instant -> classify routing token
            parse error, role/version/target mismatch   -> InvalidManifest
            handoff not in {1}                          -> IncompatibleHandoff
            executable relative path escapes dir        -> InvalidManifest
-            -> ExecRequest { executable, args, cwd: None, env: inherited + WINTER_INVOKED_AS }
+            -> ExecRequest { executable, args, cwd: None, inherited_fds: [],
+                             env: copy env.inherited, replacing WINTER_INVOKED_AS only }
       -> Process.replace
            error -> Replacement -> dispatch_failure_reply -> exit 126
            ok    -> component owns the process
@@ -389,12 +396,15 @@ legacy/init:
       src/winter_cli/cli.py must be a readable regular file
       failure -> InvalidSource with offending path/reason; no fallback, bootstrap write, or synchronization
       validation does not import Python or prove dependencies load; installation/runtime failures remain separate
-  init only -> create target/.winter/ and empty config only if absent; never overwrite existing content
-               rewrite init token to ws init in args from which first --winter=PATH was already removed
   setup_env = inherited snapshot with original WINTER_INVOCATION_CWD and launcher-entry WINTER_LAUNCH_TIME,
               removing inherited WINTER_INVOKED_AS
   venv = inherited UV_PROJECT_ENVIRONMENT when nonempty, otherwise selected-cli/.venv
          relative venv paths resolve against selected-cli, not target-cli or original cwd
+         resolve symlinks in the longest existing ancestor, then append any missing path suffix
+         use this absolute physical destination for the lease, stamp, uv environment, and Python entrypoint
+  lease-file = native venv path with ".winter-launch.lock" appended (a stable sibling, not inside the venv)
+  create missing venv parent directories; open/create lease-file without truncation; never unlink it
+  acquire shared lease with flock(LOCK_SH | LOCK_NB); contention -> Busy, other I/O errors -> Setup
   stamp = venv/.winter-sync-stamp
   source-id = native bytes of canonical selected-cli
   stale = entrypoint not executable OR stamp missing/malformed/old-format OR stamp source-id differs OR any existing
@@ -402,20 +412,30 @@ legacy/init:
           stamp read/stat errors other than not-found -> Setup; do not treat an I/O failure as warm
   stale?
     no  -> do not locate or run uv
-    yes -> resolve uv on inherited PATH; invalidate any old stamp BEFORE uv can mutate the venv
-           invalidation failure -> Setup; do not run uv or Python
-           sync_env = setup_env with UV_PROJECT_ENVIRONMENT = absolute resolved venv
-           run uv sync --project selected-cli in sync_env, cwd = target-cli, stdout/stderr on stderr
-           do not add --locked/--frozen; honor inherited uv configuration:
-               uv may update selected-source uv.lock, install/build dependencies, use its caches,
-               and download managed Python according to inherited uv configuration
-           fail/cancel -> stamp stays absent, no Python launch; report failed setup
-           success     -> atomically publish source-aware stamp with completion mtime
-                          stamp publication failure -> Setup; no Python launch or valid success marker
-                          remove any unpublished temporary stamp on failure
+    yes -> release shared lease; acquire exclusive with flock(LOCK_EX | LOCK_NB)
+           contention -> Busy; no environment/stamp mutation
+           reread freshness under exclusive ownership; another launch may already have synchronized this source
+           if now warm -> skip synchronization
+           otherwise:
+             resolve uv on inherited PATH; invalidate old stamp BEFORE uv can mutate the venv
+             invalidation failure -> Setup; do not run uv or Python
+             sync_env = setup_env with UV_PROJECT_ENVIRONMENT = absolute resolved venv
+             run uv sync --project selected-cli in sync_env, cwd = target-cli, stdout/stderr on stderr
+             do not add --locked/--frozen; honor inherited uv configuration:
+                 uv may update selected-source uv.lock, install/build dependencies, use its caches,
+                 and download managed Python according to inherited uv configuration
+             fail/cancel -> stamp stays absent, no Python launch; report failed setup
+             success     -> atomically publish source-aware stamp with completion mtime
+                            stamp publication failure -> Setup; no Python launch or valid success marker
+                            remove any unpublished temporary stamp on failure
+           release exclusive lease; acquire shared with flock(LOCK_SH | LOCK_NB)
+           contention -> Busy; recheck freshness under shared ownership
+           changed source/stamp/inputs -> Busy; no Python launch or automatic resynchronization loop
+  init only -> while holding shared lease, create target/.winter/ and empty config only if absent
+               never overwrite existing content; rewrite init token to ws init in args after override removal
   exec_env = setup_env without PYTHONHOME, VIRTUAL_ENV = venv, PATH = venv/bin prepended to inherited PATH
   Process.replace(venv/bin/winter, args without launcher override / init-rewritten args,
-                  cwd = target-cli, env = exec_env)
+                  cwd = target-cli, env = exec_env, inherited_fds = [shared lease descriptor])
     failure -> LegacyError::Replacement; never retry another implementation
     success -> Python owns process, output, exit status and signals
 
@@ -423,6 +443,24 @@ legacy/init:
 # Init and uv sync are the only documented exceptions to modern dispatch's no-write/no-install contract.
 # No init failure rolls back by deleting an existing config or other operator-owned content.
 # Singleton installation and rollback are manual; this epic adds no cutover documentation or migration tooling.
+```
+
+```text
+# decision:launcher-shim/venv-ownership
+lease descriptor:
+  allocate lease descriptors at fd >= 3; preserve closed as well as open standard-stream descriptors
+  keep FD_CLOEXEC set throughout preparation; synchronizer children must not retain it
+  move the held shared lease into ExecRequest.inherited_fds without releasing/reacquiring it
+  UnixProcess uses request.env directly, never std::env; it keeps owned descriptors alive through execve
+  clear FD_CLOEXEC on inherited_fds only immediately before final execve; fds 0/1/2 remain unchanged
+  failed replacement -> drop/close owned descriptors before returning the I/O error
+  successful replacement -> Python retains the shared lease; kernel releases it when its last descriptor closes
+  early failure/cancellation -> close lease after terminating/reaping setup children
+
+all cooperating legacy launches use this lease, including cold/default-source launches
+warm shared leases allow concurrent execution; only an exclusive holder may change the venv or stamp
+flock conversions are not assumed atomic: release/reacquire explicitly and revalidate after acquiring each lease
+external uv runs, old wrappers, and manual venv edits do not participate; concurrent external mutation is unsupported
 ```
 
 ## Data
@@ -490,6 +528,7 @@ executable = "bin/winter-runner" # relative; normalized result must stay inside 
 Unknown keys are ignored so later fields can be added without breaking older shims. A `.winterrc` merges only recognized
 `versions` keys, not unrelated tables or arbitrary Workspace configuration. Modern dispatch never writes these files;
 temporary init may create an absent workspace config but never edits an existing one. Legacy setup writes only its
-source-aware sync stamp directly in addition to that bootstrap exception; delegated uv synchronization may update the
-selected source's lockfile, dependency/build environment, uv caches, and managed Python installations. These legacy
-effects never select or install Rust components, edit role defaults or workspace pins, or replace the installed command.
+stable sibling lease file/parent directories and source-aware sync stamp directly in addition to that bootstrap
+exception; delegated uv synchronization may update the selected source's lockfile, dependency/build environment, uv
+caches, and managed Python installations. These legacy effects never select or install Rust components, edit role
+defaults or workspace pins, or replace the installed command.

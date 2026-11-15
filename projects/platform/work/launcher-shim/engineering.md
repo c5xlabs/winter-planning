@@ -13,6 +13,9 @@ the installed `winter`, the current Python Workspace CLI, or live Workspace/Flee
 Acceptance:
 
 - Fixture components expose the arguments, working directory, streams, exit status, and signals received for assertion.
+- Modern dispatch receives its native inherited environment through the injected request context; fixtures assert
+  unrelated variables survive byte-for-byte and only `WINTER_INVOKED_AS` is replaced, without reading global environment
+  from dispatch or the process adapter.
 - Fixture-based tests cover shim and direct entry points and assert the command prefix in help, nested-command help, and
   usage errors without changing component identity or version.
 - Version-selection cases use isolated cache entries and prove that an unavailable selection does not start a fallback.
@@ -43,6 +46,12 @@ Acceptance:
   stamp, relocated venvs, synchronization failure, and cancellation during synchronization without orphaned processes.
 - Shared-venv fixtures switch A to B and back with older dependency mtimes, assert the source identity in the stamp,
   and prove each switch synchronizes before execution. Empty pre-Rust stamps also require synchronization.
+- Overlapping fixtures cover concurrent warm readers, competing cold launches, and A/B source switches. Synchronization
+  requires exclusive ownership; the post-setup shared-lease check prevents execution after an intervening source switch.
+- A fixture entrypoint retains its shared lease across exec while another invocation attempts synchronization; normal
+  exit, signals, and replacement failure release the lease. Synchronizer children do not retain the lease descriptor.
+- Venv aliases resolve to one lease identity; the lockfile remains outside the replaceable venv, is never unlinked, and
+  lock contention produces a bounded retry diagnostic without changing the environment or stamp.
 - Failed/cancelled synchronization invalidates prior success evidence; a retry cannot reuse a partially changed venv as
   warm. Stamp-publication failure prevents execution.
 - Stub synchronization may update a fixture lockfile and isolated uv cache; assertions distinguish these allowed legacy
@@ -67,5 +76,5 @@ Acceptance:
 - Legacy synchronization uses native argument vectors without a shell; subprocess setup and cancellation preserve
   signal behavior and terminate and reap any synchronizer children before the launcher exits.
 - All launcher effects outside process replacement are limited to the legacy adapter's documented dependency setup and
-  init path, including uv's lockfile, cache, build, and managed-Python effects; no Rust release cache, role default, or
-  workspace pin is written.
+  init path, including its stable venv lockfile and uv's lockfile, cache, build, and managed-Python effects; no Rust
+  release cache, role default, or workspace pin is written.
