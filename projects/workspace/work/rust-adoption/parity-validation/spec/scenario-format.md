@@ -154,8 +154,8 @@ arguments and environment — checked by the model likewise
   [[step]] env            no value starts with "/": a value names a path only through <ROOT>
 resolved — checked on the built tree, by whoever is about to use the path
   the fixture builder     before it creates, writes, or clones at a confined path, and before each git call it
-                          makes with a confined cwd: the deepest existing ancestor of the path, canonicalized
-                          (symbolic links resolved), lies under the canonical <ROOT>
+                          makes with a confined cwd: the check of the test harness (test-harness.md, Interfaces,
+                          "confinement"), the one check the builder and the git helpers share
   the runner              before each step: the step's cwd, canonicalized, is an existing directory under the
                           canonical <ROOT>          (record-and-replay.md, Runner, "confinement")
   links in the fixture    a symbolic link under files/ or dirty/ is copied as a link and never followed

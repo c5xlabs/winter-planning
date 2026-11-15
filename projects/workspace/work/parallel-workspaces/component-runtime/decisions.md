@@ -1,5 +1,14 @@
 # Component runtime decisions
 
+## Fixture helper guarantees (decision:parallel-workspaces/component-runtime/fixture-helper-guarantees)
+
+**Decider:** program lead, under the owner's constraint that tests never touch anything outside their tree
+
+The git fixture helpers themselves refuse, before any effect and with symbolic links resolved, every path that does not
+lie in the tree, refuse the tree's root as a repository, and name SHA-1 objects and the files ref backend on every
+repository they create. A resolved check held only by the scenario fixture builder would leave component tests a weaker
+boundary, and formats left to git's defaults would make the installed git's version part of every recorded object id.
+
 ## Git discovery stops at the isolated tree (decision:parallel-workspaces/component-runtime/git-discovery-containment)
 
 **Decider:** program lead, under the owner's constraint that tests never touch a real workspace or repository

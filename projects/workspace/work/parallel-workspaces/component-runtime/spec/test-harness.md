@@ -197,7 +197,7 @@ pub struct CommitSpec {
 impl<'t> Git<'t> {
     pub fn new(tree: &'t TempTree) -> Result<Self, GitError>;                       // fails when no git is on PATH
     pub fn run(&self, cwd: &Path, args: &[&str]) -> Result<String, GitError>;      // stdout; non-zero exit is GitError
-    pub fn init(&self, path: &Path, branch: &str) -> Result<(), GitError>;         // git init -b <branch>
+    pub fn init(&self, path: &Path, branch: &str) -> Result<(), GitError>;         // the init command below
     pub fn commit(&self, repo: &Path, spec: &CommitSpec) -> Result<String, GitError>;   // returns the object id
     pub fn bare_remote(&self, name: &str, default_branch: &str, commits: &[CommitSpec]) -> Result<PathBuf, GitError>;
     pub fn clone_remote(&self, name: &str, dest: &Path) -> Result<(), GitError>;   // from https://fixture.invalid/<name>.git
@@ -207,15 +207,60 @@ impl<'t> Git<'t> {
 ```
 
 ```text
+confinement     # decision:parallel-workspaces/component-runtime/fixture-helper-guarantees
+                Every path a helper takes — a repository, a working directory, a destination, a file a CommitSpec
+                writes or deletes — is checked before the helper has any effect: until every path of the call has
+                passed, no file is written or removed, no directory is made, and git is not started. A path that
+                fails is GitError::Unconfined naming it. The workspace builder's writes are held to the same rule.
+                  base path     a repository, a working directory, or a destination. It is absolute, and a
+                                relative one is refused: it would be read against the test process's own working
+                                directory. No component is "..". The deepest ancestor of it that exists, the path
+                                itself included, canonicalised (symbolic links resolved), lies at or under the
+                                canonical ROOT. An entry exists when it is there as a link, whatever the link
+                                points to; one that cannot be canonicalised is refused.
+                  file path     relative to its repository, not empty, every component a plain name; joined to
+                                the repository, it passes the base-path check
+                  destination   of init, clone_remote, and add_worktree: a base path that is strictly below the
+                                ROOT, as given and as resolved. The ROOT is never a repository: the ceiling of
+                                the pinned environment rests on <ROOT> never holding .git.
+                  remote name   one path segment
+                The check is one crate-private function in tree.rs, beside the root it checks against. git.rs,
+                workspace.rs, and the scenario fixture builder call it and hold no second one, so a component
+                test that uses the helpers directly has the same boundary as a recorded scenario.
+init command    git init --object-format=sha1 --ref-format=files -b <branch> <path>
+                for every repository the helpers create: init, the bare repository, each scratch repository, the
+                workspace root. Both formats are named so that a git whose built-in defaults differ makes the same
+                object ids and the same config: `git config --local --list` of a fixture repository holds no
+                `extensions.` key. A git that lacks either option fails the init, and no fixture is built with it.
+clone command   git clone --ref-format=files <url> <dest>
+                A clone takes its object format from the remote, so only the ref storage is named. A worktree
+                shares the storage of its repository and names neither.
 commit dates    the n-th commit the helpers make in one tree, n from 0, carries author and committer date
                 2000-01-01T00:00:00+0000 plus n minutes, so object ids are equal across runs and across ROOTs
                 and no two fixture commits share a timestamp
+                n counts commits that exist, not attempts: a commit git refuses consumes no date, and the next
+                commit made carries it. The count is state of the tree and not of the process: TempTree holds it,
+                every Git over one tree continues one count, two trees never share one, and it ends with the tree.
+                Taking the date, making the commit, and advancing the count are one step, so two commits made in
+                one tree at once still never share a date.
+pinned ids      the fixture "pinned": in a fresh tree, before any other commit, bare_remote("pinned", "main", …)
+                  1. message "one"     files a.txt = "one\n"
+                  2. message "two"     files b.txt = "two\n"
+                  3. message "three"   delete a.txt, tag v1
+                tests/git.rs holds the three commit ids of main, oldest first, as literal constants and asserts
+                them. The ids follow from this block, the commit dates, the init command, and the identities of
+                the pinned environment, and from nothing of the host, so they are equal everywhere. The constants
+                are the tripwire for host influence: a host configuration, a changed default format, an identity
+                or a date that leaked. Two builds on one host cannot show that, because a leak reaches both. The
+                constants change only together with a rule of this spec that determines them.
 remote URL      every clone's remote.origin.url is https://fixture.invalid/<name>.git; the gitconfig rule maps it
                 to <ROOT>/remotes/<name>.git at transport time, so no ROOT is ever committed
+                A clone of a name the tree has no remote for fails on the mapped path: git's stderr names
+                <ROOT>/remotes/<name>.git and never fixture.invalid, and no host name was resolved.
 where the ROOT  outside object storage, the files of a fixture repository that may hold the ROOT are a worktree's
 may appear      gitdir pointers, and FETCH_HEAD once a fetch has run, where git may write the URL as rewritten for
                 transport. No other file of a repository the helpers build holds it.
-bare_remote     1. git init --bare -b <default_branch> <ROOT>/remotes/<name>.git
+bare_remote     1. the init command with --bare, at <ROOT>/remotes/<name>.git, on <default_branch>
                 2. build the commits in a scratch repository under <ROOT>/tmp
                 3. from the scratch repository, push refs/heads/* and refs/tags/* to the bare repository, naming
                    it by its path on the command line; no remote is added to either repository
@@ -224,6 +269,11 @@ bare_remote     1. git init --bare -b <default_branch> <ROOT>/remotes/<name>.git
                 `git config --local --list` holds no `remote.` key and no path, and is the same text under any ROOT.
 push_to_remote  scratch clone from https://fixture.invalid/<name>.git, commit, push, remove the clone; the bare
                 repository's config is not touched
+                  no branch named                the commit continues the remote's default branch
+                  a branch the remote has        the commit continues that branch from the remote's tip
+                  a branch the remote lacks      the branch is created from the tip of the remote's default
+                                                 branch, the commit is made on it, and it is pushed as a new
+                                                 branch of the remote; the default branch does not move
 ```
 
 ```rust
