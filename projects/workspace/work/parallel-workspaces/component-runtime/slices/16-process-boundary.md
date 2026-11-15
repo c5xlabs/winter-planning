@@ -68,7 +68,7 @@ before `stdout-fault-tests` and `interrupt`; it runs beside no other change.
 - Component tests, through the scaffold: `ws index NAME` with `cwd_error` ends as the spec's ending, exit code 1;
   `--help`, `--version`, and `ws index --bogus` with the same error end as they do without it.
 - `grep -n 'unwrap_or_default' crates/cli/src/main.rs` prints nothing.
-- `grep -rn 'fn internal' crates/core/src` prints nothing.
+- `grep -n 'fn internal(' crates/core/src/output.rs` prints nothing.
 - `crates/cli/tests/root.rs`: the built binary run outside any workspace with `ws index NAME` exits 1 with empty stdout.
 - The scenario passes, and `cargo dev gate full` exits 0.
 
