@@ -53,8 +53,11 @@ whatever the caller passes; tests pass stand-in scripts, and nothing here knows 
   `Unstable` carrying a `Json` difference, and no `record/` exists.
 - The same stand-in printing its process id as plain text, in a `text`-mode step, records successfully; so does one that
   writes its process id to stderr.
-- A stand-in that writes its process id into a workspace file is refused with a `Files` difference; with a
-  `[[compare.file]]` rule of mode `ignore` for that path it records.
+- A stand-in that writes its process id into a workspace file compared as `bytes`, the default, is refused with
+  `Unstable` carrying a `Tree` difference naming the file.
+- A stand-in that writes its process id as a TOML value into a workspace file covered by a `[[compare.file]]` rule of
+  mode `toml` is refused with `Unstable` carrying a `Files` difference naming the file.
+- With a `[[compare.file]]` rule of mode `ignore` for the path, either stand-in records.
 - A stand-in that prints its working directory records `<ROOT>/ws` and is stable.
 - With a redaction of a directory the test made to the token `<ELSEWHERE>`, a stand-in that prints that directory's path
   on stdout and on stderr records the token in both files and the path in neither.
