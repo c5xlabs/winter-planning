@@ -23,12 +23,21 @@ change.
 - `process.rs`: step 2 of `run_with` ([runtime.md](../spec/runtime.md), The parse and the run) writes the one Debug
   record the spec names, carrying the command path, to the stderr handle of the `Invocation`, at `Stage::Command`
   whatever the outcome. `parse.rs` is not touched: the parser writes nothing, and the record needs no `Context`.
+- `crates/core/tests/ws_index.rs`: two tests there run a command with logging switched on. Each holds what it is about,
+  with stderr the runtime's one record and nothing else, in place of an empty stderr.
+  `the_root_options_before_the_command_name_are_accepted_and_change_no_result` sets `WINTER_LOG_LEVEL=DEBUG` in every
+  run, so every run writes the record: the ending is a success, the document equals the one of the plain run, and stderr
+  is the record naming `ws index`. In `an_argument_of_ws_index_that_is_not_utf_8_is_refused_and_nothing_is_looked_up`,
+  the run `-v ws index NAME` with a `NAME` that is not UTF-8 is at `Stage::Command` with the path `[ws, index]`, so the
+  record is written before the refusal ends the run: that run holds the same usage error as the others and the record as
+  its stderr; the runs without `-v` hold an empty stderr. The helper `usage_parts` keeps its empty-stderr assertion for
+  every other caller.
 - Contributor documents: `context/architecture/structure.md` gains the `diagnostics.rs` row;
   `context/standards/rust.md`, Output and environment access, says a module reports a condition through
   `diagnostics::record` and never formats a record itself.
 - Files touched: `crates/core/src/diagnostics.rs` (new), `crates/core/src/{process,lib}.rs`,
-  `crates/core/tests/root.rs`, `context/architecture/structure.md`, `context/standards/rust.md`, and the scenario
-  directories below. No manifest changes.
+  `crates/core/tests/{root,ws_index}.rs`, `context/architecture/structure.md`, `context/standards/rust.md`, and the
+  scenario directories below. No manifest changes.
 - `crates/dev/tests/architecture.rs` pins nothing this change alters; `diagnostics.rs` writes only to the handle it is
   given. `diagnostics::notice` is not written: nothing calls it yet, and the gate denies unused code.
 - Scenarios recorded with `cargo dev record`, both with `stdout = "json"`: `ws-index/verbose`
@@ -50,6 +59,10 @@ change.
   record with the command path; the same without `-v` leaves stderr empty; `WINTER_LOG_LEVEL=debug` without `-v` writes
   the record; `WINTER_LOG_LEVEL=bogus` and `WINTER_LOG_LEVEL=NOTSET` write nothing and exit 0; `-v --help` and
   `-v --version` write no record; `-v ws --help` and `-v ws index --bogus` write the record, naming `ws` and `ws index`.
+- Component tests of `ws_index.rs`: under `WINTER_LOG_LEVEL=DEBUG`, every accepted spelling of the root options before
+  the command name leaves the document of `ws index NAME --json` equal to the plain run's and stderr holding the record
+  alone; `-v ws index NAME` with a `NAME` that is not UTF-8 ends as the usage error of `ws index`, exit 2, with an empty
+  stdout and stderr holding the record alone, and the same line without `-v` leaves stderr empty.
 - The two scenarios pass, and `cargo dev gate full` exits 0.
 
 ## Out of scope
