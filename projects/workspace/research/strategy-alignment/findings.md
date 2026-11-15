@@ -91,8 +91,8 @@ Python startup measurements nor exporter timing thresholds establish a new Rust 
 
 ## Platform boundaries still requiring agreement
 
-The [Platform foundation specs](../../../platform/work/cli-foundation/spec/system.md) define a planned Rust foundation
-and a development-only sample process boundary, not a completed product plugin API. The
+The [Platform foundation specs](../../../platform/delivered/cli-foundation/spec/system.md) define a Rust foundation and
+a development-only sample process boundary, not a completed product plugin API. The
 [launcher-shim decisions](../../../platform/work/launcher-shim/decisions.md) settle separate product executables,
 cache/manifest discovery, Workspace configuration pins, inherited `.winterrc` selections, and per-role user-selected
 defaults under `decision:platform/launcher-shim/component-discovery` and

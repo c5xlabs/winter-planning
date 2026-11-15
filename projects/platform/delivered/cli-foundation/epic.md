@@ -1,7 +1,7 @@
 ---
 epic: cli-foundation
 refinement: outline
-status: planned
+status: delivered
 external: github:c5xlabs/winter#1
 ---
 
