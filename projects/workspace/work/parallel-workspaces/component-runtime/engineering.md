@@ -149,8 +149,30 @@ development sample does not define that transport. This remains a production int
 
 ## Open questions
 
-- The epic's present slices build the repository, its gates, its test support, and its contributor context, and stop
-  there. `engineering:handoff-fidelity` and `engineering:machine-output-boundary` are delivered by no slice yet, and no
-  slice builds the root options, logging, tracing, or the parts of the command surface, output formats, and results
-  specs beyond the errors and parser answers the layout and registration specs name. Engineering states, when the epic
-  is next sliced, which slices build them.
+- The command span's contract is the tracing spec, under `engineering:observability-isolation`. It covers the command
+  span and its one export. Spans of single operations, the `winter.env` attribute, trace context handed to child
+  processes, and the dashboard's session spans have no contract yet; engineering of the epic that owns each command, and
+  of the first epic that starts a child process, writes it there.
+- The port that starts a child process has three duties the specs of this epic already place on it and no slice of this
+  epic builds: it builds the child's environment from the snapshot and never inherits the process environment, from
+  which the binary removes the generic exporter variables while tracing is on; it leaves `WINTER_LAUNCH_TIME` out; and
+  it defaults `GIT_SSH_COMMAND`. Engineering of the first epic whose command starts a child process — by the order of
+  the backlog, `epic:parallel-workspaces/repository-catalog` or the first after it that calls git — specifies the port.
+- Whether `PATH` and `HOME` are rows of the process-input table: the binary of this epic starts no child and reads
+  neither. The same epic adds a row for each variable the binary itself consults to find or start a program, and leaves
+  out what only the child reads.
+- The runtime spec gives the confirmation prompt, the writer for a result of several pieces, and the notice writer as
+  contracts with no caller in this epic. Engineering of the epic whose command first prompts, streams events, or writes
+  a notice builds each one with that command; the same holds for `Termination::Aborted`, `Termination::Interrupted`, and
+  `UsageError::Rule`, which the results spec defines and the first command that returns each one adds.
+- Recorded scenarios of an invocation that ends at the root sit in a `root/` directory, which the scenario format's rule
+  "the command path joined by `-`" does not name for an empty path. Engineering of
+  `epic:rust-adoption/parity-validation` states the directory name for an empty path in the scenario format; until then
+  `root` is used, and the runner accepts any directory name.
+- The gate driver has four known gaps that no acceptance line above reaches. Engineering closes each with the next
+  change to the driver, and none is planned in this epic:
+  - a SIGHUP to the driver ends it and leaves the running step alive;
+  - the driver's interrupt path, and the flag that makes `cargo dev fmt` rewrite files, have no test;
+  - that a step runs with its stdin closed is the driver's behaviour and is not stated in the gates spec;
+  - the driver's tests build their directories with a helper of their own where the isolated tree of the test harness
+    spec would serve.

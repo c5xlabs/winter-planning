@@ -2,9 +2,9 @@
 
 The complete command tree of the `winter-workspace` binary. It mirrors the reference tool's `winter …` tree node for
 node under `decision:command-vocabulary`; reference locations are paths under `tools/winter-cli/src/winter_cli/` of the
-`winter-workspace` repository at `b57b020`. Exit codes and error kinds are in
-[results-and-exit-codes.md](./results-and-exit-codes.md); stream and JSON conventions in
-[output-formats.md](./output-formats.md).
+`winter-workspace` repository at `b57b020`, and `click/` is the pinned Click 8.3.2 the reference tool runs on. Exit
+codes and error kinds are in [results-and-exit-codes.md](./results-and-exit-codes.md); stream and JSON conventions in
+[output-formats.md](./output-formats.md); how a root option reaches a command in [runtime.md](./runtime.md).
 
 Under `decision:functional-parity` this spec fixes names, arity, value types, accepted and refused combinations, and the
 class of each refusal. It does not fix the wording or layout of help, usage, or error text; those are the argument
@@ -22,7 +22,7 @@ winter-workspace --version
   stdout: one line carrying the program name and the package version   exit 0
 winter-workspace --help
   stdout: root help                                                    exit 0
-winter-workspace            (no arguments)
+winter-workspace            (no arguments, or root options and no command)
   stderr: root help                                                    exit 2
 ```
 
@@ -30,16 +30,18 @@ winter-workspace            (no arguments)
 `.winter/config.toml`: the workspace is located and configuration loaded only when a command first needs it (reference:
 `cli_context.py:13-31`, `cli.py:429`).
 
-| Root option                           | Type, default | Visible | Behaviour                                                                                                                                                                                  |
-| ------------------------------------- | ------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--version`                           | flag          | yes     | Prints the version line and exits 0 before any other processing. No `-V`.                                                                                                                  |
-| `--service-orchestrator PATH_OR_NAME` | string, unset | yes     | Provider override for this invocation; falls back to `WINTER_SERVICE_ORCHESTRATOR`, then to configuration. When effective, `service` commands write one notice naming the value on stderr. |
-| `-v`, `--verbose`                     | flag, off     | yes     | DEBUG logging on stderr; wins over `WINTER_LOG_LEVEL`.                                                                                                                                     |
-| `--help`                              | flag          | yes     | Prints help to stdout and exits 0. Present on every node. No `-h`.                                                                                                                         |
-| `--source-override TEXT`              | string, unset | hidden  | Consumed only by the dashboard title.                                                                                                                                                      |
+| Root option                           | Type, default | Visible | Behaviour                                                                                                                                                                                                                                                                                                                                 |
+| ------------------------------------- | ------------- | ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--version`                           | flag          | yes     | Prints the version line and exits 0, with or without a command after it, unless a fault of the root stands before it (Parsing rules). No `-V`.                                                                                                                                                                                            |
+| `--service-orchestrator PATH_OR_NAME` | string, unset | yes     | Provider override for this invocation. An empty value, like no option, falls back to `WINTER_SERVICE_ORCHESTRATOR`, where an empty value means unset, then to configuration. When effective, the `service` commands that consult it write one notice naming the value on stderr; `service ext-services` consults nothing and writes none. |
+| `-v`, `--verbose`                     | flag, off     | yes     | DEBUG logging on stderr; wins over `WINTER_LOG_LEVEL`. Reaches logging and nothing else.                                                                                                                                                                                                                                                  |
+| `--help`                              | flag          | yes     | Prints help to stdout and exits 0, unless a fault of the same node stands before it. Present on every node. No `-h`.                                                                                                                                                                                                                      |
+| `--source-override TEXT`              | string, unset | hidden  | Consumed only by the dashboard title.                                                                                                                                                                                                                                                                                                     |
 
-Root options are accepted only before the first command token. There is no global `--json`, `--quiet`, `--color`,
-`--cwd`, or workspace-root option, and no option reads its value from an environment variable through the parser.
+The root has these five options and no other (reference: `cli.py:296-322`). There is no global `--json`, `--quiet`,
+`--color`, `--cwd`, or workspace-root option, and no option reads its value from an environment variable through the
+parser: the one variable that stands in for an option, `WINTER_SERVICE_ORCHESTRATOR`, is read by the runtime
+([runtime.md](./runtime.md), What a command receives). `--json` is declared by each command that has it.
 
 ### Tree
 
@@ -99,20 +101,78 @@ winter-workspace
     └── worktrees                          [--json]
 ```
 
+The tree lists what the finished binary has. A build holds the commands whose files exist
+([command-registration.md](./command-registration.md)): its help lists those, and every other name is an unknown
+command, exit 2. No command is forwarded to another executable.
+
 ### Parsing rules
 
 ```text
-# reference: cli.py:165-261; modules/service/command.py:120-149
+# reference: cli.py:165-261; modules/service/command.py:120-149; click/core.py; click/parser.py
 every group: bare invocation prints that group's help on stderr, exit 2
-every node:  --help prints that node's help on stdout, exit 0
+             root options given and no command: the same, root help on stderr, exit 2
+             (the reference tool writes a short "missing command" usage error there, on the same stream with the
+             same code: click/core.py:1845-1853)
+every node:  --help prints that node's help on stdout, exit 0; it wins over a missing required argument of that node
+--version:   root only; prints the version line whether or not a command follows
 hidden:      hidden commands and options are omitted from help and still dispatch
 aliases:     `service start` / `service stop` are the `up` / `down` commands under a second name: same options,
              same behaviour, same exit codes; the provider action word stays `up` / `down`
-options:     may appear before, between, or after a command's positionals; `--` ends option parsing
-names:       no prefix matching for commands or long options; no passthrough of unknown options
+names:       commands and long options match exactly: no prefix matching, no abbreviation, no suggestion that is
+             acted on, no passthrough of an unknown option
 variadic:    PATTERNS... requires one or more tokens; [PATTERNS]... accepts zero or more
-usage error: unknown command or option, missing required positional or option value, value of the wrong type —
-             exit 2, nothing started
+usage error: unknown command or option, missing required positional or option value, value of the wrong type,
+             argument too many, repeated option, value given to a flag, an argument that is not UTF-8 — exit 2,
+             nothing started, nothing on stdout
+```
+
+```text
+arguments that are not UTF-8                             # decision:parallel-workspaces/component-runtime/non-utf8-arguments
+  every argument of the command line is checked before any is interpreted. An argument that is not valid UTF-8 is a
+  usage error, exit 2, wherever it stands: as a command name, an option, an option's value, a positional, after
+  `--`, and after a --help or a --version that would otherwise have decided the ending. The first such argument is
+  the one reported (ParseFault::NotUtf8; results-and-exit-codes.md, Domain).
+  the node at fault is the deepest node the tokens before that argument resolved, and the stage of the ending
+  follows from the same tokens (runtime.md, The parse and the run)
+  this is the one rule for arguments; no other spec states another. An environment variable's value is no
+  argument: each reader of a variable says what a value that is not UTF-8 means (runtime.md for WINTER_LOG_LEVEL
+  and WINTER_SERVICE_ORCHESTRATOR, tracing.md for the tracing variables).
+  the reference tool passes such bytes through to the command
+```
+
+```text
+option placement                                         # reference: click/core.py:930,1533-1534; click/parser.py:323-337
+  root options      only before the first command token; after it they are options of the node they follow, where
+                    they are unknown (`ws -v index x` is a usage error)
+  a group           accepts --help between its name and the leaf, and nothing else
+  a leaf            its options may stand before, between, or after its positionals
+  --                ends option parsing at the node where it stands; every later token is a positional
+                    (`ws index -- --json` looks up the name "--json")
+value syntax                                             # reference: click/parser.py:389-499
+  long option       --opt value   and   --opt=value
+  short option      -n 5   and attached   -n5 ; short flags cluster: -ft
+  a value that begins with "-"
+                    after an option that takes a value, the next token is that value whatever it looks like
+                    (`--since -5m`, `--name -x`); a positional that begins with "-" needs `--` before it
+  a lone "-"        a positional
+  --flag=value      refused: a flag takes no value
+repeated options                                         # decision:parallel-workspaces/component-runtime/repeated-options
+  a flag given twice, or a single-value option given twice, is a usage error, exit 2
+  an option marked * in Commands may repeat; its values are kept in the order given
+  the reference tool accepts both and lets the last value win (click/parser.py:165-178)
+help or version beside a fault                           # decision:parallel-workspaces/component-runtime/help-beside-fault
+  the tokens are read left to right, and the first of --help, --version, or a token at fault decides the ending
+    --version --bogus            the version line, exit 0          --bogus --version            usage error, exit 2
+    --help --bogus               root help on stdout, exit 0       --bogus --help               usage error, exit 2
+    ws index --help --bogus      that node's help, exit 0          ws index --bogus --help      usage error, exit 2
+    --version ws bogus           the version line, exit 0
+  a fault that needs the whole node to be read — a missing required argument, a missing command — never stands
+  "before" a --help or --version of that node: the flag wins wherever it stands
+  an argument that is not UTF-8 is outside this order: it is refused wherever it stands (above)
+  the reference tool reads every token of a node before it answers, so there a token at fault wins wherever it
+  stands, exit 2 (click/parser.py:294-310); it agrees with the right-hand column and differs in the left
+environment
+  no option of any node has an environment variable behind it in the parser
 ```
 
 Three commands declare one variadic positional and split the last token off themselves.
@@ -256,38 +316,65 @@ anything else is refused before any other check
 
 ### Process inputs
 
-Environment variables the binary reads from its own environment. No variable selects the workspace root, colour, or JSON
-mode.
+Every environment variable the binary reads from its own environment. The table is complete: a variable not listed is
+not read, though every variable is passed on to child processes unless a row says otherwise. No variable selects the
+workspace root, colour, width, or JSON mode.
 
-| Variable                                                                            | Use                                                                                                                                                                                                                                                               | Reference                                                                   |
-| ----------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| `WINTER_LOG_LEVEL`                                                                  | Log level name, case-insensitive; an unknown or empty name is ignored silently.                                                                                                                                                                                   | `cli.py:278-283,332`                                                        |
-| `WINTER_SERVICE_ORCHESTRATOR`                                                       | Provider override; the root flag wins.                                                                                                                                                                                                                            | `cli.py:336`                                                                |
-| `WINTER_INVOCATION_CWD`                                                             | The caller's directory, used by `ext new` to resolve the output directory and by `lint` to detect the current env and locate the repo for `--changed`. Unset or empty: the process working directory.                                                             | `modules/ext/command.py:100`, `modules/lint/command.py:76`                  |
-| `WINTER_LAUNCH_TIME`                                                                | Start instant of the command span: epoch seconds with a `.` or `,` fraction. Read once at start-up and removed from the environment, so no child inherits it. Unset, unparseable, non-positive, or in the future: the span starts when the command is dispatched. | `cli.py:366-372`, `core/tracing.py:62-67`                                   |
-| `WINTER_GIT_TIMEOUT_S`                                                              | Per-call remote git timeout, float seconds, default `40`; invalid or ≤ 0 warns and uses the default.                                                                                                                                                              | `modules/workspace/internal/git_ops_service.py:39,135-149`                  |
-| `WINTER_NESTED_CHAIN`                                                               | Path-separator-joined workspace roots of the enclosing nested calls; recursion guard.                                                                                                                                                                             | `modules/workspace/nested_env.py:12,28,66`                                  |
-| `WINTER_OTEL_EXPORTER_OTLP_ENDPOINT`, `…_HEADERS`                                   | Tracing switch, endpoint, and export headers.                                                                                                                                                                                                                     | `cli.py:374-375`                                                            |
-| `OTEL_SDK_DISABLED`, `TRACEPARENT`, `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | Tracing kill switch, parent context, span resource.                                                                                                                                                                                                               | `cli.py:376`, `core/internal/otel_command_tracer.py:85-103`                 |
-| `GIT_SSH_COMMAND`                                                                   | Set to `ssh -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=3` when unset, before argument parsing, for every invocation.                                                                                                                   | `core/ssh_keepalives.py:12-25`                                              |
-| `RUST_BACKTRACE`, `RUST_LIB_BACKTRACE`                                              | Local development only: a backtrace follows an internal-failure diagnostic. No reference equivalent.                                                                                                                                                              | `decision:parallel-workspaces/component-runtime/internal-failure-rendering` |
+| Variable                                                                            | Use                                                                                                                                                                                                                                                                                         | Reference                                                                   |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| `WINTER_LOG_LEVEL`                                                                  | Log level name, case-insensitive; an unknown or empty name is ignored silently. The names are in [runtime.md](./runtime.md), Logging.                                                                                                                                                       | `cli.py:278-283,332`                                                        |
+| `WINTER_SERVICE_ORCHESTRATOR`                                                       | Provider override; a non-empty root flag wins; an empty value means unset.                                                                                                                                                                                                                  | `cli.py:336`                                                                |
+| `WINTER_INVOCATION_CWD`                                                             | The caller's directory, used by `ext new` to resolve the output directory and by `lint` to detect the current env and locate the repo for `--changed`. Unset or empty: the process working directory.                                                                                       | `modules/ext/command.py:100`, `modules/lint/command.py:76`                  |
+| `WINTER_LAUNCH_TIME`                                                                | Start instant of the command span: epoch seconds, with an optional fraction after `.` or `,`. Read once at start-up and left out of every child's environment, so no child inherits it. Unset, unparseable, non-positive, or in the future: the span starts when the command is dispatched. | `cli.py:366-372`, `core/tracing.py:58-76`                                   |
+| `WINTER_GIT_TIMEOUT_S`                                                              | Per-call remote git timeout, float seconds, default `40`; invalid or ≤ 0 warns and uses the default.                                                                                                                                                                                        | `modules/workspace/internal/git_ops_service.py:39,135-149`                  |
+| `WINTER_NESTED_CHAIN`                                                               | Path-separator-joined workspace roots of the enclosing nested calls; recursion guard.                                                                                                                                                                                                       | `modules/workspace/nested_env.py:12,28,66`                                  |
+| `WINTER_OTEL_EXPORTER_OTLP_ENDPOINT`, `…_HEADERS`                                   | Tracing switch, endpoint, and export headers; [tracing.md](./tracing.md), Domain.                                                                                                                                                                                                           | `cli.py:374-375`                                                            |
+| `OTEL_SDK_DISABLED`, `TRACEPARENT`, `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | Tracing kill switch, parent context, span resource; [tracing.md](./tracing.md), Domain.                                                                                                                                                                                                     | `cli.py:376`, `core/internal/otel_command_tracer.py:85-103`                 |
+| `GIT_SSH_COMMAND`                                                                   | Set to `ssh -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=3` for child processes when unset, for every invocation that starts one.                                                                                                                                  | `core/ssh_keepalives.py:12-25`                                              |
+| `RUST_BACKTRACE`, `RUST_LIB_BACKTRACE`                                              | Local development only: a backtrace follows an internal-failure diagnostic. No reference equivalent.                                                                                                                                                                                        | `decision:parallel-workspaces/component-runtime/internal-failure-rendering` |
 
 `WINTER_INVOCATION_CWD` and `WINTER_LAUNCH_TIME` are honoured when a caller sets them. In the reference setup only the
 bash launcher does; nothing in this binary sets either, so a direct invocation takes the stated fallback.
 
+The binary reads its environment once, as a snapshot the process boundary takes; a command reads a variable through that
+snapshot. The rows for `WINTER_LAUNCH_TIME` and `GIT_SSH_COMMAND` bind the port that starts a child process, which the
+first command that starts one adds.
+
+One group of variables is read by a library the binary links and not by the binary's own code, and only while a command
+span is exported ([tracing.md](./tracing.md), The binary's part): the proxy variables of the export's HTTP client
+(`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, in either letter case), which the reference tool's HTTP library
+reads as well. No variable and no system certificate store supplies a trust root for an `https` endpoint, under
+`decision:parallel-workspaces/component-runtime/trace-export-trust-roots`. With tracing off the client is not
+constructed and none of the proxy variables is read.
+
+`PATH` and `HOME` are no rows: no command built so far looks up a program or a home directory. What a child process
+reads from its inherited environment is that child's own; a row is added for each variable the binary itself consults
+when it starts one (`engineering.md`, Open questions).
+
+Read by the reference tool and not by the binary:
+
+| Variable                     | Why not                                                                            |
+| ---------------------------- | ---------------------------------------------------------------------------------- |
+| `_WINTER_COMPLETE`           | The reference parser's completion request; see Deliberately absent.                |
+| `COLUMNS`, the terminal size | Help width only; the binary renders help at a fixed width.                         |
+| `XDG_CACHE_HOME`             | Bytecode cache location; see Deliberately absent.                                  |
+| `OTEL_EXPORTER_OTLP_*`       | The reference tool hides them from its exporter; the binary's exporter reads none. |
+| the system certificate store | Believed to supply the reference export's trust roots; the binary bundles its own. |
+
 ### Deliberately absent
 
-| Reference behaviour                                                                | Why absent                                                                                                                              |
-| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `winter init` (create an empty `.winter/config.toml`, then `ws init`)              | Launcher-only; `decision:parallel-workspaces/component-runtime/launcher-only-surface`.                                                  |
-| `--winter=PATH` source selection                                                   | Launcher-only; same decision.                                                                                                           |
-| Virtual-environment freshness check, dependency sync, `VIRTUAL_ENV` / `PATH` setup | Launcher-only; same decision.                                                                                                           |
-| Launcher root rule requiring `tools/winter-cli/` beside `.winter/config.toml`      | Launcher-only; root discovery is [configuration-model.md](../../workspace-configuration/spec/configuration-model.md).                   |
-| Bytecode cache redirect (`XDG_CACHE_HOME`)                                         | Python-runtime behaviour with no observable equivalent.                                                                                 |
-| `doctor` python-version probe                                                      | Dropped; registered when the diagnostics spec is written.                                                                               |
-| Commands contributed by in-process plugins                                         | Never reached the reference tree; plugin loading is dropped by `decision:agent-ready-operation/workspace-dashboard/contribution-scope`. |
-| A `context` command                                                                | New capability, designed in `epic:agent-ready-operation/context-navigation`; not part of this surface.                                  |
-| `component.toml`, `.winterrc`, handoff metadata                                    | `decision:rust-replacement`: direct invocation is the only entry point.                                                                 |
+| Reference behaviour                                                                | Why absent                                                                                                                                |
+| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `winter init` (create an empty `.winter/config.toml`, then `ws init`)              | Launcher-only; `decision:parallel-workspaces/component-runtime/launcher-only-surface`.                                                    |
+| `--winter=PATH` source selection                                                   | Launcher-only; same decision.                                                                                                             |
+| Virtual-environment freshness check, dependency sync, `VIRTUAL_ENV` / `PATH` setup | Launcher-only; same decision.                                                                                                             |
+| Launcher root rule requiring `tools/winter-cli/` beside `.winter/config.toml`      | Launcher-only; root discovery is [configuration-model.md](../../workspace-configuration/spec/configuration-model.md).                     |
+| Bytecode cache redirect (`XDG_CACHE_HOME`)                                         | Python-runtime behaviour with no observable equivalent.                                                                                   |
+| Shell completion answered when `_WINTER_COMPLETE` is set                           | An undocumented side effect of the reference parser (`click/core.py:1451-1478`), not a feature of the tool; `decision:functional-parity`. |
+| `doctor` python-version probe                                                      | Dropped; registered when the diagnostics spec is written.                                                                                 |
+| Commands contributed by in-process plugins                                         | Never reached the reference tree; plugin loading is dropped by `decision:agent-ready-operation/workspace-dashboard/contribution-scope`.   |
+| A `context` command                                                                | New capability, designed in `epic:agent-ready-operation/context-navigation`; not part of this surface.                                    |
+| `component.toml`, `.winterrc`, handoff metadata                                    | `decision:rust-replacement`: direct invocation is the only entry point.                                                                   |
 
 ### Registered deviations
 
@@ -298,6 +385,13 @@ behaviour are not listed: they fall under `decision:functional-parity`.
 | Deviation                                                                     | Reference behaviour                                                                                  | Binary                                                                   | Decision                                                                       |
 | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------------ |
 | Launcher-only commands, options, and files                                    | present                                                                                              | absent; rows above                                                       | `decision:parallel-workspaces/component-runtime/launcher-only-surface`         |
+| A flag or a single-value option given more than once                          | accepted; a flag stays on and the last value wins                                                    | usage error, exit 2                                                      | `decision:parallel-workspaces/component-runtime/repeated-options`              |
+| A command-line argument that is not valid UTF-8                               | passed through to the command as bytes                                                               | usage error, exit 2                                                      | `decision:parallel-workspaces/component-runtime/non-utf8-arguments`            |
+| `--help` or `--version` standing before a token at fault of the same node     | usage error, exit 2 (`click/parser.py:294-310`)                                                      | the help or the version line, exit 0                                     | `decision:parallel-workspaces/component-runtime/help-beside-fault`             |
+| A service provider ended by a signal                                          | exit 256 minus the signal number (`modules/service/handler.py:68-73`)                                | exit 128 plus the signal number                                          | `decision:parallel-workspaces/component-runtime/provider-signal-exit`          |
+| A run SIGINT aborts outside the service paths, with tracing on                | the command span is exported before the exit (`cli.py:451-455`)                                      | no span is exported                                                      | `decision:parallel-workspaces/component-runtime/interrupt-trace-export`        |
+| Values of the command span's `error.type`                                     | exception class names (`cli.py:150-162`)                                                             | the ending's name; [tracing.md](./tracing.md), What the span carries     | `decision:parallel-workspaces/component-runtime/span-error-type`               |
+| Trust roots of an `https` trace endpoint                                      | believed: the runtime's default trust locations, the system certificate store among them             | the bundled public roots alone; no variable or system store is read      | `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`      |
 | Failed git call before a repo error                                           | failure text written twice on stderr                                                                 | written once; a log record as well only under `-v` or `WINTER_LOG_LEVEL` | `decision:parallel-workspaces/component-runtime/git-failure-rendering`         |
 | Non-list value for `git_excludes` or `cmd`; non-string `main_branch` or `ref` | a string is read as its characters and a table as its keys; other wrong types fail unhandled, exit 1 | configuration error naming the key, exit 1                               | `decision:parallel-workspaces/workspace-configuration/element-type-validation` |
 | In-process plugins                                                            | `plugin.py` files and plugin directories are imported                                                | none is loaded; the tmux service badge is native                         | `decision:agent-ready-operation/workspace-dashboard/contribution-scope`        |
@@ -305,9 +399,11 @@ behaviour are not listed: they fall under `decision:functional-parity`.
 
 ## Open questions
 
-- Whether a repeated flag (`--json --json`) or a repeated single-value option is accepted with the last value winning,
-  as the reference parser does, is not recorded in any observation. Engineering answers it when the parser scenarios are
-  recorded.
 - Whether `ext new` stays in the tree is `decision:agent-ready-operation/executable-extensions/scaffold-command`; the
   product owner answers when `epic:agent-ready-operation/executable-extensions` is refined. Until then its rows stand as
   the reference tool's.
+- The `WINTER_GIT_TIMEOUT_S` and `WINTER_NESTED_CHAIN` rows have not been checked against the reference sources they
+  cite. Engineering checks each when the epic that reads the variable is refined.
+- That the export's HTTP client reads the proxy variables, and that the reference tool's HTTP library reads the same
+  ones, is stated from the two libraries' documented behaviour and was read in neither's source. The builder of the
+  export confirms the binary's side; a difference found there is put to the product owner.

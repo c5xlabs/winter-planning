@@ -3,7 +3,7 @@
 What the binary writes and where: stream assignment, human-output conventions, the three JSON shapes, and which command
 uses which. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository
 at `b57b020`. Errors and exit codes are [results-and-exit-codes.md](./results-and-exit-codes.md); the command tree is
-[command-surface.md](./command-surface.md).
+[command-surface.md](./command-surface.md); the owners that write to each stream are [runtime.md](./runtime.md).
 
 Under `decision:functional-parity` the contract is the stream, the JSON documents as data, and the outputs another
 program reads. Wording, layout, glyphs, and styling of human output are the binary's own; where the reference tool's
@@ -26,13 +26,25 @@ form is shown it is an example.
 There is no pager, spinner, progress bar, or carriage-return redraw outside `dashboard`. Long operations write one line
 per reporter event as it happens.
 
+```text
+# engineering:machine-output-boundary — runtime.md gives each owner's signature
+stdout   written only through crates/core/src/output.rs and crates/core/src/confirm.rs
+stderr   written by the library only through crates/core/src/diagnostics.rs, and by the process boundary for the
+         final diagnostic, the backtrace, and the aborted notice
+a failed write to stdout ends the invocation (results-and-exit-codes.md, A stdout that cannot be written);
+a failed write to stderr changes nothing
+```
+
 ### Human output
 
 ```text
 # decision:parallel-workspaces/component-runtime/color-policy
 colour:   ANSI styling is written only when the target stream is a terminal; decided per stream
           NO_COLOR and FORCE_COLOR are not read; there is no --color option
-encoding: UTF-8, unconditional
+          help, the version line, and every diagnostic are never styled
+width:    no output depends on the terminal's width; COLUMNS is not read
+encoding: UTF-8, unconditional; the locale is not read. The reference tool takes its stream encoding from its
+          language runtime, so this rule has no reference source
 ```
 
 Tables, glyphs, styles, headers, and column layout are not contract. Each command's human result carries the same
@@ -54,8 +66,8 @@ Results another program reads, whose form is contract:
 ```text
 # decision:parallel-workspaces/component-runtime/help-rendering
 # decision:parallel-workspaces/component-runtime/program-name
-content:   every visible command and option of command-surface.md, each with its value placeholder and a
-           description; hidden ones omitted
+content:   every visible command and option of command-surface.md that the build holds, each with its value
+           placeholder and a description; hidden ones omitted
 name:      the program is named "winter-workspace", whatever name the binary was invoked under
 wording, order, wrapping, alignment: the argument parser's own; not contract
 ```
@@ -90,6 +102,15 @@ paths           absolute, as strings
 enums           their string value
 message text    a value that is a human message (an `error`, `notes`, `message`, or output-line field) is a
                 string in the same place; its wording is as free as a message on stderr
+```
+
+```text
+writers                       # one encoder, one owner: crates/core/src/output.rs
+shape A, one document         output::document                      command-registration.md, Writing a result
+shape B                       one Results::document call per line   runtime.md, Writing more than one piece
+shape C                       one Results::event call per event; each is flushed
+events, then a document       Results::event calls, then Results::document
+a human result of many lines  Results::line calls
 ```
 
 ### Shape per command
@@ -157,31 +178,33 @@ All on stderr; their wording and prefixes are not contract.
 | Kind                                             | When                                                           | Reference                                                                                                                 |
 | ------------------------------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | Drift warning (configuration against filesystem) | before a command that acts on worktrees, when the two disagree | `modules/workspace/drift.py:83-88`                                                                                        |
-| Log record, WARNING or above, no logging switch  | written as a plain line                                        | observed; 61 warning sites                                                                                                |
-| Log record, logging switch set                   | written with its level and origin                              | `cli.py:264-293`                                                                                                          |
+| Log record, WARNING or above, no logging switch  | written as a plain line carrying the message alone             | `decision:parallel-workspaces/component-runtime/unswitched-log-records`; 61 warning sites                                 |
+| Log record, logging switch set                   | written with its level and origin, at or above the level set   | `cli.py:264-293`                                                                                                          |
 | Reporter failure lines                           | one per failed repository, command, or stage, as it happens    | `modules/workspace/init_reporter.py:42,62,100,111`, `fetch_reporter.py:45`, `modules/provision/provision_reporter.py:118` |
 | Transient git retry                              | one per retried attempt, naming the attempt and the delay      | `modules/workspace/internal/git_ops_service.py`                                                                           |
 
 Warnings are never folded into a JSON document or event. A failed git call is not written as a bare record when no
-logging switch is set, under `decision:parallel-workspaces/component-runtime/git-failure-rendering`.
+logging switch is set, under `decision:parallel-workspaces/component-runtime/git-failure-rendering`. No record is
+written by an invocation that ends at the root ([results-and-exit-codes.md](./results-and-exit-codes.md), Flows).
 
-| Switch                                          | Effect                                                                                                                                                    |
-| ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-v`, `--verbose`                               | Records at DEBUG and above on stderr. Wins over the variable.                                                                                             |
-| `WINTER_LOG_LEVEL=<NAME>`                       | Same at the named level (`DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`, any case). An unknown or empty name is ignored silently.                        |
-| neither                                         | Records at WARNING and above are written; lower levels are dropped. Tracing-exporter records are dropped.                                                 |
-| `RUST_BACKTRACE`, `RUST_LIB_BACKTRACE`          | Set to anything but `0`: a backtrace follows an internal-failure diagnostic. Read by nothing else.                                                        |
-| `WINTER_OTEL_EXPORTER_OTLP_ENDPOINT`            | Non-blank turns tracing on: OTLP over HTTP with protobuf to `<endpoint>/v1/traces`, one export at exit, wait capped at 100 ms.                            |
-| `WINTER_OTEL_EXPORTER_OTLP_HEADERS`             | Export request headers, `k1=v1,k2=v2`.                                                                                                                    |
-| `OTEL_SDK_DISABLED=true`                        | Turns tracing off; only the value `true`, any case.                                                                                                       |
-| `TRACEPARENT`                                   | Parent of the command span; its sampled flag decides recording.                                                                                           |
-| `WINTER_LAUNCH_TIME`                            | Start instant of the command span when set and valid; otherwise the span starts at dispatch ([command-surface.md](./command-surface.md), Process inputs). |
-| `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | Span resource; `service.name` defaults to `winter`.                                                                                                       |
-| `OTEL_EXPORTER_OTLP_*`                          | Not read by the exporter; passed unchanged to child processes.                                                                                            |
+| Switch                                          | Effect                                                                                                                                                                                             |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `-v`, `--verbose`                               | Records at DEBUG and above on stderr. Wins over the variable.                                                                                                                                      |
+| `WINTER_LOG_LEVEL=<NAME>`                       | Same at the named level, any case: `DEBUG`, `INFO`, `WARNING`, `WARN`, `ERROR`, `CRITICAL`, `FATAL`, `NOTSET` ([runtime.md](./runtime.md), Logging). An unknown or empty name is ignored silently. |
+| neither                                         | Records at WARNING and above are written; lower levels are dropped. Tracing-exporter records are dropped.                                                                                          |
+| `RUST_BACKTRACE`, `RUST_LIB_BACKTRACE`          | Set to anything but `0`: a backtrace follows an internal-failure diagnostic. Read by nothing else.                                                                                                 |
+| `WINTER_OTEL_EXPORTER_OTLP_ENDPOINT`            | Non-blank turns tracing on: OTLP over HTTP with protobuf to `<endpoint>/v1/traces`, one export at exit, wait capped at 100 ms.                                                                     |
+| `WINTER_OTEL_EXPORTER_OTLP_HEADERS`             | Export request headers, `k1=v1,k2=v2`.                                                                                                                                                             |
+| `OTEL_SDK_DISABLED=true`                        | Turns tracing off; only the value `true`, any case, surrounding blanks ignored.                                                                                                                    |
+| `TRACEPARENT`                                   | Parent of the command span; its sampled flag decides recording.                                                                                                                                    |
+| `WINTER_LAUNCH_TIME`                            | Start instant of the command span when set and valid; otherwise the span starts at dispatch ([command-surface.md](./command-surface.md), Process inputs).                                          |
+| `OTEL_SERVICE_NAME`, `OTEL_RESOURCE_ATTRIBUTES` | Span resource; `service.name` defaults to `winter`.                                                                                                                                                |
+| `OTEL_EXPORTER_OTLP_*`                          | Not read by the exporter; passed unchanged to child processes.                                                                                                                                     |
 
 The command span is named `winter <command path>` (`winter ws init`), whatever the binary is called (`cli.py:138-140`;
-`decision:parallel-workspaces/component-runtime/program-name`). Tracing never writes to stdout and never changes an exit
-code (`engineering:observability-isolation`).
+`decision:parallel-workspaces/component-runtime/program-name`). The path is the command names the tokens resolved,
+stopping at the first option, positional, or unknown name. Tracing never writes to stdout and never changes an exit code
+(`engineering:observability-isolation`).
 
 ## Open questions
 

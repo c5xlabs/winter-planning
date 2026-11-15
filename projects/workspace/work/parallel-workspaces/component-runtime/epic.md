@@ -29,6 +29,19 @@ consistent. Maintainers have a documented and checked development foundation bef
 Installed-component selection and handoff belong to `epic:platform/launcher-shim`; publishing Workspace belongs to
 `epic:rust-adoption/workspace-release`. Direct local development does not wait for either release delivery or downloads.
 
+Three product requirements are delivered here only in part, because the rest of each is a property of commands this epic
+does not build:
+
+- `product:automation-boundary`: this epic delivers usage errors that start nothing, plain-text errors, and the exit
+  codes. The confirmation prompt and the options that skip it are delivered with the first command that prompts, in
+  `epic:parallel-workspaces/environment-lifecycle`; the structured result of each command is delivered by the epic that
+  builds the command.
+- `product:discover-command-scope`: this epic delivers help that lists only the commands the binary has. Help that names
+  a command's required scope and its destructive effect is delivered by the epic that builds each command.
+- `product:local-component-evaluation`: this epic delivers a locally built binary that is started by its path and is
+  never installed over a release. Selecting that binary for an intended workspace is
+  `decision:development-component-selection`, delivered by `epic:platform/launcher-shim`.
+
 ## What this epic is not
 
 - An in-process plugin in the platform executable or a copy of the platform implementation.

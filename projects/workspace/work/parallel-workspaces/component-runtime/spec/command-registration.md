@@ -2,7 +2,8 @@
 
 How a command becomes part of the binary: one file per node of the command tree, discovered at build time, with no
 registry a person edits. The tree it must produce is [command-surface.md](./command-surface.md); the package layout is
-[repository-layout.md](./repository-layout.md).
+[repository-layout.md](./repository-layout.md); what a command receives and how it reads its arguments is
+[runtime.md](./runtime.md).
 
 ## System
 
@@ -15,7 +16,8 @@ crates/core/build.rs                          walks the directory, writes $OUT_D
 crates/core/build/discover.rs                 the walk and the code generation, as pure functions build.rs includes
 crates/core/src/registry.rs                   include!(concat!(env!("OUT_DIR"), "/registry.rs")); the Entry type
 crates/core/src/groups.rs                     the four groups and their descriptions
-crates/core/src/parse.rs                      builds the argument parser from REGISTRY and dispatches
+crates/core/src/parse.rs                      builds the argument parser from REGISTRY and answers what it parsed;
+                                              process.rs calls the command (runtime.md, The parse and the run)
 ```
 
 ```text
@@ -36,9 +38,14 @@ shared by two commands lives in a domain module, never in `commands/`.
 
 ```text
 what a command file holds
-  the node's arguments; the typed parameters read from the parsed arguments; one call into a domain module, which is
+  the node's arguments; the typed parameters read from the parsed arguments, a required one through
+  arguments::required (runtime.md, Reading a parsed argument); one call into a domain module, which is
   handed cx.files, cx.file_writer, and cx.cwd as they are; the mapping of that call's typed outcome to a Termination;
+  a rule it refuses itself as UsageError::Rule built from cx.invoked (runtime.md, What a command receives;
+  results-and-exit-codes.md, Domain, for when that variant arrives);
   the text of the human line and the fields of the --json document, written as Writing a result gives
+what a command file does not hold
+  its own command path as a literal: the path comes from the file's location and reaches `run` as cx.invoked
 what a command file does not name — checked by crates/dev/tests/architecture.rs over crates/core/src/commands/**
   the file port                        ReadFiles   WriteFiles   OsFiles
   modules a domain entry stands on     workspace_root   workspace_files   config_raw   config_edit   state_registry
@@ -80,8 +87,8 @@ pub(crate) static REGISTRY: &[Entry];
 ```
 
 The two `allow` attributes are permanent, for the reason [repository-layout.md](./repository-layout.md), What a command
-receives, gives; adding the first command removes neither. `parse.rs` reads `REGISTRY` from the start, so the static
-itself needs no attribute.
+receives, gives; adding the first command removes neither. `process.rs` hands `REGISTRY` to the parser from the start,
+so the static itself needs no attribute.
 
 ```rust
 // a command file, whole shape — crates/core/src/commands/ws/index.rs
@@ -90,7 +97,9 @@ use crate::registry::Registration;
 pub(crate) const REGISTRATION: Registration = Registration::Command { args, run, hidden: false };
 
 fn args(command: clap::Command) -> clap::Command { /* about, positionals, options */ }
-fn run(matches: &clap::ArgMatches, cx: &mut Context<'_>) -> Termination { /* typed params -> domain call */ }
+// params and run: the shape of runtime.md, Reading a parsed argument
+fn params(matches: &clap::ArgMatches) -> Result<Params<'_>, Termination> { /* typed params */ }
+fn run(matches: &clap::ArgMatches, cx: &mut Context<'_>) -> Termination { /* params -> domain call -> result */ }
 
 #[cfg(test)]
 mod tests { /* unit tests of this file's argument mapping */ }
@@ -125,9 +134,10 @@ adds no prefix of its own before the path.
 
 ```rust
 // crates/core/src/output.rs — engineering:typed-outcomes
-// The one owner of how a result reaches the stdout handle and of how a failed write ends. A command's `run` and the
-// parser's help and version path write through it and return what it returns; neither inspects a write error.
-// Each function writes to `out` and returns how the invocation ends on that write.
+// The one owner of how a result reaches the stdout handle. A command's `run`, and `process.rs` for the help and
+// the version line the parser answered, write through it and return what it returns; neither inspects a write
+// error. Each function takes the handle, not a Context, writes to it, and returns how the invocation ends on that
+// write.
 pub(crate) fn line(out: &mut dyn std::io::Write, line: &str) -> Termination;      // the text, then "\n"
 pub(crate) fn text(out: &mut dyn std::io::Write, text: &str) -> Termination;      // the text as it stands
 // repository-layout.md, Cargo workspace: encoded with serde_json::to_writer into a buffer, "\n" appended, and the
@@ -138,15 +148,21 @@ pub(crate) fn document(out: &mut dyn std::io::Write, document: &serde_json::Valu
 ```text
 how a write ends — results-and-exit-codes.md, Domain and Internal failures
   written                                           Termination::Success
-  an error of kind std::io::ErrorKind::BrokenPipe   Termination::BrokenPipe     exit 1, no diagnostic: the reader
-                                                                                closed stdout, and nothing is written
-  any other write error, and an encoding error      Termination::Internal(InternalError::Unexpected { source, backtrace })
-                                                    with the error as source and the backtrace captured in output.rs
+  a failed write                                    what Termination::from_write_error gives for the error
+                                                    (runtime.md, The process boundary): BrokenPipe for a reader
+                                                    that closed stdout, with no diagnostic; the internal failure
+                                                    for any other kind
+  an encoding error                                 Termination::Internal, built through InternalError::unexpected
 callers
   a command           ends `run` with output::document(cx.out, &…) under --json, else output::line(cx.out, &…)
-  parse.rs            --help: output::text with the rendered help; --version: output::line with "<program> <version>"
+  process.rs          Outcome::Help: output::text with the rendered help; Outcome::Version: output::line with
+                      "<program> <version>" (runtime.md, The parse and the run)
+  a result of several pieces: output::Results (runtime.md, Writing more than one piece of a result)
 Termination::BrokenPipe is added to crates/core/src/termination.rs with this module, the behaviour that first
-returns it (repository-layout.md, Errors the foundation defines).
+returns it (repository-layout.md, Errors the foundation defines). Until the process boundary of runtime.md is
+built, output.rs classifies the error itself to the same two endings; from then on the classifier is
+Termination::from_write_error, which output.rs calls for a write the library makes and the boundary calls for the
+final flush.
 ```
 
 ### Parser construction
@@ -154,11 +170,13 @@ returns it (repository-layout.md, Errors the foundation defines).
 ```text
 # crates/core/src/parse.rs — builder interface; the tree is assembled from a slice of Entry, so a test can pass its own
 root        clap::Command named Identity.program; long --help and long --version only (no -h, no -V);
-            no `help` subcommand; no prefix matching of commands or long options
+            no `help` subcommand; no prefix matching of commands or long options;
+            the root options of command-surface.md, Identity and root
 groups      one subcommand per group that has at least one Entry; description from groups.rs;
             a group with no Entry does not exist: it is absent from help and is an unknown command
 leaves      Registration::Command -> args(clap::Command::new(<name>)); hidden as declared
-            Registration::Alias   -> the sibling's args under the alias name; dispatch calls the sibling's run
+            Registration::Alias   -> the sibling's args under the alias name; the Outcome::Dispatch of the alias
+                                     carries the sibling's run
 consistency checked by a unit test over REGISTRY, which fails naming Entry.file:
               an Alias whose `of` names no Command in the same group, or names another Alias
               a top-level leaf whose name equals a group name
@@ -166,22 +184,26 @@ consistency checked by a unit test over REGISTRY, which fails naming Entry.file:
 ```
 
 ```text
-# what the foundation's parser answers; every other root behaviour of results-and-exit-codes.md, Flows, is added
-# with the rest of this epic
+# what one invocation ends as; the parser's own answer for each row is the Parsed of runtime.md, The parse and the
+# run, the rules behind each row are command-surface.md, Parsing rules, and the order of one invocation is
+# results-and-exit-codes.md, Flows
 --version                 stdout: "<program> <version>" on one line         Termination::Success
 --help                    stdout: root help                                 Termination::Success
 <group> --help, <command> --help      stdout: that node's help              Termination::Success
-no arguments              nothing written       Termination::BareGroup { help: the root help }             exit 2
+no arguments, or root options and no command
+                          nothing written       Termination::BareGroup { help: the root help }             exit 2
 bare group                nothing written       Termination::BareGroup { help: that group's help }         exit 2
-unknown command or option, missing or malformed argument                    Termination::Usage, exit 2
-a registered leaf         run(matches, cx)                                  its Termination
+unknown command or option, missing or malformed argument, repeated option, an argument that is not UTF-8
+                          nothing written       Termination::Usage                                         exit 2
+a registered leaf         the Invoked of that node, then run(matches, cx)   its Termination
 ```
 
 A bare root and a bare group end the same way, as [results-and-exit-codes.md](./results-and-exit-codes.md), Domain and
 Error rendering, fix it: `run` writes nothing to either handle and returns `Termination::BareGroup`, whose `help` is the
 text `--help` would have written to stdout for that node. `diagnostic()` returns that text, and the binary writes it to
 stderr as it writes every diagnostic. `Termination::Usage` carries `UsageError::Parse` with the command path parsed so
-far and the `ParseFault` of the same Domain section.
+far, the `Usage` of the node at that path, and the `ParseFault`, all of the same Domain section; `Usage` and `Invoked`
+are defined in [runtime.md](./runtime.md), What a command receives.
 
 ### Formatting discovered files
 
@@ -206,6 +228,8 @@ the checkout itself), once per case:
       cargo build --workspace --locked exits non-zero, and the build script's first error line starts with
       crates/core/src/commands/ws/Bad.rs
 Success: each run ends as stated, and `git status` of the scratch copy shows only the one added file.
+The built binary is started as contributor-context.md, Entry point, permits: by its path, from the scratch copy,
+with no workspace configuration at or above it.
 Everything else about discovery is automatic: the path rules, the Display text, and the generated registry are
 unit-tested through `classify` and `generate`.
 ```
@@ -215,8 +239,21 @@ unit-tested through `classify` and `generate`.
 ```text
 add a command
   1. write crates/core/src/commands/<group>/<name>.rs with REGISTRATION
-  2. write its tests: unit tests in the file; crates/core/tests/<group>_<name>.rs for behaviour in process;
-     scenarios/<group>-<name>/<scenario>/ for recorded behaviour
+  2. write its tests: unit tests in the file; crates/core/tests/<group>_<name>.rs for behaviour in process, through
+     the scaffold of runtime.md, Test seams; scenarios/<group>-<name>/<scenario>/ for recorded behaviour
   3. build: build.rs regenerates the registry; the command is in help and dispatch
 no other tracked file changes, unless the command needs something repository-layout.md lists as a shared edit
 ```
+
+## Open questions
+
+- The generated module identifiers are numbered by position in the sorted list, so a compiler message about a command
+  file may name a module whose number changes when a command is added. The message also carries the file path, so
+  nothing is misread. Engineering names modules from the command path if a tool ever needs a stable identifier.
+- The walk treats a dotfile and any other non-`.rs` entry under `commands/` as a violation, and reads any error of
+  listing `commands/` as "no directory". An editor's swap file therefore fails the build with its path, and an
+  unreadable directory builds an empty registry. Engineering tightens the second when a platform is added on which a
+  directory can exist and not be listed; the first is intended.
+- The command-file rule is a deny-list over text: a name inside a longer word matches, and logic written without a
+  listed name passes. Engineering replaces it with an allow-list of what a command file may import when the list first
+  has to grow for a reason other than a new domain module.

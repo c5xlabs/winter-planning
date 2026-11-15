@@ -27,7 +27,8 @@ context/
     testing.md                    the test tiers, what each proves, the isolated tree, what a test never does
   tooling/
     index.md
-    development.md                bootstrap, the gate commands, formatting, what the driver prints and exits with
+    development.md                bootstrap, the gate commands, formatting, what the driver prints and exits with,
+                                  where a build puts the binary
   verification/
     index.md
     matrix.md                     the verifiability matrix
@@ -64,22 +65,42 @@ AGENTS.md
   2. standing rules — the rules a session must hold without opening another file:
        run `cargo dev gate slice` before handing a change over; run `cargo dev gate full` before a merge
        a command is one file under crates/core/src/commands/; no registry is edited
-       the library returns values; only crates/cli/src/main.rs touches process streams, environment, and exit
-       tests run in an isolated tree from winter-workspace-test-support; a test never touches a real workspace,
-         a real repository, the network, or anything else outside its tree; the only host programs it runs are
-         git and the base system utilities on the pinned PATH, and nothing of the developer's own environment
-         reaches it
+       the library returns values; only the binary package touches process streams, environment, sockets, and exit
+       tests of the library, the binary, and the support package run in an isolated tree from
+         winter-workspace-test-support; such a test never touches a real workspace, a real repository, the network,
+         or anything else outside its tree; the only host programs it runs are git and the base system utilities on
+         the pinned PATH, and nothing of the developer's own environment reaches it
+         two exceptions, and no other: a test may read, and never write, the committed scenarios/ directory; and a
+         test may bind a listener on the loopback address in its own process, the trace collector of the support
+         package. The only connections a test makes or causes go to such a listener, from the test process itself
+         or from the child it starts and hands the address to; no test resolves a name or opens another socket.
+         the driver's own tests in crates/dev/ test the tooling: those of the gates and of the architecture rules
+         read the checkout and start Cargo, and those of the record command run in an isolated tree that holds a
+         stand-in checkout, and start git and a stand-in executable there
        nothing in the repository starts the reference tool; `cargo dev record` alone is handed its path
-       the built binary is run by hand only with its working directory inside an isolated tree, a scratch
-         workspace under a temporary directory, or a scratch copy of the checkout under a temporary directory;
-         never in the checkout and never in a real workspace, because it resolves the workspace upward from its
-         working directory and `repo remove` writes there; it is never installed, and never put on PATH under
-         the name of the installed `winter`
+       the built binary, however it is started outside the tests and the gates, `cargo run` included, runs only
+         with its working directory inside an isolated tree, a scratch workspace under a temporary directory, or
+         a scratch copy of the checkout under a temporary directory, and only where no directory at or above the
+         working directory holds a `.winter/config.toml` other than one made for the run; never in the checkout
+         and never in a real workspace, because it resolves the workspace upward from its working directory and
+         `repo remove` writes to the configuration it finds there
+         it is never installed, and never put on PATH under the name of the installed `winter`
+         the isolated tree is the one context/standards/testing.md describes; a scratch workspace is a directory
+         made for the run that holds a `.winter/config.toml` of its own
   3. routing table — one row per area index, each with "read when"
 a rule is present only while the tree makes it true: the gate rule from the change that adds the gates, the command
 rule from the change that adds registration, the test rule from the change that adds the harness, the reference-tool
-rule from the change that adds `cargo dev record`, the built-binary rule once the binary has a command
-AGENTS.md owns the built-binary rule: context/tooling/development.md links to it and does not restate it
+rule from the change that adds `cargo dev record`, the built-binary rule once the binary has a command, the loopback
+exception from the change that adds the trace collector of test-harness.md, and the word "sockets" in the
+library-boundary rule from the change that makes the binary open one
+the clause on the driver's own tests is the sentence the checkout's AGENTS.md carries today: those tests are no tests
+of the product, they read the checkout because the checkout is their subject, and the isolated-tree rule does not
+bind them
+the built-binary rule is worded by what is started, not by how: it binds `cargo run`, a path typed in a shell, and a
+script alike, and it does not bind a test or a gate, which the test rule binds
+AGENTS.md owns the built-binary rule: context/tooling/development.md says where a build puts the binary and that it
+is started by its path, links to the rule, and does not restate it; no other document names `cargo run` as the way
+to start the binary
 ```
 
 ### Routing
@@ -107,9 +128,11 @@ Commands.
 | `workspace:component-test`  | `cargo test -p winter-workspace-core --test '*'` | A behaviour against a fixture workspace, run in process with in-memory handles. | The behaviour reads or writes files or git state.          |
 | `workspace:executable-test` | `cargo test -p winter-workspace --tests`         | Process-level contract: streams, exit code, environment.                        | The claim is about the process, not the library.           |
 | `workspace:architecture`    | `cargo test -p winter-workspace-dev`             | Package edges, library output rules, context-tree rules, workflow and aliases.  | The change adds a package, an edge, or a context document. |
-| `workspace:slice-gate`      | `cargo dev gate slice`                           | The change is mergeable.                                                        | Always, before handing a change over.                      |
+| `workspace:slice-gate`      | `cargo dev gate slice`                           | Formatting, lints, and every test but the recorded scenarios pass.              | Always, before handing a change over.                      |
 | `workspace:full-gate`       | `cargo dev gate full`                            | The branch agrees with every recorded scenario.                                 | Before a merge and before a release.                       |
 | `workspace:scenario`        | `cargo scenarios`                                | Equality with the recorded reference in exit code, JSON, and state.             | The behaviour exists in the reference tool.                |
+
+No row says a change may be merged: a gate proves what its steps check, and the decision to merge is not the matrix's.
 
 Manual testing.
 
@@ -123,8 +146,10 @@ workspace:manual-registration
   use when: the change touches crates/core/build.rs, build/discover.rs, src/registry.rs, or src/parse.rs
 ```
 
-Both manual methods run in a scratch copy of the checkout under a temporary directory, never in the checkout itself;
-each entry says so.
+Both manual methods run in a scratch copy of the checkout under a temporary directory, never in the checkout itself, and
+only where no directory at or above the scratch copy holds a `.winter/config.toml`; a method that starts the built
+binary starts it by its path, as `context/tooling/development.md` says. Each entry's setup states where it may run, in
+the words of the entry point's built-binary rule or by a link to it.
 
 Tools.
 

@@ -43,8 +43,8 @@ epic that owns the behaviour; a difference of text or format alone falls under `
 **Decider:** product owner and engineering
 
 The binary mirrors the reference tool's command tree, option names, and per-command `--json` shapes, with exit codes
-`0`, `1`, `2`, `130`, and provider passthrough. The contract is the component runtime's command surface, output formats,
-and results specs.
+`0`, `1`, `2`, `126`, `130`, and provider passthrough. The contract is the component runtime's command surface, output
+formats, and results specs.
 
 ## Configuration transition (decision:configuration-transition)
 

@@ -1,9 +1,149 @@
 # Component runtime decisions
 
+## Trust roots of a trace export over TLS (decision:parallel-workspaces/component-runtime/trace-export-trust-roots)
+
+**Decider:** product owner
+
+An `https` trace endpoint is verified against the public roots bundled in the binary and against nothing else: no
+environment variable and no system certificate store is read, so a collector whose certificate chains to a private
+authority is not reachable over `https`, and its export takes the failed path of the tracing spec. The reference tool
+builds its exporter with no certificate argument and hides the generic exporter variables from it
+(`core/internal/otel_command_tracer.py:43-58,177-179`), and its lock file has the exporter send through an HTTP library
+that carries no root bundle (`tools/winter-cli/uv.lock`); that library is not in the reference tree and is believed to
+verify against the language runtime's default trust locations, the system certificate store among them, so the bundled
+set alone is a registered deviation.
+
+## Trace export transport (decision:parallel-workspaces/component-runtime/trace-export-transport)
+
+**Decider:** product owner
+
+The binary exports its command span through the standard OpenTelemetry Rust crates — the API, the SDK, and the OTLP
+exporter over HTTP with protobuf — and serves `http` and `https` endpoints alike, as the reference tool does through its
+SDK and HTTP library (`core/internal/otel_command_tracer.py:166-170`). An encoder and an HTTP client written in the
+binary were rejected because they could serve `https` only by adding a TLS dependency of their own or by registering a
+deviation.
+
+## Arguments that are not UTF-8 (decision:parallel-workspaces/component-runtime/non-utf8-arguments)
+
+**Decider:** product owner
+
+A command-line argument that is not valid UTF-8 is a usage error, exit 2, wherever it stands on the command line and
+whatever it would have meant: one rule for every argument position, after `--help`, `--version`, and `--` included. The
+reference tool passes such bytes through to the command, which then succeeds or fails on them by its own rules; the
+refusal is a registered deviation.
+
+## Help or version beside a fault (decision:parallel-workspaces/component-runtime/help-beside-fault)
+
+**Decider:** product owner
+
+The tokens of a node are read left to right and the first of `--help`, `--version`, or a fault decides the ending:
+`--version --bogus` prints the version line and exits 0, and `--bogus --version` is a usage error, exit 2. The reference
+tool reads every token of the node before it answers, so the fault always wins there (`click/parser.py:294-310`); the
+argument parser's own order was taken because no caller depends on the fault winning, and it is a registered deviation.
+
+## Exit code of a provider ended by a signal (decision:parallel-workspaces/component-runtime/provider-signal-exit)
+
+**Decider:** product owner
+
+A service command whose provider entrypoint was ended by a signal exits with 128 plus the signal number, as a shell
+reports it. The reference tool hands the negative code to its exit call unchanged (`modules/service/handler.py:68-73`)
+and so exits with 256 minus the signal number, an accident of its runtime; the shell convention is a registered
+deviation, and `epic:running-environments/service-orchestration` builds the mapping.
+
+## Trace export for an interrupted run (decision:parallel-workspaces/component-runtime/interrupt-trace-export)
+
+**Decider:** product owner
+
+A run that SIGINT aborts outside the service paths exits at once and exports no span. The reference tool exports through
+its single exit point (`cli.py:451-455`); a signal handler that exits cannot run an exporter soundly, so the missing
+span is a registered deviation, and a run that ends through a returned termination, exit 130 included, still exports.
+
+## Values of the command span's error type (decision:parallel-workspaces/component-runtime/span-error-type)
+
+**Decider:** product owner
+
+The command span's `error.type` attribute carries the binary's own name for the ending, from the closed vocabulary the
+tracing spec lists. The reference tool sends its exception class names, such as `NoSuchOption`, `Abort`, and
+`ConfigError` (`cli.py:150-162`), which name a language runtime the binary does not have; the change of values is a
+registered deviation toward trace consumers.
+
+## How the trace exporter is assembled (decision:parallel-workspaces/component-runtime/trace-exporter)
+
+**Decider:** engineering
+
+The OpenTelemetry crates are dependencies of the binary package alone, with a blocking HTTP client, a TLS stack that
+needs no system library, and the SDK's unbatched processor, so the one span is exported once on the thread that ends it
+and the binary starts no asynchronous runtime of its own; with no endpoint configured none of it is constructed. The
+batching processor was rejected because one span per process gains nothing from a background worker, and a dependency of
+the library was rejected because `engineering:library-output-boundary` keeps sockets out of it.
+
+## Repeated options (decision:parallel-workspaces/component-runtime/repeated-options)
+
+**Decider:** product owner
+
+A flag or a single-value option given more than once is a usage error, exit 2; only an option the command surface spec
+marks repeatable may repeat. The reference tool accepts the repetition and lets the last value win
+(`click/parser.py:165-178`), which hides a mistyped command line, so the refusal is a registered deviation.
+
+## One parse pass (decision:parallel-workspaces/component-runtime/single-parse-pass)
+
+**Decider:** engineering
+
+The command line is parsed once, and the runtime derives from the resolved command path whether an invocation ended at
+the root or inside a command. The reference tool parses the root, configures logging, and then parses the command
+(`click/core.py:1866-1874`); two passes were rejected because the parser writes no log record, so the only observable
+effects of the order are which endings open a command span and configure logging, and those follow from the path.
+
+## Log records without a logging switch (decision:parallel-workspaces/component-runtime/unswitched-log-records)
+
+**Decider:** engineering
+
+With neither `-v` nor a valid `WINTER_LOG_LEVEL`, a record at WARNING or above is written to stderr as its message
+alone, and lower records are dropped. The reference tool attaches no handler in that case (`cli.py:270-271`) and its
+language runtime's handler of last resort writes exactly those records, which is what its users see; writing nothing was
+rejected because the 61 warning sites would fall silent.
+
+## Log level names (decision:parallel-workspaces/component-runtime/log-level-names)
+
+**Decider:** engineering
+
+`WINTER_LOG_LEVEL` accepts `DEBUG`, `INFO`, `WARNING`, `WARN`, `ERROR`, `CRITICAL`, `FATAL`, and `NOTSET`, in any case,
+and ignores every other value silently; `NOTSET` switches the record format and leaves the threshold at warning, which
+is what the reference tool's loggers do with it (`cli.py:288-292`). These are the level names the reference tool's
+lookup resolves (`cli.py:277-285`); the five canonical names alone were rejected because `WARN` and `FATAL` are
+spellings a caller may already set.
+
+## Confirmation without a terminal (decision:parallel-workspaces/component-runtime/piped-confirmation)
+
+**Decider:** engineering
+
+A confirmation prompt reads its answer from stdin whether or not stdin is a terminal, as the reference tool does
+(`click/termui.py`, `confirm`; `modules/workspace/handlers/destroy_handler.py:58-61`). Refusing without a terminal was
+rejected because a script that pipes `y` would stop working; end of input still aborts before any mutation.
+
+## Signals other than the interrupt (decision:parallel-workspaces/component-runtime/signal-disposition)
+
+**Decider:** engineering
+
+The binary handles SIGINT and leaves SIGTERM, SIGHUP, and SIGQUIT at their default disposition, as the reference tool
+does: no source of it installs a handler (`core/internal/local_subprocess_runner.py:25-47` defers the interrupt only). A
+handler that cleans up managed children on SIGTERM is a change of function for
+`epic:running-environments/service-orchestration` to propose.
+
+## A stdout that cannot be written (decision:parallel-workspaces/component-runtime/unwritable-stdout)
+
+**Decider:** engineering
+
+A write the reader's closed pipe refuses ends with exit 1 and nothing written, as the reference tool ends it
+(`click/core.py:1425-1431`); any other failed write or flush is an internal failure with its diagnostic, exit 1; and a
+process started with no stdout runs to its own ending, as the reference tool does when its stream is absent
+(`click/utils.py:267-276`). One silent rule for every failed write was rejected because a full disk is a failure the
+user must see.
+
 ## Fixture helper guarantees (decision:parallel-workspaces/component-runtime/fixture-helper-guarantees)
 
-**Decider:** program lead, under the owner's constraint that tests never touch anything outside their tree; the owner,
-on 2026-11-15, for where the guarantee ends
+**Decider:** program lead, under the owner's constraint that tests never touch anything outside their tree; the owner
+for where the guarantee ends
 
 The git fixture helpers themselves refuse, before any effect and with symbolic links resolved, every path that does not
 lie in the tree, refuse the tree's root as a repository, and name SHA-1 objects and the files ref backend on every
@@ -91,15 +231,16 @@ Every other root document is rewritten because each one instructs the reader to 
 **Decider:** product owner
 
 A failed git call's text reaches stderr once, in the repository error that reports it; it appears additionally as a log
-record only when logging is turned up with `-v` or `WINTER_LOG_LEVEL`. The reference tool always writes the failure a
-second time as a bare log line, so printing it once is a registered deviation.
+record only when logging is turned up with `-v` or `WINTER_LOG_LEVEL`. The reference tool logs the failure at error
+level before raising it (`modules/workspace/internal/repo_error_factory.py:103`), and with no handler attached that
+record reaches stderr as a bare line, so its users see the text twice; printing it once is a registered deviation.
 
 ## Internal failure rendering (decision:parallel-workspaces/component-runtime/internal-failure-rendering)
 
 **Decider:** product owner
 
-An unexpected failure, a panic included, ends with a diagnostic on stderr and exit 1, where the reference tool prints a
-traceback and exits 1. A backtrace follows only when `RUST_BACKTRACE` is set, which is a local development aid.
+An unexpected failure, a panic included, ends with one error line on stderr and exit 1, where the reference tool prints
+a traceback and exits 1. A backtrace follows only when `RUST_BACKTRACE` is set, which is a local development aid.
 
 ## Program name (decision:parallel-workspaces/component-runtime/program-name)
 
@@ -122,9 +263,9 @@ the reference fallback when unset, though nothing in this program sets them.
 
 **Decider:** engineering
 
-Help goes to stdout with exit 0 for `--help`, and to stderr with exit 2 for a bare group. It lists the commands and
-options the command surface spec names and omits hidden ones; its wording, order, and layout are the argument parser's
-own.
+Help goes to stdout with exit 0 for `--help`, and to stderr with exit 2 for a bare group or a root given options and no
+command. It lists the commands and options the command surface spec names and omits hidden ones; its wording, order, and
+layout are the argument parser's own.
 
 ## Error rendering (decision:parallel-workspaces/component-runtime/error-rendering)
 
@@ -137,8 +278,12 @@ envelope; consumers decide success from the exit code.
 
 **Decider:** engineering
 
-`ws status` exits 1 for a dirty or drifted worktree and 2 when the command itself fails, and service commands return the
-provider's code unmodified. An interrupt exits 130 only on the service paths and 1 everywhere else.
+`ws status` exits 1 for a dirty or drifted worktree and 2 when the command itself fails. A service command returns the
+exit code of a provider that ran, with three exceptions (`core/internal/local_subprocess_runner.py:267-280`,
+`modules/service/handler.py:105-109`): 126 when a provider entrypoint could not be executed and 1 when
+`service up --wait` times out after the provider succeeded, both as the reference tool has them, and 128 plus the signal
+number for a provider ended by a signal, under `decision:parallel-workspaces/component-runtime/provider-signal-exit`. An
+interrupt exits 130 only on the service paths and 1 everywhere else.
 
 ## JSON encoding (decision:parallel-workspaces/component-runtime/json-encoding)
 
