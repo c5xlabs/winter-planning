@@ -1,5 +1,15 @@
 # Component runtime decisions
 
+## SIGINT ignored at start (decision:parallel-workspaces/component-runtime/interrupt-ignored-at-start)
+
+**Decider:** product owner
+
+When the binary starts with SIGINT's disposition already set to ignore — inherited from whatever started it: a
+background job of a non-interactive shell, a `nohup`-style launcher, `trap '' INT` — it leaves SIGINT ignored and
+installs no handler, as Unix convention has it and as the reference tool behaves: its language runtime leaves an ignored
+SIGINT ignored, and no source of the reference tool installs a handler at start. Always installing the handler was
+rejected because a stray SIGINT would then end, with exit 1, a run its launcher asked to shield.
+
 ## A `--` before a command name (decision:parallel-workspaces/component-runtime/double-dash-before-command)
 
 **Decider:** product owner

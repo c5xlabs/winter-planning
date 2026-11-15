@@ -11,7 +11,8 @@ code:
 # The interrupt
 
 Builds `Interrupts` and the SIGINT handler of [runtime.md](../spec/runtime.md), Interrupts and signals, under
-`engineering:handoff-fidelity`, `decision:parallel-workspaces/component-runtime/signal-disposition`, and
+`engineering:handoff-fidelity`, `decision:parallel-workspaces/component-runtime/signal-disposition`,
+`decision:parallel-workspaces/component-runtime/interrupt-ignored-at-start`, and
 `decision:parallel-workspaces/component-runtime/interrupt-trace-export`. It follows `process-boundary` and needs no
 other change; `stdout-fault-tests` needs the same one and may be built beside this change, and `runtime-documents`
 follows both.
@@ -21,8 +22,10 @@ follows both.
 - `crates/core/src/process.rs`: `Interrupts` exists with the methods the spec gives; `Invocation` and `Context` carry
   it, and `run_in_memory` passes one of its own. `Termination::Aborted` and `Termination::Interrupted` are not built:
   the handler ends the process itself, and no command of the tree returns either.
-- `crates/cli/src/interrupt.rs` exists: it installs the handler, which does only what the spec lists for the deferred
-  and the undeferred case, and each `unsafe` block states why it is sound. `main` installs it before `run`.
+- `crates/cli/src/interrupt.rs` exists: it reads the disposition of SIGINT the process started with and, unless that is
+  ignore, installs the handler, which notes the interrupt first and then does only what the spec lists for the deferred
+  and the undeferred case; when the disposition is ignore it installs nothing. Each `unsafe` block states why it is
+  sound. `main` calls the installer before `run`.
 - `crates/cli/Cargo.toml` names `libc` 0.2, and `Cargo.lock` gains the binary's edge to it. The crate is already
   resolved in the lock for the support and driver packages, so nothing is fetched.
 - The scaffold's `InProcess` passes an `Interrupts` of its own and gains `interrupt_pending`.
@@ -62,15 +65,20 @@ follows both.
 - A component test, through the scaffold: `interrupt_pending` leaves `ws index NAME` ending as it does without it, since
   no present command defers.
 - Unit tests in `crates/cli/src/interrupt.rs`, each starting a child test of the same test binary through the support
-  package's `invoke`, by the fixture rule of the unit tier's exceptions; the child installs the handler, writes a ready
+  package's `invoke`, by the fixture rule of the unit tier's exceptions; the child calls the installer, writes a ready
   line to stdout, and raises SIGINT on itself:
   - not deferred: the child exits 1, its stderr holds the aborted notice, and its stdout holds the ready line and
     nothing after it;
-  - deferred: the handler returns, the child sees `pending` true, writes a second line, and exits 0.
+  - deferred: the handler returns, the child sees `pending` true, writes a second line, and exits 0;
+  - ignored at start: the child sets SIGINT's disposition to ignore itself, before it calls the installer, because the
+    test runner cannot set a child's dispositions without `unsafe` code outside `interrupt.rs`; after the raise it
+    continues, sees `pending` false, writes a second line, and ends by its own exit code, 0, with no notice on stderr.
 - `grep -rn 'unsafe' crates/cli/src` prints lines of `interrupt.rs` only, each block preceded by a comment.
 - `grep -rnE 'Termination::(Aborted|Interrupted)' crates/core/src` prints nothing, and the enum declares neither
   variant: `grep -nE '^[[:space:]]*(Aborted|Interrupted)' crates/core/src/termination.rs` prints nothing.
-- `cargo fetch --locked` exits 0 with no network.
+- The manifest change needs nothing the lock did not already resolve and nothing from the network: the change's diff of
+  `Cargo.lock` is exactly one added `libc` line among the dependencies of the binary's package, and
+  `cargo build --locked --offline` exits 0.
 - `cargo dev gate full` exits 0.
 
 ## Out of scope

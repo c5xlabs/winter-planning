@@ -63,8 +63,8 @@ pub struct Interrupts { /* two atomics: deferred, pending */ }
 impl Interrupts {
     pub const fn new() -> Self;          // not deferred, not pending
     pub fn is_deferred(&self) -> bool;   // read by the handler
-    pub fn note(&self);                  // called by the handler when deferred: sets pending
-    pub fn pending(&self) -> bool;       // read by a command that deferred
+    pub fn note(&self);                  // called by the handler for every interrupt, first: sets pending
+    pub fn pending(&self) -> bool;       // read by a command that deferred, after its release; never cleared
     pub fn defer(&self);                 // a command takes the interrupt over: service paths only
     pub fn release(&self);               // back to the default
 }
@@ -346,10 +346,23 @@ impl InternalError {
 
 ```text
 # crates/cli/src/interrupt.rs — reference: cli.py:434-436, core/internal/local_subprocess_runner.py:25-47
-SIGINT    a handler installed with sigaction before anything else runs
-            INTERRUPTS.is_deferred()   -> INTERRUPTS.note(); the handler returns; the command that deferred reads
-                                          pending() and ends as Termination::Interrupted, exit 130
+SIGINT    the disposition the process started with is read before anything else runs, by a sigaction call that
+          passes no new action and asks for the previous one
+            ignore                     -> nothing is installed and SIGINT stays ignored for the whole run
+                                          (decision:parallel-workspaces/component-runtime/interrupt-ignored-at-start)
+            anything else              -> the handler is installed with a second sigaction call
+          the query comes first, in place of an installation that is undone after: until the second call the
+          disposition is the inherited one, so no interrupt is ever handled against the launcher's wish
+          the handler, in order
+            INTERRUPTS.note()          always, and first
+            INTERRUPTS.is_deferred()   -> the handler returns
             otherwise                  -> write the aborted notice to file descriptor 2 with write(2), then _exit(1)
+          the note comes before the test: the signal may land on a second thread, and with the test first a command
+          could release and read pending() between the test and the note, and the interrupt would be lost
+          a command that deferred reads pending() after its release(), never before, and when it is true ends as
+          Termination::Interrupted, exit 130: a pending interrupt always ends the invocation, and pending is not
+          cleared within one. The reference tool delivers a pending interrupt again when its deferral ends
+          (core/internal/local_subprocess_runner.py:42-48); here that duty is the command's.
           the handler calls only async-signal-safe functions: atomic loads and stores, write, _exit
           it flushes nothing and exports no span
           (decision:parallel-workspaces/component-runtime/interrupt-trace-export)
@@ -367,10 +380,10 @@ The undeferred handler ends the process itself and returns no `Termination`. `Te
 ([results-and-exit-codes.md](./results-and-exit-codes.md), Domain); this epic builds neither.
 
 `unsafe` in the binary is in two places, each carrying the comment the Library rules ask for: in `interrupt.rs`, the
-`sigaction` call, the handler's `write` and `_exit`, and the `raise` its tests use; and in `trace.rs`, the one block
-that removes the generic exporter variables from the process environment ([tracing.md](./tracing.md), The binary's
-part). The binary package's third-party dependencies are `libc` and the tracing crates of
-[repository-layout.md](./repository-layout.md), The Cargo workspace.
+`sigaction` calls, the handler's `write` and `_exit`, and what its tests use, the `raise` and the setting of the ignore
+disposition; and in `trace.rs`, the one block that removes the generic exporter variables from the process environment
+([tracing.md](./tracing.md), The binary's part). The binary package's third-party dependencies are `libc` and the
+tracing crates of [repository-layout.md](./repository-layout.md), The Cargo workspace.
 
 ```text
 testing the handler                     # test-harness.md, tier table
@@ -380,6 +393,8 @@ testing the handler                     # test-harness.md, tier table
   or a readiness protocol: the parent reads the child's exit, stdout, and stderr once it has ended.
     not deferred    the child's exit is 1, its stderr holds the notice, and nothing follows the ready line
     deferred        the handler returns; the child reads pending() as true and exits 0
+    ignored         the child sets SIGINT to ignore itself, then calls the installer; after the raise it runs on,
+                    reads pending() as false, and exits 0, and its stderr holds no notice
 ```
 
 ### Reading a parsed argument
