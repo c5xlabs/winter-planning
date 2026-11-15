@@ -27,8 +27,10 @@ in-memory values. Delivers the replay-failure, message-text, human-text, and dev
 
 - Equal inputs yield no difference.
 - One test per dimension changes one thing and asserts exactly one `Difference` with that dimension and subject: the
-  exit code; one JSON value, with the pointer as subject; an extra tree entry; one byte of a `bytes` file; one line of
-  one `git.txt` block, with repository and block as subject.
+  exit code; one JSON value, with the pointer as subject; an extra tree entry; one line of one `git.txt` block, with
+  repository and block as subject.
+- One changed byte of a `bytes` file yields one `Files` difference and one `Tree` difference for that path, and no
+  other.
 - A string at a `message_text` pointer that differs yields no difference; a number there instead of a string yields one.
 - Two fan-out runs with partitions interleaved differently are equal; a reordering inside one partition is a difference;
   a value outside the run that moves is a difference.

@@ -224,18 +224,56 @@ pub fn differences(scenario: &Scenario, recorded: &[StepRecord], observed: &[Ste
 
 ```text
 JSON rules
+  reading         stdout.json is the canonical form of the stream, and that form merges streams that differ. Each
+                  side is therefore read on its own. A side whose stdout.json is the canonical form of its own
+                  stdout is read again from that stdout, with every number kept as it is written and every member
+                  of an object kept: integers beyond 64 bits, a repeated key, and a line {"$text": …} against a
+                  line that is not JSON all differ. A side whose stdout.json is not that form — a record whose
+                  stdout.json an expectation replaced — is read from its stdout.json as that is written, with its
+                  numbers and members kept likewise. What the canonical form merges in an observation therefore
+                  still differs from an expectation, and an expectation states a number as the observation
+                  prints it, not as the canonical form rounds it.
   message text    a string at a pointer matched by [compare] message_text is equal to any string;
-                  a {"$text": …} item is equal to any {"$text": …} item
+                  under json-lines a line that is not JSON is equal to any other such line. Where a side is read
+                  from its stdout.json, an object whose one member is a string at "$text" stands for such a
+                  line; under json no value stands for a line.
   fan-out         within a maximal run of consecutive values whose "type" is in a [[compare.fan_out]] `types`,
                   values are partitioned by the value at `key`; the partitions are compared as a set, and the
                   values inside one partition in order
-  numbers         integer and float compare by value; 1 equals 1.0
+  numbers         compare by their value as decimals of any length: 1, 1.0, and 1e0 are equal
 text never compared
   stdout and stderr of every step are stored and shown beside a failure; when stdout mode is "text" the step's
   stdout contributes no Difference
 before the binary's first step
   the Fixture dimension is checked first; when it differs the scenario fails with that one Difference and the
   binary is not run
+```
+
+```text
+comparison rules — the values of [compare] in scenario.toml, read by compare::differences before a step is compared
+  malformed         a rule that does not read -> one Difference of Dimension::Malformed for each such rule, without
+                    a step, whose subject is the rule's key; nothing else is compared
+                      message_text        a pointer that is neither empty nor begins with "/", or that holds a "~"
+                                          followed by neither "0" nor "1"
+                      key                 of a [[compare.fan_out]]: a pointer with either fault
+                      types               of a [[compare.fan_out]]: an empty list, or a type listed twice, in the
+                                          same fan-out or in another
+                      path                of a [[compare.file]]: no confined relative path (scenario-format.md,
+                                          Path confinement), or no glob — an empty segment, a segment "." or
+                                          "..", or "**" beside something else in a segment
+                      git_config_ignore   no key git could have written: it holds no ".", or holds an "=" or a
+                                          line break
+  relaxes nothing   a rule that reads and relaxes nothing in the scenario -> one Difference without a step, in the
+                    dimension the rule would have relaxed, beside every other Difference of the comparison
+                      message_text        no string of the recorded output is at the pointer
+                                          Json, subject "message_text <pointer>"
+                      [[compare.fan_out]] no value of the recorded output has one of its types
+                                          Json, subject "fan_out <types>"
+                      [[compare.file]]    it decides the mode of no path either side lists after a step; a rule
+                                          an earlier one always matches first decides none
+                                          Files, subject "file <glob>"
+                      git_config_ignore   not reported: its keys are left out when a snapshot is taken, so two
+                                          snapshots cannot tell whether a key names anything
 ```
 
 ### Runner

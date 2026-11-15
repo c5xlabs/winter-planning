@@ -26,7 +26,7 @@ scenarios/
           before/  after/                state snapshots: tree.txt, git.txt, files/
           calls/<nnn>.json               present when the scenario stubs a program
       expected/                          optional; written by a person, with [deviation]
-        steps/<nn>/…                     any subset of the files of record/steps/<nn>/
+        steps/<nn>/…                     the files listed under Expectation for a registered deviation
 discovery     a scenario is every directory exactly two levels under scenarios/ ; a directory one level down with no
               child directory, a file beside reference.toml, or a name outside the pattern is malformed
 ```
@@ -89,7 +89,7 @@ types = ["progress", "result"]
 key = "/repo"
 
 [[compare.file]]                 # a path rule; first match wins; unmatched paths compare as bytes
-path = ".winter/state.toml"      # glob over ROOT-relative paths, "*" within a segment, "**" across segments
+path = "ws/.winter/state.toml"   # glob over ROOT-relative paths, "*" within a segment, "**" across segments
 mode = "toml"                    # "bytes" | "toml" | "presence" | "ignore"
 reason = "the writer's key order is not function"
 
@@ -119,6 +119,10 @@ stubs
   (runner::CALL_CAPTURE == false) refuses a scenario that has one: at record time the scenario is refused, at replay
   it fails with one Difference of Dimension::Malformed whose subject is "stub". It is never silently run without
   its stub.
+comparison rules
+  the values of [compare] are read when two runs are compared, not when the description is parsed. A rule that
+  does not read, and a rule that relaxes nothing in the scenario, each fail the comparison
+  (record-and-replay.md, Comparison, "comparison rules").
 ```
 
 ### Path confinement
@@ -314,9 +318,25 @@ env                  exactly the variables the [[stub]] entry lists; an unset on
 
 ```text
 expected/steps/<nn>/<file>     replaces record/steps/<nn>/<file> for comparison, file by file
+may hold                       what the step produced, and nothing else:
+                                 exit-code   stdout   stderr   stdout.json
+                                 after/tree.txt   after/git.txt   after/files/<path>
+                               an expectation that holds any other file, or names a step the record lacks, is
+                               refused, naming the step and the file
+never replaced                 before/** : the state a step starts from is the record's own
+not yet replaceable            calls/** : refused like any other file until program capture exists
                                after/files/<path> and after/tree.txt are replaced together or not at all
                                <path> is in its stored form, and the overlaid snapshot is read under "reading" of
                                State snapshot: an implied file is taken from expected/, else from record/
+previous snapshot              the overlaid after/ of step <nn> is read with record/steps/<nn>/before/ — the
+                               record's own state before the same step, never an overlaid after/ of the step
+                               before. A deviation that lasts into later steps is therefore restated at each of
+                               them: after/tree.txt, and the content of every file that listing implies against
+                               that step's before/.
+stdout of a JSON step          the Json dimension reads stdout.json (record-and-replay.md, Comparison, "reading"),
+                               so an expected stdout of a step whose stdout mode is json or json-lines is
+                               accompanied by its stdout.json. An expected stdout alone is not compared, and
+                               leaves the record read from its stdout.json.
 [deviation].decision           the id of the decision that registers the difference
 consistency                    expected/ without [deviation], or [deviation] without expected/, is malformed
 the record step                never reads or writes expected/
