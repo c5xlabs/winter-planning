@@ -1,7 +1,7 @@
 ---
 epic: advanced-forge-auth
 refinement: refined
-status: planned
+status: in-progress
 external: github:paul-gross/blizzard#2173
 ---
 

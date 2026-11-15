@@ -1,7 +1,7 @@
 ---
 epic: launcher-shim
 refinement: final
-status: planned
+status: ready
 ---
 
 # Winter launcher shim

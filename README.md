@@ -1,9 +1,10 @@
 # ❄️ Winter requirements
 
-Winter is the suite by [C5X Labs](https://github.com/c5xlabs) for building software with coding agents: **Winter
-Workspace**, **Winter Fleet**, and the platform that fronts them. This repository holds the suite's requirements content
-only — charters, milestones, epics, and the requirements and specs behind them. Code and its documentation live in each
-product's own repositories.
+Winter is the suite by [C5X Labs](https://github.com/c5xlabs) for developer-owned automation across software development
+and more capable, efficient agents: **Winter Workspace**, **Winter Fleet**, and the shared platform that enables them.
+People can carry their automation between projects, and teams or organizations can govern its use. This repository holds
+the suite's requirements content only — charters, milestones, epics, and the requirements and specs behind them. Code
+and its documentation live in each product's own repositories.
 
 ## Contents
 
@@ -73,14 +74,14 @@ epic: adapters/codex
 ---
 ```
 
-| Key          | Meaning                                          | Values                                                                                                       |
-| ------------ | ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
-| `epic`       | The epic's id, without `epic:` or the project    | `<epic>` or `<initiative>/<epic>`                                                                            |
-| `initiative` | The initiative's id                              | Its slug, matching its folder                                                                                |
-| `refinement` | How far the intent has been worked out           | `outline` (a sketch), `refined` (ready to derive from), `final` (the product owner has declared it complete) |
-| `status`     | Where the epic is                                | `planned` (not started), `in-progress` (work has started), `delivered` (it reached its users)                |
-| `external`   | The item standing for the epic in another system | One `<system>:<id>`                                                                                          |
-| `epics`      | The epics an initiative holds                    | Their slugs                                                                                                  |
+| Key          | Meaning                                          | Values                                                                                                                                                                      |
+| ------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `epic`       | The epic's id, without `epic:` or the project    | `<epic>` or `<initiative>/<epic>`                                                                                                                                           |
+| `initiative` | The initiative's id                              | Its slug, matching its folder                                                                                                                                               |
+| `refinement` | How far the intent has been worked out           | `outline` (a sketch), `refined` (ready to derive from), `final` (the product owner has declared it complete)                                                                |
+| `status`     | Where the epic is                                | `planned` (preparation incomplete), `ready` (specced and sliced, ready to ingest but unstarted), `in-progress` (implementation started), `delivered` (it reached its users) |
+| `external`   | The item standing for the epic in another system | One `<system>:<id>`                                                                                                                                                         |
+| `epics`      | The epics an initiative holds                    | Their slugs                                                                                                                                                                 |
 
 Files are Markdown, formatted to a 120-column width.
 
@@ -99,7 +100,8 @@ code:                         # where the behaviour it changes lives today
 
 ## Markers
 
-- `planned`, `in-progress`, `delivered` — a milestone chart's status for each epic, matching the epic's own `status:`.
+- `planned`, `ready`, `in-progress`, `delivered` — a milestone chart's status for each epic, matching the epic's own
+  `status:`.
 - **Proposed.** — a requirement not yet agreed.
 - **Open.** — a decision not yet made; **Decider:** names who makes it.
 

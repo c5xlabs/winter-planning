@@ -37,7 +37,7 @@ takes work theirs to declare, and every upgrade taken when they choose and told 
 | `epic:test-suite/optimization`           | planned     |
 | `epic:adopt-di`                          | planned     |
 | `epic:transactions`                      | in-progress |
-| `epic:advanced-forge-auth`               | planned     |
+| `epic:advanced-forge-auth`               | in-progress |
 
 ## Autonomy (milestone:autonomy)
 
