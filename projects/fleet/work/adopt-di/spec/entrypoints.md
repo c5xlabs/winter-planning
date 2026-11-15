@@ -87,6 +87,10 @@ builders, and harness-bundle builders. A daemon-start command builds the hosted 
 inputs rather than constructing a duplicate command-owned process graph. Delayed provider construction does not
 establish import isolation.
 
+The first command-container path is `blizzard hub status`, using shared client/context/trace registrations. Other
+commands retain their existing construction until their selected-command paths migrate; installing shared support does
+not activate or assemble sibling command graphs.
+
 `blizzard dev check-invariants` retains both running-daemon client mode and explicit offline hub/runner store mode.
 Offline mode may load daemon store adapters, but neither client mode nor loading unrelated operator commands imports
 those offline providers. The offline root owns its selected engines and closes them on success or failure; existing

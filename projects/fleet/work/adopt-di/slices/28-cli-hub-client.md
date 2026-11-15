@@ -11,7 +11,8 @@ Delivers the hub client-verb boundary in spec [Entrypoint resolution](../spec/en
 
 ## Change
 
-- Migrate the network/client commands under `hub/cli/` to selected-command area registration.
+- Migrate the remaining network/client commands under `hub/cli/` to selected-command area registration.
+- Leave the `blizzard hub status` pilot with `cli-operator`; reuse its shared mechanisms without migrating it again.
 - Reuse carrier/context/client mechanisms without importing local store/migration/server providers.
 - Remove replaced command-root constructors and unused bridges; update affected command exemplars.
 
@@ -21,3 +22,5 @@ Delivers the hub client-verb boundary in spec [Entrypoint resolution](../spec/en
   runtime commands; client construction remains lazy until requested.
 - Invoker carrier fakes retain precedence; command success/refusal/failure tests preserve outputs and owned cleanup.
 - All selected graphs validate; strict typing, affected CLI tests and `blizzard:cli-contract` pass unchanged.
+- The existing `blizzard hub status` pilot retains its command graph and carrier precedence; no second container or
+  provider owner is introduced for it.
