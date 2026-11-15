@@ -99,7 +99,7 @@ Commands.
 | --------------------------- | ------------------------------------------------ | ------------------------------------------------------------------------------- | ---------------------------------------------------------- |
 | `workspace:unit-test`       | `cargo test -p winter-workspace-core --lib`      | A pure rule: parsing, derivation, ordering, classification.                     | The rule has no file, git, or process input.               |
 | `workspace:component-test`  | `cargo test -p winter-workspace-core --test '*'` | A behaviour against a fixture workspace, run in process with in-memory handles. | The behaviour reads or writes files or git state.          |
-| `workspace:executable-test` | `cargo test -p winter-workspace --test '*'`      | Process-level contract: streams, exit code, environment.                        | The claim is about the process, not the library.           |
+| `workspace:executable-test` | `cargo test -p winter-workspace --tests`         | Process-level contract: streams, exit code, environment.                        | The claim is about the process, not the library.           |
 | `workspace:architecture`    | `cargo test -p winter-workspace-dev`             | Package edges, library output rules, context-tree rules, workflow and aliases.  | The change adds a package, an edge, or a context document. |
 | `workspace:slice-gate`      | `cargo dev gate slice`                           | The change is mergeable.                                                        | Always, before handing a change over.                      |
 | `workspace:full-gate`       | `cargo dev gate full`                            | The branch agrees with every recorded scenario.                                 | Before a merge and before a release.                       |
@@ -134,8 +134,9 @@ matrix rules
   real rows   a row exists only when its command exists and exits 0 on a clean checkout: `workspace:scenario` and
               `tool:record` are added by epic:rust-adoption/parity-validation with scenarios.md; before that the
               Commands part has six rows and the Tools part two
-  one file    a test file narrower than a row is selected with `--test <subject>` in place of `--test '*'`; the
-              document says so once, under the Commands table
+  one file    a test file narrower than a row is selected with `--test <subject>` in place of the row's test-target
+              selection, `--test '*'` or `--tests`; the document says so once, under the Commands table
+  replay      `workspace:executable-test` does not select the scenario replay target, which runs under the full gate
 ```
 
 ## Flows
