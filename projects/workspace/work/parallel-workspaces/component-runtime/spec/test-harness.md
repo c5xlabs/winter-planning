@@ -220,10 +220,50 @@ confinement     # decision:parallel-workspaces/component-runtime/fixture-helper-
                                 points to; one that cannot be canonicalised is refused.
                   file path     relative to its repository, not empty, every component a plain name; joined to
                                 the repository, it passes the base-path check
+                  written file  a file path a helper writes. With every link resolved, it lands under a
+                                top-level entry of the ROOT and never is one, and neither at <ROOT>/.git nor
+                                under it. The file written is always a fresh inode: an entry already at the
+                                place the path lands is replaced, never opened in place, so a hard link there
+                                cannot carry the write to whatever else shares its inode.
+                  removed path  a file path a commit deletes. Only its parent is resolved and the final
+                                component is never followed, so a link is removed itself and what it leads to
+                                is left. Where the parent lands, the entry is under a top-level entry of the
+                                ROOT and never is one, and neither <ROOT>/.git nor under it.
+                  top level     no helper writes a file as, replaces, or deletes a top-level entry of the ROOT
+                                — gitconfig, a directory of the layout — by any path or through any link. A
+                                repository is created where git is told to, and none is put in place of a
+                                file.
                   destination   of init, clone_remote, and add_worktree: a base path that is strictly below the
-                                ROOT, as given and as resolved. The ROOT is never a repository: the ceiling of
+                                ROOT, as given and as resolved, and neither <ROOT>/.git nor under it, as given
+                                and as resolved. The ROOT is never a repository, by any route: the ceiling of
                                 the pinned environment rests on <ROOT> never holding .git.
-                  remote name   one path segment
+                                A destination of init, and the path bare_remote creates, is absent or an empty
+                                directory, and is refused otherwise: git would write into entries already
+                                there, and a link planted among them would carry its writes out of the tree.
+                                clone_remote and add_worktree leave that refusal to git, which takes no
+                                destination that holds anything.
+                  remote name   one path segment. <ROOT>/remotes/<name>.git, the path a helper computes from
+                                it, is confined like a given path: as a base path where it is cloned from or
+                                pushed to, as a destination where bare_remote creates it.
+                  repository    of commit and add_worktree, once every path of the call has passed and before
+                                any effect; git is asked reading only.
+                                commit: the top of the work tree, as git reports it, is the path given, which
+                                is below the ROOT and never the ROOT. A directory that is no repository and a
+                                bare repository fail with git's own error; a directory inside a work tree is
+                                GitError::Unconfined.
+                                commit and add_worktree: the repository's git directory and its common
+                                directory, as git reports them, each pass the base-path check. A .git that is
+                                a link, or a gitdir: file, pointing out of the tree is refused: the work tree
+                                would lie in the tree while objects, refs, and worktree entries were written
+                                outside it.
+                  boundary      The helpers guarantee that a fixture built from honest inputs has no effect
+                                outside its tree, on the top-level entries of its tree, or on the network, and
+                                they refuse the escapes this entry lists. They are not a sandbox. A test that
+                                deliberately builds a way out by means this entry does not list is outside
+                                the guarantee: the standing rule that a test never touches anything outside
+                                its tree binds the test's author, and the helpers owe no refusal for it. A
+                                defect of the helpers is an honest input that has such an effect, or a listed
+                                escape that is not refused; a route this entry does not list is not one.
                 The check is one crate-private function in tree.rs, beside the root it checks against. git.rs,
                 workspace.rs, and the scenario fixture builder call it and hold no second one, so a component
                 test that uses the helpers directly has the same boundary as a recorded scenario.
@@ -296,7 +336,9 @@ pub struct Workspace { pub root: PathBuf }
 ```
 
 ```text
-build order   remotes -> files and .winter/ files -> projects -> env worktrees -> root repository commit
-              the root commit holds every file present at that point that .gitignore does not exclude
+build order   root repository init -> remotes -> files and .winter/ files -> projects -> env worktrees ->
+              root repository commit
+              the init comes first, while the workspace directory is still empty, as a destination of init
+              must be; the root commit holds every file present at that point that .gitignore does not exclude
 no network    nothing the builder does resolves a host name
 ```

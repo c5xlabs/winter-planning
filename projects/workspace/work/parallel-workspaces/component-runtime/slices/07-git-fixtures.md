@@ -22,6 +22,11 @@ Completes the shared test support `engineering:testable-boundaries` requires and
   before its first effect, through the one check in `tree.rs`; `init`, `clone_remote`, and `add_worktree` refuse the
   tree's root as a destination. Every repository is created with the spec's init command and every clone with its clone
   command. All of it is under `decision:parallel-workspaces/component-runtime/fixture-helper-guarantees`.
+- The helpers keep the other rules of that entry as well: the remote's own path is confined, `<ROOT>/.git` is neither a
+  destination nor written or removed, no top-level entry of the tree is written, replaced, or deleted, `commit` and
+  `add_worktree` check the repository's work tree and git directories reading only, a written file is a fresh inode, a
+  removed path has only its parent resolved, and an `init` or `bare_remote` destination is absent or empty. The entry's
+  "boundary" states where the helpers' duty ends.
 - The commit count is held by `TempTree` and advances only once a commit exists, as the spec's "commit dates" says.
 - `push_to_remote` follows the three branch cases of the spec.
 - `WorkspaceBuilder` writes the `.winter/` files and other files verbatim, creates remotes, project clones, env
@@ -62,6 +67,28 @@ Completes the shared test support `engineering:testable-boundaries` requires and
   `out` to the same directory, with a spec that writes `out/planted.txt`. That directory is still empty afterwards.
 - The tree's root is never a repository: `init`, `clone_remote`, and `add_worktree` with the root as destination each
   return `GitError::Unconfined`, and `<ROOT>/.git` does not exist afterwards.
+- No written or removed path makes or touches `<ROOT>/.git`. In the repository `<ROOT>/ws/repo`, which holds a symbolic
+  link `up` to the tree's root, a `commit` whose spec writes `up/.git/HEAD` returns `GitError::Unconfined`, and
+  `<ROOT>/.git` does not exist afterwards. After the test makes the directory `<ROOT>/.git` holding the file `kept`, a
+  `commit` whose spec deletes `up/.git/kept` returns `GitError::Unconfined`, the file is still there, and
+  `<ROOT>/gitconfig` is byte-identical to what it was before the calls.
+- A file a helper writes is a fresh inode. The test makes a second tree holding the file `outside.txt` and, in the
+  repository `<ROOT>/ws/repo`, the hard links `cfg` to `<ROOT>/gitconfig` and `v` to that file. A `commit` whose spec
+  writes `cfg` with empty content and `v` with the content `clobbered` returns an object id, and `cfg` and `v` in the
+  repository hold the new content. Afterwards the second tree and `<ROOT>/gitconfig` are byte-identical to what they
+  were before the call.
+- A repository whose git directory lies outside the tree is refused before any effect. A second tree holds a repository
+  with one commit. In the first tree, `<ROOT>/ws/linked/.git` is a symbolic link to that repository's `.git` directory,
+  and `<ROOT>/ws/pointed/.git` is a file holding `gitdir:` and the path of that directory. `commit` in `linked` and in
+  `pointed`, each with and without a branch named, and `add_worktree` with each as the repository and `<ROOT>/ws/wt` as
+  the destination, return `GitError::Unconfined`. Afterwards `<ROOT>/ws/wt` does not exist, and the second tree and
+  `<ROOT>/gitconfig` are byte-identical to what they were before the calls.
+- An `init` or `bare_remote` destination that holds anything is refused. With `<ROOT>/ws/dest/.git` a symbolic link to
+  an empty directory in a second tree, `init` at `<ROOT>/ws/dest` returns `GitError::Unconfined`. With
+  `<ROOT>/remotes/x.git` a directory whose entry `objects` is a symbolic link to another empty directory in that tree,
+  `bare_remote` with the name `x` returns `GitError::Unconfined`. Afterwards both directories are still empty, and the
+  second tree and `<ROOT>/gitconfig` are byte-identical to what they were before the calls. `init` at an existing empty
+  directory succeeds.
 - A workspace built with one remote, one project, and one env worktree has `projects/<name>/.git` as a directory,
   `<env>/<name>/.git` as a file, the worktree on branch `<env>`, and `.winter/config.toml` byte-equal to the input.
 - With `root_repository`, the workspace directory is a repository with exactly one commit and `git status --porcelain`
