@@ -122,8 +122,8 @@ names:       commands and long options match exactly: no prefix matching, no abb
              acted on, no passthrough of an unknown option
 variadic:    PATTERNS... requires one or more tokens; [PATTERNS]... accepts zero or more
 usage error: unknown command or option, missing required positional or option value, value of the wrong type,
-             argument too many, repeated option, value given to a flag, an argument that is not UTF-8 — exit 2,
-             nothing started, nothing on stdout
+             argument too many, repeated option, value given to a flag, an argument that is not UTF-8, a `--`
+             before a command name — exit 2, nothing started, nothing on stdout
 ```
 
 ```text
@@ -146,8 +146,11 @@ option placement                                         # reference: click/core
                     they are unknown (`ws -v index x` is a usage error)
   a group           accepts --help between its name and the leaf, and nothing else
   a leaf            its options may stand before, between, or after its positionals
-  --                ends option parsing at the node where it stands; every later token is a positional
+  --                at a leaf, ends option parsing; every later token is a positional
                     (`ws index -- --json` looks up the name "--json")
+                    at the root or a group, where it stands before a command name, a usage error, exit 2
+                    (`-- ws index x`, `ws -- index x`); the reference tool only ends option parsing there and
+                    runs the command    # decision:parallel-workspaces/component-runtime/double-dash-before-command
 value syntax                                             # reference: click/parser.py:389-499
   long option       --opt value   and   --opt=value
   short option      -n 5   and attached   -n5 ; short flags cluster: -ft
@@ -388,6 +391,7 @@ behaviour are not listed: they fall under `decision:functional-parity`.
 | A flag or a single-value option given more than once                          | accepted; a flag stays on and the last value wins                                                    | usage error, exit 2                                                      | `decision:parallel-workspaces/component-runtime/repeated-options`              |
 | A command-line argument that is not valid UTF-8                               | passed through to the command as bytes                                                               | usage error, exit 2                                                      | `decision:parallel-workspaces/component-runtime/non-utf8-arguments`            |
 | `--help` or `--version` standing before a token at fault of the same node     | usage error, exit 2 (`click/parser.py:294-310`)                                                      | the help or the version line, exit 0                                     | `decision:parallel-workspaces/component-runtime/help-beside-fault`             |
+| A `--` standing before a command or group name                                | the command runs: `--` only ends option parsing (`click/parser.py:329-330`, `click/core.py:1534`)    | usage error, exit 2                                                      | `decision:parallel-workspaces/component-runtime/double-dash-before-command`    |
 | A service provider ended by a signal                                          | exit 256 minus the signal number (`modules/service/handler.py:68-73`)                                | exit 128 plus the signal number                                          | `decision:parallel-workspaces/component-runtime/provider-signal-exit`          |
 | A run SIGINT aborts outside the service paths, with tracing on                | the command span is exported before the exit (`cli.py:451-455`)                                      | no span is exported                                                      | `decision:parallel-workspaces/component-runtime/interrupt-trace-export`        |
 | Values of the command span's `error.type`                                     | exception class names (`cli.py:150-162`)                                                             | the ending's name; [tracing.md](./tracing.md), What the span carries     | `decision:parallel-workspaces/component-runtime/span-error-type`               |

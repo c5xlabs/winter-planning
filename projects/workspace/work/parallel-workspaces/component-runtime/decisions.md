@@ -1,5 +1,15 @@
 # Component runtime decisions
 
+## A `--` before a command name (decision:parallel-workspaces/component-runtime/double-dash-before-command)
+
+**Decider:** product owner
+
+A `--` standing before a command or group name is a usage error, exit 2: `-- ws index NAME` and `ws -- index NAME` are
+refused, and a `--` after the leaf command (`ws index -- NAME`) ends option parsing as before. The reference tool only
+ends option parsing at a `--` (`click/parser.py:329-330`) and a group reads the tokens left after it as the command
+(`click/core.py:1534`), so it runs the command in both forms; the argument parser's own refusal was taken because nobody
+writes `--` before a command name, and it is a registered deviation.
+
 ## Width of the termination (decision:parallel-workspaces/component-runtime/termination-payloads)
 
 **Decider:** engineering

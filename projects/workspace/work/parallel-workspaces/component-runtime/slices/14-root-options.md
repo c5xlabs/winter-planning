@@ -62,11 +62,13 @@ beside no other change.
     `expected/steps/01/` and edited to the decided value, and `[deviation]` names the decision:
     - `ws-index/repeated-flag`, whose one step is `-v -v ws index NAME` with text stdout: expected exit code 2,
       `decision:parallel-workspaces/component-runtime/repeated-options`;
+    - `root/double-dash-before-command`, whose one step is `-- ws index NAME` with text stdout: expected exit code 2
+      against a recorded 0, `decision:parallel-workspaces/component-runtime/double-dash-before-command`;
     - `root/version-beside-fault` (`--version --bogus`), `root/help-beside-fault` (`--help --bogus`), and
       `ws-index/help-beside-fault` (`ws index --help --bogus`), expected exit code 0,
-      `decision:parallel-workspaces/component-runtime/help-beside-fault`. The reference tool accepts each of the four
+      `decision:parallel-workspaces/component-runtime/help-beside-fault`. The reference tool accepts each of the five
       command lines and ends with another exit code, which is the one dimension these scenarios compare; that is what a
-      deviation scenario holds. No step of the four asks for JSON, so no stdout document enters the comparison. What
+      deviation scenario holds. No step of the five asks for JSON, so no stdout document enters the comparison. What
       stdout carries in the three help and version cases is human text no scenario compares, so the component tests
       below hold it.
   - No scenario holds the refusal of an argument that is not UTF-8: a step's `args` are TOML strings and cannot spell
@@ -104,6 +106,9 @@ beside no other change.
     `ws index --help --bogus` end as `Success` with that node's help on stdout; `--bogus --version`, `--bogus --help`,
     and `ws index --bogus --help` end as a usage error, exit code 2, with stdout empty; `ws index --help` with no `NAME`
     ends as `Success`;
+  - `-- ws index NAME`, with `--` at the root, and `ws -- index NAME`, with `--` at a group, each end as a usage error,
+    exit code 2, with stdout empty, under `decision:parallel-workspaces/component-runtime/double-dash-before-command`;
+    `ws index -- NAME`, with `--` after the leaf, is accepted and looks up the name `NAME`;
   - through `InProcess::os_args`, an argument that is not UTF-8 as the name of `ws index`, as the value of
     `--service-orchestrator`, as the first argument, after `--` in `ws index -- <it>`, and after `--help` and after
     `--version` each end as `Termination::Usage` with `ParseFault::NotUtf8`, exit code 2, stdout empty, and no panic;
@@ -115,7 +120,7 @@ beside no other change.
   longer than 100 columns.
 - `workspace:manual-registration` passes, since the change touches `crates/core/src/parse.rs`
   (`context/verification/matrix.md`).
-- The seventeen scenarios pass, and `cargo dev gate full` exits 0.
+- The eighteen scenarios pass, and `cargo dev gate full` exits 0.
 
 ## Out of scope
 
