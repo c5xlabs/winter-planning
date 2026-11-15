@@ -1,5 +1,22 @@
 # UI toolkit decisions
 
+## Shared form bootstrap (decision:ui-toolkit/shared-form-bootstrap)
+
+The shared `core/forms` seam lands before its consumers under one reasoned, temporary placement exemption.
+Awaiting-human adoption removes it once both apps reach the shared form composition that imports those helpers; only the
+hub supplies a saving action port, so the runner stays read-only and unrelated unused units remain errors.
+
+## Proposal acceptance demonstrates assembly (decision:ui-toolkit/assembled-surface)
+
+Proposal acceptance is rebuilt last, after the other forms and choice parts have moved, and becomes the assembly
+exemplar. It is already a real board capability, so the demonstration needs no unrelated feature or wire change.
+
+## Incremental replacement (decision:ui-toolkit/incremental-replacement)
+
+Each surface switches atomically behind the existing data-access seams, keeping the board releasable between landings;
+no unfinished screen is exposed and no runtime flag is needed. Temporary query projections and the old config-dialog
+entry remain only for unmoved callers, then are removed in explicit closing changes; no new caller uses them.
+
 ## Signal Forms (decision:ui-toolkit/signal-forms)
 
 Every board form is built on Angular Signal Forms (`@angular/forms/signals`). It is the one candidate shaped like the
@@ -34,9 +51,9 @@ requirement of this epic (`product:domain-boundary`), not a convention change ma
 
 ## Validation in both places (decision:ui-toolkit/validate-both)
 
-A form validates as the operator types, against rules its domain model declares: required fields, value formats, and
-any rule the frontend can judge from what it holds. The hub keeps validating every write as before. The two are allowed
-to disagree, and the hub wins: a refusal the frontend did not foresee lands on its field like any other. The frontend's
+A form validates as the operator types, against rules its domain model declares: required fields, value formats, and any
+rule the frontend can judge from what it holds. The hub keeps validating every write as before. The two are allowed to
+disagree, and the hub wins: a refusal the frontend did not foresee lands on its field like any other. The frontend's
 rules are its own and are not generated from the wire's schema.
 
 ## Zones from the browser (decision:ui-toolkit/browser-zones)
@@ -76,14 +93,14 @@ a Signal Forms field directly. The kit still imports no query, mutation, service
 3. The form base: `KitField`, `KitForm`, `KitNumberInput`, the controls' `[formField]` binding, and the shared
    `SaveOutcome`, versioned `EditBaseline`, lossless number parsing, and refusal helpers.
 4. The cadence form, end to end, as the exemplar: its domain model, translator, service, and form.
-5. The admin config dialog, then the remaining forms.
+5. The admin config dialog, then the remaining forms except proposal acceptance.
 6. The Aria parts: tabs, chip rows, and select lists, then accordions. Then `KitCombobox` on the cadence zone, then the
    three interactive tables.
 7. The remaining read views, unit by unit, until the boundary's exemption list is empty.
-8. The next real new board form, assembled after adoption, ships with its exemplar (`product:assembled-surface`).
+8. Proposal acceptance is rebuilt from the completed parts and ships with its exemplar (`product:assembled-surface`).
 
 Each landing removes the code it supersedes. Delivery requires all adoption acceptance, an empty boundary exemption
-list, and the shipped new-form demonstration; an empty list alone does not complete the epic.
+list, and the shipped proposal-acceptance demonstration; an empty list alone does not complete the epic.
 
 ## Main-nav tabs stay links (decision:ui-toolkit/nav-stays-links)
 

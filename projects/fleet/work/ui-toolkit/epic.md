@@ -1,7 +1,7 @@
 ---
 epic: ui-toolkit
 refinement: final
-status: planned
+status: ready
 ---
 
 # UI toolkit
@@ -40,8 +40,9 @@ judges every save, with its refusals landing on their fields (`decision:ui-toolk
 navigation parts take their keyboard model from Angular Aria (`decision:ui-toolkit/angular-aria`), and the kit gains the
 combobox the board has lacked.
 
-The epic also ships the next new form the board needs, assembled from those parts after adoption
-(`product:assembled-surface`). That real surface, not only a migrated form, becomes the exemplar for the next agent.
+Proposal acceptance is assembled last from those parts, after the rest of adoption, as the real-surface demonstration
+(`product:assembled-surface`). It becomes the exemplar for the next agent; the epic adds no unrelated capability just to
+demonstrate the toolkit.
 
 Both adoptions follow the move to Angular 22, where both libraries are stable (`decision:ui-toolkit/angular-22-first`).
 The landscape this epic starts from and the candidates it weighed are in [research/landscape/](./research/landscape/).
@@ -50,16 +51,16 @@ What each change looks like, before and after, is in [assets/](./assets/), and t
 
 ## What this epic is not
 
-- **Not a redesign.** The board keeps its visual language. The only visible changes are states it does not have today:
-  a field's own error, a required marker, a focus ring that moves with the arrow keys, and an open picker.
+- **Not a redesign.** The board keeps its visual language. The only visible changes are states it does not have today: a
+  field's own error, a required marker, a focus ring that moves with the arrow keys, and an open picker.
 - **Not a wire change.** No route, request, response, or schema changes on the hub or the runner
   (`decision:ui-toolkit/no-wire-change`). Where the form is stricter than the wire, as with a repository's forge, the
   form holds the rule (`decision:ui-toolkit/forge-required`).
 - **Not a wholesale replacement of the kit.** Only the forms and the choice parts move (`product:full-adoption`).
   `KitMenu` and `KitSelect` keep their CDK keyboard models; the select gains only an opt-in grid bridge. The read-only
-  tables, the main-nav tabs, and the rest of the kit stay as they are
-  (`decision:ui-toolkit/cdk-parts-stay`, `decision:ui-toolkit/no-table-engine`, `decision:ui-toolkit/nav-stays-links`),
-  and no styled component suite is adopted (`decision:ui-toolkit/no-component-suite`).
+  tables, the main-nav tabs, and the rest of the kit stay as they are (`decision:ui-toolkit/cdk-parts-stay`,
+  `decision:ui-toolkit/no-table-engine`, `decision:ui-toolkit/nav-stays-links`), and no styled component suite is
+  adopted (`decision:ui-toolkit/no-component-suite`).
 - **Not more pickers.** Only the cadence zone becomes a picker. Other fields that could pick from a list the hub serves,
   such as a token secret, a routine, a scope, a graph, or an absorbing finding, stay as they are.
 

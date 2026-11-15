@@ -40,8 +40,8 @@ Acceptance:
 - Text in a number field that is not a number is that field's error, and nothing is sent.
 - A park timeout returns to its default only when the operator chooses the default.
 - A blank number field is either a required-field error or the default the operator chose, never a silent reset.
-- A number too large to send without changing its value is a field error and sends nothing, rather than being rounded
-  or treated as the default.
+- A number too large to send without changing its value is a field error and sends nothing, rather than being rounded or
+  treated as the default.
 
 ## Every choice works from the keyboard (product:keyboard-choices)
 
@@ -75,10 +75,10 @@ never reads a generated wire type.
 
 Acceptance:
 
-- blizzard-context carries `bzh:frontend-domain-boundary` in place of `bzh:frontend-wire-conformist`, and no rule
-  there still cites the old one.
-- No file outside the data-access files and the translators imports a generated wire type, and the structural gate
-  fails one that does.
+- blizzard-context carries `bzh:frontend-domain-boundary` in place of `bzh:frontend-wire-conformist`, and no rule there
+  still cites the old one.
+- No production file outside the data-access files and translators imports a generated wire type, and the structural
+  gate fails one that does. Component/model specs and stories use domain builders rather than wire types.
 - The boundary's exemption list is empty.
 - An exemplar shows a concept's domain model, translator, and service, so the next agent to add one copies it.
 
@@ -90,23 +90,24 @@ Angular Aria supplies moves to it. No surface is left on the old way.
 
 Acceptance:
 
-- All eleven form surfaces, including the admin config dialog and all five record types it serves, are built on Signal
-  Forms, a domain model, and `KitField`. No form keeps hand-written set and save helpers, a field-layout class, or an
-  error line of its own.
+- Every board form is built on Signal Forms, a domain model, and `KitField`, including the eleven surveyed surfaces,
+  every record type the admin config dialog serves, and forms added since that survey. No form keeps hand-written set
+  and save helpers, a field-layout class, or an error line of its own.
 - `KitTabs`, `KitChips` and the chip rows built from single `KitChip`s, the `KitSelectRow` lists, and
   `KitAccordionSection` are on Angular Aria, as are the members, cadences, and routines tables.
-- The superseded code is deleted, not left beside its replacement: the per-form layout classes, the required and
-  number checks in the admin field lists, `missingRequired`, `invalidNumbers`, and the text-to-number conversion in
+- The superseded code is deleted, not left beside its replacement: the per-form layout classes, the required and number
+  checks in the admin field lists, `missingRequired`, `invalidNumbers`, and the text-to-number conversion in
   `config-edit.model.ts`.
 
 ## A path for the next surface (product:assembled-surface)
 
-After adoption, the way to add a form is to assemble one, demonstrated within this epic by building the next real
-surface the board needs from parts. Migrating an existing form or building a workshop-only example does not discharge it.
+After adoption, the way to build a form is to assemble one, demonstrated within this epic by rebuilding proposal
+acceptance from the completed parts (`decision:ui-toolkit/assembled-surface`). This is a real board form, not a
+workshop-only example; no unrelated new capability is required.
 
 Acceptance:
 
-- The next new board form after adoption is built from a domain model, its service, Signal Forms, and the kit's field
-  part, with no draft, layout, or error handling of its own.
+- Proposal acceptance is assembled after the other forms and choice parts have moved, from a domain model, its service,
+  Signal Forms, and the kit's field part, with no view-owned draft, validation, layout, or error handling of its own.
 - An exemplar shows that path, so the next agent to add a form copies it.
-- The new form ships before this epic is delivered; adoption alone does not complete the epic.
+- The rebuilt acceptance form ships before this epic is delivered; the rest of adoption alone does not complete it.

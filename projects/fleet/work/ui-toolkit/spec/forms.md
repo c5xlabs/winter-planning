@@ -5,19 +5,43 @@ How a form is built: a domain draft, its rules, a service that saves it, and the
 
 ## System
 
-| Part | Where | Holds |
-| --- | --- | --- |
-| `<concept>.domain.ts` | feature folder, or its kernel (`core/`) when a query or a second feature reads it | The draft type the form edits |
-| `<concept>.form.ts` | feature folder | The draft's validation rules, as a Signal Forms schema |
-| `<concept>.translate.ts` | beside its domain | Draft ⇄ wire, and the concept's `RefusalMap` |
-| `<concept>.service.ts` | feature folder | `inject<Concept>Service()`: saves a draft, answers a `SaveOutcome` |
-| Container | feature folder | Injects the service, owns the `form()`, submits it |
-| Form view | feature folder | Presentational: takes the field tree, renders kit parts, emits `save` and `cancel` |
-| `refusal.translate.ts` | `fleet/src/lib/core/forms/` | `readRefusal`: a hub refusal → domain fields, through a `RefusalMap` |
-| `outcome.ts`, `submit.ts` | `fleet/src/lib/core/forms/` | `SaveOutcome`, `toFormErrors`, `submitForm` |
-| `edit-baseline.domain.ts`, `whole-number.domain.ts` | `fleet/src/lib/core/forms/` | Shared versioned-edit baseline and lossless whole-number parsing; no Angular or wire |
-| `KitForm`, `KitField`, `KitNumberInput`, `KitOrDefault` | `fleet/src/lib/kit/` | Form chrome; bind Signal Forms fields (`decision:ui-toolkit/kit-dependencies`) |
-| Kit controls | `KitTextInput`, `KitCheckbox`, `KitSelect`, `KitColorInput`, `KitCombobox` | Each implements Signal Forms' `FormValueControl`, so `[formField]` binds it; `valueChange` stays for use outside a form |
+| Part                                                    | Where                                                                                        | Holds                                                                                                                 |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `<concept>.domain.ts`                                   | feature folder, or its kernel (`core/`) when a query or a second feature reads it            | The draft type the form edits                                                                                         |
+| `<concept>.form.ts`                                     | feature folder                                                                               | The draft's validation rules, as a Signal Forms schema                                                                |
+| `<concept>.translate.ts`                                | beside its domain                                                                            | Draft ⇄ wire, and the concept's `RefusalMap`                                                                          |
+| `<concept>.service.ts`                                  | feature folder                                                                               | `inject<Concept>Service()`: saves a draft, answers a `SaveOutcome`                                                    |
+| Container                                               | feature folder                                                                               | Injects the service, owns the `form()`, submits it                                                                    |
+| Form view                                               | feature folder                                                                               | Presentational: takes the field tree, renders kit parts, emits `save` and `cancel`                                    |
+| `refusal.translate.ts`                                  | `fleet/src/lib/core/forms/`                                                                  | `readRefusal`: a hub refusal → domain fields, through a `RefusalMap`                                                  |
+| `outcome.ts`, `submit.ts`                               | `fleet/src/lib/core/forms/`                                                                  | `SaveOutcome`, `toFormErrors`, `submitForm`                                                                           |
+| `edit-baseline.domain.ts`, `whole-number.domain.ts`     | `fleet/src/lib/core/forms/`                                                                  | Shared versioned-edit baseline and lossless whole-number parsing; no Angular or wire                                  |
+| `KitForm`, `KitField`, `KitNumberInput`, `KitOrDefault` | `fleet/src/lib/kit/`                                                                         | Form chrome; bind Signal Forms fields (`decision:ui-toolkit/kit-dependencies`)                                        |
+| Kit controls                                            | `KitTextInput`, `KitCheckbox`, `KitSelect`, `KitColorInput`, `KitCombobox`, `KitOptionGroup` | Each implements Signal Forms' `FormValueControl`, so `[formField]` binds it; existing non-form outputs stay available |
+
+| Existing surface                    | Domain/form owner                                                                                                                                                |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Cadence create/edit                 | `garden/cadences/`, with its shared cadence domain in `garden/core/`                                                                                             |
+| Admin create/edit/replace           | `admin/`: typed drafts and rules for projects, repositories, work sources, forges, secrets, credentials, and urgencies; field metadata remains presentation-only |
+| Project link and branch dialogs     | `admin/projects/`                                                                                                                                                |
+| Chore create/edit                   | `garden/cadences/`; edits use the containing cadence's baseline revision                                                                                         |
+| Finding triage                      | `garden/findings/`                                                                                                                                               |
+| Proposal pass                       | `garden/proposals/`                                                                                                                                              |
+| Run dialog                          | `garden/runs/`                                                                                                                                                   |
+| Routine create and inline edits     | `garden/routines/`                                                                                                                                               |
+| Scope create and inline edits       | `garden/scopes/`                                                                                                                                                 |
+| Awaiting-human answer               | `fleet`'s shared question-form container and field-tree view; the hub supplies the saving action port, and the runner remains read-only                          |
+| New hub item                        | `board/new-hub-item/`                                                                                                                                            |
+| Proposal acceptance, assembled last | `garden/proposals/`, contract below (`product:assembled-surface`)                                                                                                |
+
+The survey's eleven surfaces are a baseline, not an exemption for later forms. Each migrated surface retains its
+existing fields, permissions, defaults, and request semantics unless this epic explicitly changes them.
+
+| Shared-unit bootstrap    | Contract (`decision:ui-toolkit/shared-form-bootstrap`)                                                                                                                                                                          |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Before both-app adoption | Only `core/forms` is temporarily added to `PLACEMENT_EXEMPT_UNITS`, with its bootstrap reason in the placement guidance; specs and stories do not count as app reach                                                            |
+| Awaiting-human adoption  | Both apps reach the shared question-form composition that imports `core/forms` helpers; the hub supplies its saving port and the runner supplies none. That same landing removes the placement exemption and temporary guidance |
+| Unrelated units          | The existing placement rule and detector remain unchanged; no directory-wide exemption is added                                                                                                                                 |
 
 ## Domain
 
@@ -74,8 +98,9 @@ export interface RepositoryDraft {
   readonly owner: string;
   readonly repo: string;
   readonly baseBranch: string;
-  readonly tokenSecret: string;
-  readonly landingPolicy: LandingPolicy;
+  readonly credential: string; // required credential id; choices are filtered by forge
+  readonly landingPolicy: string; // a policy key; '' omits it on create; stored unlisted keys are preserved
+  readonly allowNoCi: boolean;
   readonly parkTimeoutDefault: boolean; // decision:ui-toolkit/explicit-default: the default is a choice
   readonly parkTimeoutHours: string; // as typed; judged only when the default is not chosen
 }
@@ -114,7 +139,7 @@ export const cadenceCreateRules = schema<CadenceDraft>((p) => {
 
 // admin/repositories/repository.form.ts
 export const repositoryRules = schema<RepositoryDraft>((p) => {
-  for (const field of [p.slug, p.forge, p.owner, p.repo, p.baseBranch, p.tokenSecret]) required(field);
+  for (const field of [p.slug, p.forge, p.owner, p.repo, p.baseBranch, p.credential]) required(field);
   disabled(p.parkTimeoutHours, ({ valueOf }) => valueOf(p.parkTimeoutDefault));
   validate(p.parkTimeoutHours, ({ value, valueOf }) =>
     valueOf(p.parkTimeoutDefault) || readWholeNumber(value()) !== null
@@ -155,6 +180,9 @@ export function toCreateRequest(draft: CadenceDraft): CadenceCreateRequest;
 // RepositoryDraft: parkTimeoutDefault -> park_timeout_hours: null; otherwise readWholeNumber(parkTimeoutHours).
 // A null parse result is a parkTimeoutHours field error and sends nothing; only the explicit default choice sends
 // null. The service enforces this before calling the mutation even when invoked without a form.
+// credential -> credential; allowNoCi -> allow_no_ci, including false. No token_secret is reintroduced.
+// An empty name or landingPolicy is omitted on create as today; edits remain sparse against the captured baseline.
+// Changing forge clears an incompatible credential; its choices and landing-policy eligibility stay forge-filtered.
 ```
 
 ```ts
@@ -214,20 +242,76 @@ readonly cancel = output<void>();
 </fleet-kit-form>
 ```
 
-| Kit part | Inputs | Shows |
-| --- | --- | --- |
-| `KitForm` | `form: FieldTree<unknown>`, `saveLabel`, `cancelLabel` | The field stack, the action row, and the root field's errors as the form-level line. Save is disabled while `form().submitting()`. Emits `save` on submit and `cancel` |
-| `KitField` | `label`, `field: FieldTree<unknown>`, `hint?` | The label; a required marker when `field().required()`; the hint; `field().errors()` once `touched()` |
-| `KitNumberInput` | `[formField]` bound to a `string`, `unit?` | A text input with `inputmode="numeric"` and the unit after it; the text is kept as typed, and the rule judges it |
-| `KitOrDefault` | `[formField]` bound to the draft's `boolean` default choice, `defaultLabel` | A "default" chip beside the projected control, which the rules disable while the default is chosen |
+| Kit part         | Inputs                                                                      | Shows                                                                                                                                                                  |
+| ---------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `KitForm`        | `form: FieldTree<unknown>`, `saveLabel`, `cancelLabel`                      | The field stack, the action row, and the root field's errors as the form-level line. Save is disabled while `form().submitting()`. Emits `save` on submit and `cancel` |
+| `KitField`       | `label`, `field: FieldTree<unknown>`, `hint?`                               | The label; a required marker when `field().required()`; the hint; `field().errors()` once `touched()`                                                                  |
+| `KitNumberInput` | `[formField]` bound to a `string`, `unit?`                                  | A text input with `inputmode="numeric"` and the unit after it; the text is kept as typed, and the rule judges it                                                       |
+| `KitOrDefault`   | `[formField]` bound to the draft's `boolean` default choice, `defaultLabel` | A "default" chip beside the projected control, which the rules disable while the default is chosen                                                                     |
 
 Every kit control is focusable through `focusBoundControl()`, which `submitForm` relies on.
 
-The admin config dialog stays generic over five record types. It takes the record type's field tree, and its field list
+The admin config dialog stays generic over its record types. It takes the record type's field tree, and its field list
 keeps only presentation (key, label, kind, order, and when a field is shown), keyed by the domain draft's fields; a
 field's kind names the kit control it is drawn with. Required-ness and number checks move to each record type's
-`*.form.ts`. The awaiting-human answers are one form per question, each over its own `AnswerDraft`;
-the row's action chips are a toolbar of actions (`spec/choices.md`), not fields.
+`*.form.ts`. Writable awaiting-human answers are one form per question, each over its own `AnswerDraft`; a gate's
+optional note uses `DecisionNoteDraft`. The row's action chips are a toolbar of actions (`spec/choices.md`), not fields.
+
+```ts
+// Shared awaiting-human form composition in fleet's chunk unit, reached by both app chunk pages.
+export interface AnswerDraft { readonly answer: string }
+export interface DecisionNoteDraft { readonly note: string }
+export interface AwaitingHumanFormActions {
+  answer(questionId: string, draft: AnswerDraft): Promise<SaveOutcome<AnswerDraft>>;
+  resolve(decisionId: string, choice: string, draft: DecisionNoteDraft): Promise<SaveOutcome<DecisionNoteDraft>>;
+}
+// The shared container imports submitForm from core/forms and owns form() for each writable question/note.
+// Its extracted presentational view receives field trees, not private draft signals or a mutation.
+// The hub supplies a domain-service adapter to its existing operator-action port; canAnswer/canResolve still gate
+// the writable branch. Answers are required after trimming; the optional decision note keeps existing omission rules.
+// The runner supplies no actions, exactly as today: show the read-only question/decision trail, no editable form,
+// no saving service, and no answer/resolve request. Do not manufacture imports or runner submissions to satisfy reach.
+// Both app roots statically reach this shared composition; only a permitted hub view instantiates writable forms.
+```
+
+During the config migration, the old dialog entry is retained for unmoved callers only
+(`decision:ui-toolkit/incremental-replacement`). Each caller moves with its typed rules and service; after the last
+caller moves, the legacy entry, local draft state, and metadata-based validation and conversion are removed together.
+
+```ts
+// KitOptionGroup: FormValueControl<string>, wrapping the existing native-radio KitOption chrome.
+// inputs: [formField] bound to a string; ariaLabel. Each KitOption supplies a value within the group.
+// The group binds value, disabled, touched, and focus to the actual radios. Same-name native radios retain their
+// browser keyboard model; this adds no second handwritten navigation model or new visual language.
+
+// garden/proposals/proposal-acceptance.domain.ts — decision:ui-toolkit/assembled-surface
+export interface ProposalAcceptanceDraft {
+  readonly mode: 'mint' | 'decline';
+  readonly body: string;
+  readonly reason: string;
+  readonly urgency: string; // '' keeps the tenant default
+}
+// Start in mint mode; prefill body from the selected proposal exactly once when opened.
+// Keep one reason field across modes. Decline requires a nonblank trimmed reason.
+// Body and urgency are disabled/hidden in decline mode, not submitted as stale hidden values.
+
+// garden/proposals/proposal-acceptance.service.ts
+export function injectProposalAcceptanceService(): {
+  readonly pending: Signal<boolean>;
+  accept(proposalId: string, draft: ProposalAcceptanceDraft): Promise<SaveOutcome<ProposalAcceptanceDraft>>;
+};
+// The translator sends the existing acceptance request, never a new wire shape:
+// mint    -> mint_work_item: true; trimmed nonempty body/reason and stated urgency only
+// decline -> mint_work_item: false; trimmed required reason only
+// No If-Match is invented for this unversioned endpoint. A raced closure's 409 is a form-level refusal.
+// Field refusals map body/reason/urgency to the draft; unknown or pathless refusals stay on the form.
+// The existing mutation's proposal-list, detail, and routine-count invalidations settle before success.
+```
+
+The acceptance container owns its draft and schema; the view receives its field tree and emits save/cancel. It composes
+`KitForm`, `KitField`, `KitOptionGroup`, and the existing select/text controls without custom draft, validation, field
+layout, or refusal handling. Pending submission keeps cancellation disabled as today. The shipped composition becomes
+the assembly exemplar; the earlier cadence exemplar remains the versioned-edit example.
 
 ## Flows
 
