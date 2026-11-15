@@ -301,12 +301,20 @@ the fields decode_export reads
                               this table reads (flags, trace state, dropped counts, a scope version, values of
                               other kinds), and none of it fails the decoding. An export of several resources is
                               read as one: the resource attributes of the first, the spans of all.
-  errors                      a truncated message, a length past the end, and a wire type the format does not have
+  errors                      a truncated message, a length past the end, a wire type the format does not have, a
+                              string that is not UTF-8, a varint longer than ten bytes, field number 0, a group
+                              that is not closed by its own end, and groups nested deeper than a fixed depth
 Collector
   loopback only   the listener binds 127.0.0.1 and nothing else, and no name is resolved to reach it. It lives in
-                  the test process, outside the isolated tree, and holds no file. A test opens no other socket but
-                  the client side of a connection to a Collector: the exporter under test in the test process, a
-                  plain TcpStream in the collector's own tests, or the built binary the test started.
+                  the test process, outside the isolated tree, and holds no file.
+  sockets         the one list of the sockets a test opens, each on 127.0.0.1; a test opens no other
+                    the listener of a Collector
+                    the client side of a connection to a Collector: the exporter under test in the test process, a
+                    plain TcpStream in the collector's own tests, or the built binary the test started
+                    the client side of a connection attempt to a refused_endpoint address, by the same three:
+                    nothing listens there and the attempt is refused
+                    the listener refused_endpoint binds and releases, and the one a test of this package binds
+                    to show that a released port is free
   what it reads   one HTTP/1.1 request per connection: the request line, the headers, and a body of Content-Length
                   bytes, which is how the standard exporter's blocking client sends a protobuf body. A request it
                   cannot read that way — a TLS handshake, a chunked body — counts as a connection and adds no

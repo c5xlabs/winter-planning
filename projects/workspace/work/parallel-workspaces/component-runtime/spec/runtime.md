@@ -350,13 +350,19 @@ SIGINT    the disposition the process started with is read before anything else 
           passes no new action and asks for the previous one
             ignore                     -> nothing is installed and SIGINT stays ignored for the whole run
                                           (decision:parallel-workspaces/component-runtime/interrupt-ignored-at-start)
-            anything else              -> the handler is installed with a second sigaction call
+            anything else              -> the handler is installed with a second sigaction call, with SA_RESTART
+                                          and an empty mask
           the query comes first, in place of an installation that is undone after: until the second call the
           disposition is the inherited one, so no interrupt is ever handled against the launcher's wish
+          under SA_RESTART a call the system can restart resumes when the handler returns into it: a read, a
+          write, a wait. poll, select, epoll_wait, and nanosleep are never restarted and still return interrupted,
+          so a command that defers handles that error from those
           the handler, in order
             INTERRUPTS.note()          always, and first
             INTERRUPTS.is_deferred()   -> the handler returns
             otherwise                  -> write the aborted notice to file descriptor 2 with write(2), then _exit(1)
+          a handler that runs with no state stored notes nothing and ends the process the same way: the notice,
+          then _exit(1)
           the note comes before the test: the signal may land on a second thread, and with the test first a command
           could release and read pending() between the test and the note, and the interrupt would be lost
           a command that deferred reads pending() after its release(), never before, and when it is true ends as

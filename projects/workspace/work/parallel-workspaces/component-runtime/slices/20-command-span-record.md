@@ -34,8 +34,9 @@ It follows `runtime-documents` and is built before `command-span-export`; it run
     names the collector.
   - `context/architecture/changes.md`, An error: a new `Termination` variant adds its name to `error_type`, and a name
     is never renamed.
-  - `context/standards/testing.md`: what the collector is, that it is the one socket a test opens, and that it binds the
-    loopback address alone.
+  - `context/standards/testing.md`: what the collector is, which sockets a test opens, as
+    [test-harness.md](../spec/test-harness.md), Collector, lists them, and that the collector binds the loopback address
+    alone.
   - `AGENTS.md`, the test rule, gains the loopback exception as
     [contributor-context.md](../spec/contributor-context.md), Entry point, words it.
 - Files touched: `crates/core/src/trace.rs` (new), `crates/core/src/{termination,lib}.rs`,

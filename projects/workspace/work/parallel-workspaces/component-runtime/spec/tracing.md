@@ -72,7 +72,7 @@ a variable whose value is not UTF-8
 
 ```text
 # reference: core/internal/otel_command_tracer.py:166-170
-endpoint     the value with every trailing "/" dropped, followed by "/v1/traces"
+endpoint     the value trimmed, with every trailing "/" dropped, followed by "/v1/traces"
              (`http://c:4318/` and `http://c:4318` both give http://c:4318/v1/traces)
              `http` and `https` are both served. Nothing else of the value is judged before the exporter is built:
              a value the exporter cannot use is unavailable, and one it accepts and cannot reach is a failed export.
@@ -80,6 +80,7 @@ headers      WINTER_OTEL_EXPORTER_OTLP_HEADERS, blank meaning none
              split at ","; each item split at its first "="; name and value percent-decoded and trimmed; the name
              lower-cased; an item with no "=", an empty name, or a name that is no HTTP token is skipped, and the
              others still apply (reference: opentelemetry/util/re.py:52-93, the liberal form)
+             a name given twice keeps its first position and its last value
              the parsed pairs are handed to the exporter, which adds them to its request
 TLS          an `https` endpoint is verified against the public roots bundled in the binary and against nothing
              else: no environment variable names a certificate or a bundle, and no system certificate store is
@@ -127,10 +128,12 @@ attributes   winter.command = the name                          always
 status       error, with an empty message, exactly when error.type is present; otherwise unset
 events, links    none
 resource     service.name = OTEL_SERVICE_NAME when it is set and not empty
-                            else the service.name entry of OTEL_RESOURCE_ATTRIBUTES
+                            else the service.name entry of OTEL_RESOURCE_ATTRIBUTES when it is not empty
                             else `winter`
-             every other entry of OTEL_RESOURCE_ATTRIBUTES (`key=value` items split at ",", percent-decoded) as a
-             string attribute
+             every other entry of OTEL_RESOURCE_ATTRIBUTES as a string attribute: `key=value` items split at ",",
+             each at its first "="; the key trimmed and not percent-decoded; the value trimmed, then
+             percent-decoded; an item with no "=" or an empty key skipped; a key given twice keeps its first
+             position and its last value
 ```
 
 ```text

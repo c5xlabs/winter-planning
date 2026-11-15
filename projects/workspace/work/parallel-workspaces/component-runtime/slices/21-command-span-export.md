@@ -36,6 +36,8 @@ last change of the epic, and runs beside no other change.
 - `crates/core/src/process.rs`: `Invocation` carries `tracer`; step 2 of `run_with` announces the command once, after
   the Debug record, at `Stage::Command` whatever the outcome; `run_in_memory` passes `NoTrace`. `ProcessEnv::names()`
   exists as [repository-layout.md](../spec/repository-layout.md) gives it.
+- `crates/core/src/lib.rs`: the facade re-exports `CommandTracer`, `NoTrace`, and `TraceLog` beside `settings`,
+  `span_name`, `TraceConfig`, and `TraceSettings`, which it re-exports already.
 - `crates/cli/src/trace.rs` exists with `Tracer`, `Tracer::new`, `Tracer::with_exporter`, `finish`, and
   `hide_generic_exporter_variables`. Its one `unsafe` block is the removal of the variables, with the reason the spec
   gives.
@@ -46,8 +48,11 @@ last change of the epic, and runs beside no other change.
   - `AGENTS.md`, the library-boundary rule, names sockets, as [contributor-context.md](../spec/contributor-context.md),
     Entry point, words it.
   - `context/architecture/structure.md`: the Modules table gains the row of the binary's `trace.rs` and the library's
-    row names the port; the sentence on which files of the binary package name the process environment names `trace.rs`;
-    the dependency table gains the three crates, each with its features and its user.
+    row names the port; The library and the binary counts three files of the binary, hands `conclude` four things, lists
+    the tracer among what an `Invocation` carries, and names `trace.rs` wherever it says which files and which test
+    modules of the binary package name the process environment or start a fixture; the dependency table gains one row
+    for each of the three crates, with its features and its user, and the row of the binary's dev-dependency names the
+    test module of `src/trace.rs`.
   - `context/standards/rust.md`: `unsafe` appears in `crates/cli/src/interrupt.rs` and `crates/cli/src/trace.rs` alone;
     Output and environment access says the library opens no socket, reads no clock, and names no tracing crate.
   - `context/standards/testing.md`: a test wanting a span clears the kill switch of the pinned environment; the unit
@@ -112,8 +117,9 @@ last change of the epic, and runs beside no other change.
   - `Answer::Hang`, `Answer::Status(500)`, and a refused endpoint: stdout, stderr, and the exit code are those of the
     same command with tracing off, and the process ends within 2 s;
   - `-v` with a refused endpoint: stderr holds a record of origin `trace`;
-  - the collector named with an `https` URL: a connection arrives, no request is recorded, the exit code and stdout are
-    unchanged, stderr is empty without `-v`, and the process ends within 2 s;
+  - the `Collector`'s own endpoint with its scheme written `https`, the address still 127.0.0.1 and no certificate
+    anywhere: `connections()` counts one, no request is recorded, the exit code and stdout are unchanged, stderr is
+    empty without `-v`, and the process ends within 2 s. This is the one test of `https`; none completes a handshake;
   - `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` naming a second collector beside the Winter
     endpoint: the first collector holds the one request and the second sees no connection; the same two variables with
     no Winter endpoint: no connection at either.
@@ -123,7 +129,9 @@ last change of the epic, and runs beside no other change.
 - `grep -rn 'unsafe' crates/cli/src` prints lines of `interrupt.rs` and `trace.rs` only, each block preceded by a
   comment; `grep -rn 'opentelemetry' crates/core crates/test-support crates/dev` prints nothing.
 - `git diff --stat` of the change names `crates/cli/Cargo.toml` and `Cargo.lock`, and no other manifest.
-- After the change, `cargo fetch --locked` followed by `cargo dev gate full` with no network exits 0.
+- After the change, `cargo fetch --locked` with the network exits 0, and then `cargo dev gate full` with no network
+  exits 0. No acceptance step runs `cargo fetch` with `--offline`: it would ask for crates of targets the host never
+  builds.
 
 ## Out of scope
 

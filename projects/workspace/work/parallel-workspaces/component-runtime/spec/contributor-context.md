@@ -71,9 +71,9 @@ AGENTS.md
          or anything else outside its tree; the only host programs it runs are git and the base system utilities on
          the pinned PATH, and nothing of the developer's own environment reaches it
          two exceptions, and no other: a test may read, and never write, the committed scenarios/ directory; and a
-         test may bind a listener on the loopback address in its own process, the trace collector of the support
-         package. The only connections a test makes or causes go to such a listener, from the test process itself
-         or from the child it starts and hands the address to; no test resolves a name or opens another socket.
+         test may open sockets on the loopback address alone: the listener of the support package's trace collector
+         in its own process, and the sockets context/standards/testing.md lists beside it. No test resolves a name
+         or reaches another address.
          the driver's own tests in crates/dev/ test the tooling: those of the gates and of the architecture rules
          read the checkout and start Cargo, and those of the record command run in an isolated tree that holds a
          stand-in checkout, and start git and a stand-in executable there
@@ -93,6 +93,8 @@ rule from the change that adds registration, the test rule from the change that 
 rule from the change that adds `cargo dev record`, the built-binary rule once the binary has a command, the loopback
 exception from the change that adds the trace collector of test-harness.md, and the word "sockets" in the
 library-boundary rule from the change that makes the binary open one
+context/standards/testing.md owns which sockets a test opens, as test-harness.md, Collector, lists them: the entry
+point says loopback alone, names the collector's listener, and points there for the rest, restating no other item
 the clause on the driver's own tests is the sentence the checkout's AGENTS.md carries today: those tests are no tests
 of the product, they read the checkout because the checkout is their subject, and the isolated-tree rule does not
 bind them
@@ -144,10 +146,15 @@ workspace:manual-gates
 workspace:manual-registration
   setup and success: command-registration.md, Exercising registration by hand — stated in full likewise
   use when: the change touches crates/core/build.rs, build/discover.rs, src/registry.rs, or src/parse.rs
+workspace:manual-interrupt
+  setup and success: SIGINT sent to the built binary while it waits in a write, once started with the default
+  disposition and once with SIGINT ignored, with the endings of runtime.md, Interrupts and signals — stated in full
+  likewise. It is what shows that `main` installs the handler: no test sends a signal to another process
+  use when: the change touches crates/cli/src/interrupt.rs or the start of `main`
 ```
 
-Both manual methods run in a scratch copy of the checkout under a temporary directory, never in the checkout itself, and
-only where no directory at or above the scratch copy holds a `.winter/config.toml`; a method that starts the built
+Every manual method runs in a scratch copy of the checkout under a temporary directory, never in the checkout itself,
+and only where no directory at or above the scratch copy holds a `.winter/config.toml`; a method that starts the built
 binary starts it by its path, as `context/tooling/development.md` says. Each entry's setup states where it may run, in
 the words of the entry point's built-binary rule or by a link to it.
 
