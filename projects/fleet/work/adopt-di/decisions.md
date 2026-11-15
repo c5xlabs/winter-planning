@@ -2,15 +2,28 @@
 
 ## Adoption batch size (decision:adopt-di/adoption-batch-size)
 
-**Open.** How large each adoption landing is, decided when adoption begins: one landing per concept package is the
-starting assumption, and a package whose services form a deep chain may want splitting.
+Adoption is cut into bounded adapter, concept, or entrypoint changes, with adoption, consumer narrowing, and newly
+available retirement together where their dependencies permit. Deep areas are divided by their dependency chains rather
+than left as a phase containing unnamed future landings.
 
-## Cutover is declared (decision:adopt-di/declared-cutover)
+## Rolling retirement (decision:adopt-di/declared-cutover)
 
-**Decider:** the epic's owner
+Each landing removes the bag fields, construction branches, and bridges whose last consumer it moves; a bag assembler
+remains until its last consumer disappears. The closing change verifies the already-retired paths and tightens the final
+gates rather than waiting for an owner-declared cleanup phase.
 
-Cutover is called by the owner when adoption has emptied the builders and narrowing is near its end, rather than
-discovered, so the old path is taken apart as fast as nothing rests on each piece of it.
+## Cached scopes and thin requests (decision:adopt-di/cached-scopes)
+
+Tenant and runner graphs live in cached child containers; requests hold only their principal and request-local
+dependencies, while background callers use the same cached graph without manufacturing a request. This preserves
+existing service identity and isolation instead of rebuilding tenant services for every request.
+
+## Synchronous resolution (decision:adopt-di/synchronous-resolution)
+
+Container resolution is synchronous, with locked child containers; async operations remain methods on the resolved
+services, and thread- or loop-confined resources retain their existing owners behind injected values or factories. A
+small executable integration proof gates process activation, because switching all construction to an async container
+would change the existing synchronous and cross-thread access paths.
 
 ## Narrow rather than split the bags (decision:adopt-di/narrow-not-split)
 
@@ -20,8 +33,9 @@ smaller bag, so narrowing supersedes splitting.
 ## Strangler migration (decision:adopt-di/strangler-migration)
 
 The container grows around the hand-built graphs and takes them over one service at a time, with the old path removed
-only when nothing rests on it, so at no point does the hub or the runner stop working. The hub goes first, because its
-bags are the larger debt and its graph proves the shape; the runner host and the CLI follow.
+only when nothing rests on it, so at no point does the hub or the runner stop working. The hub's authenticated pilot and
+shared HTTP/background identity proof precede host or CLI activation; after that proof, independent area migrations may
+proceed in parallel.
 
 ## Container (decision:adopt-di/container)
 

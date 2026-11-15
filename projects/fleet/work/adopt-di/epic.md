@@ -30,12 +30,12 @@ container (`decision:adopt-di/container`): a registry that knows how to build ea
 builds each one once for the lifetime it is declared with, hands a route exactly the services that route asks for, and
 tears everything down in the reverse of the order it was built.
 
-An agent adding a service wires it beside its own code, in its own area, instead of in the module every other agent is
-editing. A route names the services it uses, so a reviewer reads what a change can reach from its signature. And the
-change happens the way a strangler fig replaces a tree (`decision:adopt-di/strangler-migration`): the new structure
-grows around the old one, takes over its load one branch at a time, and the old one is cut away only when nothing rests
-on it, so at no point does the hub or the runner stop working while it happens. The epic is delivered when the hub, the
-runner host, and the CLI are wired only through their containers.
+An agent adding a service wires it beside its own code, in its own area, instead of adding another service to a central
+builder. The process root composes areas and chooses their adapters; each area owns the registration of its services. A
+route names the services it uses, so a reviewer reads what a change can reach from its signature. And the change happens
+the way a strangler fig replaces a tree (`decision:adopt-di/strangler-migration`): the new structure grows around the
+old one, takes over its load one branch at a time, and the old one is cut away only when nothing rests on it, so at no
+point does the hub or the runner stop working while it happens.
 
 ## What this epic is not
 
@@ -46,14 +46,16 @@ into smaller bags is not done (`decision:adopt-di/narrow-not-split`).
 
 ### Wiring beside the code (product:wiring-beside-code)
 
-An agent adding a service declares how it is built in its own area's wiring, beside its code, and never edits a shared
-composition module to do it. From the first landing of this epic, a service new to blizzard is born this way.
+An agent adding a service to an existing area declares how it is built in that area's wiring, beside its code, rather
+than in a shared builder. A root changes to introduce an area or choose its adapter bindings, not to maintain a list of
+individual services; each process supplies a working example before new services there must follow the new path.
 
 Acceptance:
 
-- An agent adds a service to the hub, the runner host, or the CLI without editing another area's code or a shared
-  builder.
-- An exemplar shows the new path, so the first agent to add a service imitates it.
+- An agent adds a service within an already composed area of the hub, runner host, or CLI without editing the process
+  root or another area's wiring, provided the area's adapter bindings do not change.
+- Introducing an area or changing its adapter bindings changes the root's area-level calls, not a central service list.
+- Each process's first usable container path has an exemplar showing how to register and consume a new service.
 
 ### A route names what it uses (product:route-names-its-services)
 
@@ -62,7 +64,8 @@ tell from its signature which state a change can reach.
 
 Acceptance:
 
-- No route or service takes a bag of services once the epic is delivered.
+- No route or service takes a bag of services once the epic is delivered; the hub, runner host, and CLI obtain their
+  owned collaborators through their containers.
 
 ### Nothing visible changes (product:no-visible-change)
 

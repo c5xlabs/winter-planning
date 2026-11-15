@@ -9,7 +9,8 @@ with no library at all. Every candidate passed. They differed in what they cost.
 dishka was the only container that did everything on its public interface and left the domain untouched. A route names
 the one service it uses, `FromDishka[FindingExitService]`, rather than the bag. The whole graph between services is
 checked when the container is built, before a request is served. A tenant is a child container that shares the process's
-engine and broker and keeps its own stores, and closing it tears down that tenant alone.
+engine and keeps its own stores and broker; the process shares only the broker directory, and closing a tenant tears
+down that tenant alone.
 
 The others fell away for reasons specific to blizzard:
 
