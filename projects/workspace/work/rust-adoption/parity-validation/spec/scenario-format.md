@@ -220,29 +220,57 @@ tree.txt        one line per entry under <ROOT>, sorted by path bytes, paths ROO
                   l <path> -> <target, ROOT-normalized>
                 the hash is of the content as files/<path> stores it: ROOT-normalized when the content is valid
                 UTF-8, the raw bytes otherwise — so a file that holds the root path hashes equally under two roots
-                excluded: bin/  calls/  git-template/  cache/  tmp/  the interior of every git directory,
+                excluded: the excluded roots below, the interior of every git directory,
                 and __pycache__ directories with their content
 files/<path>    the content of every regular file that tree.txt lists and that differs from, or is absent in,
                 the previous snapshot of the same scenario; before/ of step 01 stores none
                 content is ROOT-normalized when it is valid UTF-8
+                <path> is the tree.txt path in its stored form (stored paths, below)
 git.txt         one section per repository, sections sorted by path; a repository is any directory under <ROOT>
                 that holds a .git entry, plus every remotes/*.git
+excluded roots  the entries bin/  calls/  git-template/  cache/  tmp/  of <ROOT> itself are excluded from the
+                snapshot as a whole: nothing at or beneath them is listed in tree.txt or stored under files/, and
+                a repository beneath them has no git.txt section
+reading         a snapshot is read together with the previous one of the same scenario. An f line implies a file
+                under files/ when the previous tree.txt has no f line for its path, or has one with another hash;
+                a line that differs in the execute flag alone implies none, and before/ of step 01 implies none.
+                Reading fails, naming the path, when an implied file is absent: a record that lost files never
+                reads as complete.
+```
+
+```text
+stored paths — every files/<path> of a snapshot, under record/ and under expected/. A record is committed to the
+repository that holds the scenarios, and no stored segment may be special to that repository.
+  written       segment by segment: every "%" becomes "%25"; then a segment that began with the four bytes ".git"
+                has its leading "." written as "%2E". No other segment and no other byte changes.
+                    ws/feature-one/alpha/.git    ->   files/ws/feature-one/alpha/%2Egit
+                    ws/.gitignore                ->   files/ws/%2Egitignore
+                    ws/docs/.gitattributes       ->   files/ws/docs/%2Egitattributes
+                    ws/50%.txt                   ->   files/ws/50%25.txt
+                    ws/%2Egit                    ->   files/ws/%252Egit
+                    ws/.github/x   ws/a.git/x    ->   files/ws/%2Egithub/x   files/ws/a.git/x
+  read          exactly the reverse, segment by segment: a leading "%2Egit" becomes ".git"; then every "%25"
+                becomes "%". A segment that begins with ".git", or holds a "%" that neither rule accounts for,
+                is not a stored form and fails the read.
+  elsewhere     tree.txt, [[compare.file]] path, and the subject of a Difference hold the tree's real path
 ```
 
 ```text
 git.txt section, each part a labelled block; every path ROOT-normalized
   repository      <ROOT-relative path>            kind: worktree | main | bare
-  dot-git         "directory" or the gitdir: line of the .git file
+  dot-git         "directory" or the gitdir: line of the .git file      (not bare)
   head            `git rev-parse HEAD` or "unborn";  `git symbolic-ref -q HEAD` or "detached"
   refs            `git for-each-ref --format=%(refname) %(objectname) %(upstream) %(symref)`
   worktrees       `git worktree list --porcelain`             (main and bare only)
   status          `git status --porcelain=v2 --branch --untracked-files=all`    (not bare)
-  stash           `git stash list --format=%gd %H`
+  stash           `git stash list --format=%gd %H`                      (not bare)
   config          `git config --local --list`, sorted, minus [compare] git_config_ignore
   in-progress     which of MERGE_HEAD, REBASE_HEAD, rebase-merge/, rebase-apply/, CHERRY_PICK_HEAD,
                   REVERT_HEAD, BISECT_LOG exist
   exclude         content of info/exclude
   log             per local branch: `git log --format=%H %P %an %ae %at %cn %ce %ct %s`
+bare              a bare repository has no .git entry and no work tree, so its section has no dot-git, status, or
+                  stash block; a refs/stash it holds still shows in refs
 excluded          reflogs, the index file, ORIG_HEAD, FETCH_HEAD, packed-refs layout, object storage layout, hooks
 ```
 
@@ -278,6 +306,8 @@ env                  exactly the variables the [[stub]] entry lists; an unset on
 ```text
 expected/steps/<nn>/<file>     replaces record/steps/<nn>/<file> for comparison, file by file
                                after/files/<path> and after/tree.txt are replaced together or not at all
+                               <path> is in its stored form, and the overlaid snapshot is read under "reading" of
+                               State snapshot: an implied file is taken from expected/, else from record/
 [deviation].decision           the id of the decision that registers the difference
 consistency                    expected/ without [deviation], or [deviation] without expected/, is malformed
 the record step                never reads or writes expected/
