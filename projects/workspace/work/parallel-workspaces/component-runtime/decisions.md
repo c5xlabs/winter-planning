@@ -1,5 +1,17 @@
 # Component runtime decisions
 
+## Parsing of the trace export headers (decision:parallel-workspaces/component-runtime/trace-header-parsing)
+
+**Decider:** product owner
+
+Every item of `WINTER_OTEL_EXPORTER_OTLP_HEADERS` is read by one rule: its name and its value are percent-decoded and
+trimmed, and the item is sent unless its decoded name is no HTTP token. The reference tool's helper reads an item in two
+stages (`opentelemetry/util/re.py:52-93`): it decodes only an item in its strict form, and skips a value outside the set
+its liberal form allows. It therefore sends a value that holds a raw space undecoded, skips an item whose value holds
+`"`, `;`, `\`, a control byte, or a byte outside ASCII, and sends a name that is a token only before it is decoded.
+Reproducing the two stages was rejected because the OpenTelemetry specification has header values percent-decoded and
+the helper's exceptions are a library's leniency, so the three differences are a registered deviation.
+
 ## SIGINT ignored at start (decision:parallel-workspaces/component-runtime/interrupt-ignored-at-start)
 
 **Decider:** product owner

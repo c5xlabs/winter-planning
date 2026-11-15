@@ -82,6 +82,12 @@ headers      WINTER_OTEL_EXPORTER_OTLP_HEADERS, blank meaning none
              others still apply (reference: opentelemetry/util/re.py:52-93, the liberal form)
              a name given twice keeps its first position and its last value
              the parsed pairs are handed to the exporter, which adds them to its request
+             three inputs are read differently from the reference's helper, a registered deviation
+             (decision:parallel-workspaces/component-runtime/trace-header-parsing)
+               input                          the reference                    this tool
+               authorization=Bearer abc%3D    the value sent undecoded         the value sent decoded
+               x-a=a;b                        the item skipped                 the item sent
+               bad%3Aname=2                   sent under the name bad:name     the item skipped
 TLS          an `https` endpoint is verified against the public roots bundled in the binary and against nothing
              else: no environment variable names a certificate or a bundle, and no system certificate store is
              read. A collector whose certificate chains to a private authority is not reachable over `https`: its
@@ -159,8 +165,9 @@ error.type vocabulary                  # decision:parallel-workspaces/component-
 | Request path, method `POST`, protobuf content type, and configured headers               | The response body                                      |
 | The 100 ms cap; no effect on stdout, the exit code, or stderr without a logging switch   | HTTP version and connection handling                   |
 
-Registered deviations: the values of `error.type`, no span for a run SIGINT aborts, and the trust roots of an `https`
-endpoint ([command-surface.md](./command-surface.md), Registered deviations).
+Registered deviations: the values of `error.type`, no span for a run SIGINT aborts, the trust roots of an `https`
+endpoint, and the three inputs of the configured headers that Endpoint and headers lists
+([command-surface.md](./command-surface.md), Registered deviations).
 
 ## Interfaces
 
