@@ -234,8 +234,16 @@ excluded roots  the entries bin/  calls/  git-template/  cache/  tmp/  of <ROOT>
 reading         a snapshot is read together with the previous one of the same scenario. An f line implies a file
                 under files/ when the previous tree.txt has no f line for its path, or has one with another hash;
                 a line that differs in the execute flag alone implies none, and before/ of step 01 implies none.
-                Reading fails, naming the path, when an implied file is absent: a record that lost files never
-                reads as complete.
+                Reading fails, naming the path, when an implied file is absent; when the content of a stored file
+                does not hash to the value on its tree.txt line; and when files/ holds a file that no f line
+                implies — a path without an f line, a hash unchanged from the previous snapshot, or any file
+                where there is no previous snapshot. A record that lost or changed stored content never reads as
+                complete.
+                tree.txt and git.txt are regular files, and files, when it exists, is a directory; a link in the
+                place of any of the three is not followed and fails the read, naming the entry.
+                Under an expected/ overlay these rules judge the overlaid whole against the overlaid tree.txt:
+                the file taken for an implied path is hashed, a file under expected/ that nothing implies fails
+                the read, and a file under record/ that the overlaid tree.txt does not imply is left out.
 ```
 
 ```text
@@ -258,7 +266,8 @@ repository that holds the scenarios, and no stored segment may be special to tha
 ```text
 git.txt section, each part a labelled block; every path ROOT-normalized
   repository      <ROOT-relative path>            kind: worktree | main | bare
-  dot-git         "directory" or the gitdir: line of the .git file      (not bare)
+  dot-git         "directory"; the gitdir: line of the .git file; or, when .git is a symbolic link,
+                  "link -> <target>", the target ROOT-normalized like any link target      (not bare)
   head            `git rev-parse HEAD` or "unborn";  `git symbolic-ref -q HEAD` or "detached"
   refs            `git for-each-ref --format=%(refname) %(objectname) %(upstream) %(symref)`
   worktrees       `git worktree list --porcelain`             (main and bare only)

@@ -36,6 +36,8 @@ Builds `scenario::snapshot` and `scenario::normalize`: the State snapshot and No
   remote's section, `head`, `refs`, and `log` and no other block; a commit made in a work tree changes those and the
   `status` and `worktrees` blocks of the repositories that show it, and nothing else; a reflog-only change changes
   nothing.
+- The `dot-git` block of a repository whose `.git` is a symbolic link holds `link -> <target>`, the target
+  root-normalized.
 - A key listed in `git_config_ignore` is absent from the `config` block.
 - Normalizing a buffer that holds the root path twice yields two `<ROOT>` tokens and no remainder of the path.
 - A `json` stream of two concatenated documents yields two lines with sorted keys; under `json-lines` a non-JSON line
@@ -47,6 +49,11 @@ Builds `scenario::snapshot` and `scenario::normalize`: the State snapshot and No
   stores a worktree's `.git` file and a `.gitignore` naming a sibling file.
 - Reading a snapshot fails, naming the path, when a file its `tree.txt` implies was stored is absent, and when a stored
   segment is not in the stored form.
+- Reading a snapshot fails, naming the path, when the bytes of a stored file were changed so that they no longer hash to
+  the value on its `tree.txt` line.
+- Reading a snapshot fails, naming the path, when `files/` holds a file nothing implies: one whose path has no `f` line,
+  one whose hash is unchanged from the previous snapshot, and any file when there is no previous snapshot.
+- Reading a snapshot fails when `files`, `tree.txt`, or `git.txt` is a symbolic link, and the link is not followed.
 - `cargo dev gate slice` exits 0.
 
 ## Out of scope
