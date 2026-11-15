@@ -1,6 +1,6 @@
 ---
 epic: ui-toolkit
-refinement: refined
+refinement: final
 status: planned
 ---
 
@@ -40,6 +40,9 @@ judges every save, with its refusals landing on their fields (`decision:ui-toolk
 navigation parts take their keyboard model from Angular Aria (`decision:ui-toolkit/angular-aria`), and the kit gains the
 combobox the board has lacked.
 
+The epic also ships the next new form the board needs, assembled from those parts after adoption
+(`product:assembled-surface`). That real surface, not only a migrated form, becomes the exemplar for the next agent.
+
 Both adoptions follow the move to Angular 22, where both libraries are stable (`decision:ui-toolkit/angular-22-first`).
 The landscape this epic starts from and the candidates it weighed are in [research/landscape/](./research/landscape/).
 What each change looks like, before and after, is in [assets/](./assets/), and the order it lands in is
@@ -53,7 +56,8 @@ What each change looks like, before and after, is in [assets/](./assets/), and t
   (`decision:ui-toolkit/no-wire-change`). Where the form is stricter than the wire, as with a repository's forge, the
   form holds the rule (`decision:ui-toolkit/forge-required`).
 - **Not a wholesale replacement of the kit.** Only the forms and the choice parts move (`product:full-adoption`).
-  `KitMenu` and `KitSelect`, the read-only tables, the main-nav tabs, and the rest of the kit stay as they are
+  `KitMenu` and `KitSelect` keep their CDK keyboard models; the select gains only an opt-in grid bridge. The read-only
+  tables, the main-nav tabs, and the rest of the kit stay as they are
   (`decision:ui-toolkit/cdk-parts-stay`, `decision:ui-toolkit/no-table-engine`, `decision:ui-toolkit/nav-stays-links`),
   and no styled component suite is adopted (`decision:ui-toolkit/no-component-suite`).
 - **Not more pickers.** Only the cadence zone becomes a picker. Other fields that could pick from a list the hub serves,

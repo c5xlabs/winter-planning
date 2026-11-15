@@ -74,14 +74,16 @@ a Signal Forms field directly. The kit still imports no query, mutation, service
 2. The domain boundary: `bzh:frontend-domain-boundary` replaces `bzh:frontend-wire-conformist` in blizzard-context. Its
    sweep lands with an exemption list naming every unit that still reads a generated type outside the boundary.
 3. The form base: `KitField`, `KitForm`, `KitNumberInput`, the controls' `[formField]` binding, and the shared
-   `SaveOutcome` and refusal helpers.
+   `SaveOutcome`, versioned `EditBaseline`, lossless number parsing, and refusal helpers.
 4. The cadence form, end to end, as the exemplar: its domain model, translator, service, and form.
 5. The admin config dialog, then the remaining forms.
 6. The Aria parts: tabs, chip rows, and select lists, then accordions. Then `KitCombobox` on the cadence zone, then the
    three interactive tables.
 7. The remaining read views, unit by unit, until the boundary's exemption list is empty.
+8. The next real new board form, assembled after adoption, ships with its exemplar (`product:assembled-surface`).
 
-Each landing removes the code it supersedes. The epic is delivered when the exemption list is empty.
+Each landing removes the code it supersedes. Delivery requires all adoption acceptance, an empty boundary exemption
+list, and the shipped new-form demonstration; an empty list alone does not complete the epic.
 
 ## Main-nav tabs stay links (decision:ui-toolkit/nav-stays-links)
 
@@ -92,7 +94,8 @@ Aria.
 ## CDK menu and select stay where they are (decision:ui-toolkit/cdk-parts-stay)
 
 `KitMenu` and `KitSelect` already have full keyboard models from the CDK menu and listbox, so they move to Angular Aria
-only if the move buys something beyond consistency. Neither is migrated by default.
+only if the move buys something beyond consistency. Neither is migrated by default; the select's opt-in grid bridge
+retains its CDK listbox and overlay.
 
 ## No table engine (decision:ui-toolkit/no-table-engine)
 

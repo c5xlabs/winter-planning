@@ -26,6 +26,8 @@ Acceptance:
   moves to it.
 - A refusal that concerns no field shows under the form, as it does today.
 - The typed draft survives the refusal.
+- An edit refused because its record changed keeps the typed draft and says why it was refused; it never silently
+  retries against the newer record.
 
 ## A typo never changes a stored value (product:no-silent-reset)
 
@@ -38,6 +40,8 @@ Acceptance:
 - Text in a number field that is not a number is that field's error, and nothing is sent.
 - A park timeout returns to its default only when the operator chooses the default.
 - A blank number field is either a required-field error or the default the operator chose, never a silent reset.
+- A number too large to send without changing its value is a field error and sends nothing, rather than being rounded
+  or treated as the default.
 
 ## Every choice works from the keyboard (product:keyboard-choices)
 
@@ -97,11 +101,12 @@ Acceptance:
 
 ## A path for the next surface (product:assembled-surface)
 
-After adoption, the way to add a form is to assemble one, demonstrated by building the next real surface the board needs
-from parts.
+After adoption, the way to add a form is to assemble one, demonstrated within this epic by building the next real
+surface the board needs from parts. Migrating an existing form or building a workshop-only example does not discharge it.
 
 Acceptance:
 
 - The next new board form after adoption is built from a domain model, its service, Signal Forms, and the kit's field
   part, with no draft, layout, or error handling of its own.
 - An exemplar shows that path, so the next agent to add a form copies it.
+- The new form ships before this epic is delivered; adoption alone does not complete the epic.

@@ -15,6 +15,7 @@ How a form is built: a domain draft, its rules, a service that saves it, and the
 | Form view | feature folder | Presentational: takes the field tree, renders kit parts, emits `save` and `cancel` |
 | `refusal.translate.ts` | `fleet/src/lib/core/forms/` | `readRefusal`: a hub refusal → domain fields, through a `RefusalMap` |
 | `outcome.ts`, `submit.ts` | `fleet/src/lib/core/forms/` | `SaveOutcome`, `toFormErrors`, `submitForm` |
+| `edit-baseline.domain.ts`, `whole-number.domain.ts` | `fleet/src/lib/core/forms/` | Shared versioned-edit baseline and lossless whole-number parsing; no Angular or wire |
 | `KitForm`, `KitField`, `KitNumberInput`, `KitOrDefault` | `fleet/src/lib/kit/` | Form chrome; bind Signal Forms fields (`decision:ui-toolkit/kit-dependencies`) |
 | Kit controls | `KitTextInput`, `KitCheckbox`, `KitSelect`, `KitColorInput`, `KitCombobox` | Each implements Signal Forms' `FormValueControl`, so `[formField]` binds it; `valueChange` stays for use outside a form |
 
@@ -32,6 +33,25 @@ export interface RefusalMap<D> {
   /** A problem `type` that concerns one field though it carries no path, such as a slug already taken. */
   readonly kinds: Readonly<Record<string, keyof D>>;
 }
+
+// fleet/src/lib/core/forms/edit-baseline.domain.ts
+export interface EditBaseline<D> {
+  readonly id: string;
+  readonly revision: number; // the iteration read from the hub, not an editable field or a local counter
+  readonly draft: D; // detached snapshot from that same read
+}
+// Every service editing a record whose wire contract takes If-Match uses EditBaseline<D>.
+// The container captures id, revision, and draft together when editing starts; subsequent query refreshes do not
+// replace them. The working draft is a separate copy. An unversioned operation does not invent a revision.
+
+// fleet/src/lib/core/forms/whole-number.domain.ts — product:no-silent-reset
+export function readWholeNumber(text: string): number | null {
+  if (!/^\d+$/.test(text)) return null;
+  const value = Number(text);
+  return Number.isSafeInteger(value) ? value : null;
+}
+// Whole-number fields use this parser in their rules and translation; field-specific bounds apply afterwards.
+// Blank, signs, fractions, exponent notation, unsafe integers, and overflow are invalid, not a default.
 ```
 
 ```ts
@@ -97,9 +117,9 @@ export const repositoryRules = schema<RepositoryDraft>((p) => {
   for (const field of [p.slug, p.forge, p.owner, p.repo, p.baseBranch, p.tokenSecret]) required(field);
   disabled(p.parkTimeoutHours, ({ valueOf }) => valueOf(p.parkTimeoutDefault));
   validate(p.parkTimeoutHours, ({ value, valueOf }) =>
-    valueOf(p.parkTimeoutDefault) || /^\d+$/.test(value())
+    valueOf(p.parkTimeoutDefault) || readWholeNumber(value()) !== null
       ? null
-      : { kind: 'hours', message: 'Not a whole number of hours' });
+      : { kind: 'hours', message: 'Enter whole hours from 0 to 9007199254740991, or choose the default' });
 });
 ```
 
@@ -132,8 +152,9 @@ export const CADENCE_REFUSALS: RefusalMap<CadenceDraft> = {
 // for slug, and 'urn:blizzard:problem:repository-coordinate-taken' for repo.
 
 export function toCreateRequest(draft: CadenceDraft): CadenceCreateRequest;
-// RepositoryDraft: parkTimeoutDefault -> park_timeout_hours: null; otherwise Number(parkTimeoutHours), reached only
-// once the rule has passed.
+// RepositoryDraft: parkTimeoutDefault -> park_timeout_hours: null; otherwise readWholeNumber(parkTimeoutHours).
+// A null parse result is a parkTimeoutHours field error and sends nothing; only the explicit default choice sends
+// null. The service enforces this before calling the mutation even when invoked without a form.
 ```
 
 ```ts
@@ -141,11 +162,16 @@ export function toCreateRequest(draft: CadenceDraft): CadenceCreateRequest;
 export function injectCadenceService(): {
   readonly pending: Signal<boolean>;
   create(draft: CadenceDraft): Promise<SaveOutcome<CadenceDraft>>;
-  edit(id: string, before: CadenceDraft, after: CadenceDraft): Promise<SaveOutcome<CadenceDraft>>;
+  edit(before: EditBaseline<CadenceDraft>, after: CadenceDraft): Promise<SaveOutcome<CadenceDraft>>;
 };
+// edit supplies { cadenceId: before.id, revision: before.revision, body: toEditRequest(before.draft, after) }.
+// Revision stays out of the sparse body and is sent as If-Match by the existing mutation.
 // Each call runs the existing mutation hook (injectCreateCadenceMutation, injectEditCadenceMutation) with the
 // translated request, so its invalidations settle as bzh:frontend-mutation-settles-on-refresh requires, and maps a
 // failure through readRefusal(error, CADENCE_REFUSALS). It never throws for a refusal.
+// A revision-conflict 409 becomes a form-level refusal, not a field error. No automatic retry, rebase, or substitution
+// of a newer cached revision; both the baseline and the working draft survive. Starting again from a fresh read is
+// explicit. After a successful save, any further edit starts with a new baseline from the settled read, never revision+1.
 ```
 
 ```ts
@@ -216,8 +242,16 @@ Save pressed  (KitForm emits save; the container calls submitForm)
             settles ok                  -> true; the container closes or resets the form
             refused                     -> readRefusal -> toFormErrors: each on its field, the rest on the form line
                                            -> focus the first field in error; the draft is untouched; false
-            fails (network, 5xx, …)     -> the form line, worded as today; false
+             fails (network, 5xx, …)     -> the form line, worded as today; false
   -> a hub error on a field clears once the operator edits that field
+
+Edit opened
+  -> capture EditBaseline<D> from one read; copy its draft into the working form
+  -> Save validates, then service.edit(baseline, workingDraft)
+       query refresh before Save -> baseline unchanged; If-Match still names the original revision
+       revision conflict         -> form-level refusal; baseline and working draft unchanged; no retry
+       explicit restart          -> fresh read replaces baseline and working draft together
+       settles ok                -> close; a continuing edit captures a new baseline from the settled read
 ```
 
 The hub answers one refusal at a time for a cadence's schedule: `Schedule.parse` stops at the first bad field. A form
