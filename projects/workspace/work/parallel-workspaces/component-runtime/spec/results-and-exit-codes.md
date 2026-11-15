@@ -18,25 +18,28 @@ marked as such.
 // One value per way an invocation ends. Commands return these and write only their RESULT (stdout) and the
 // reporter and log lines of output-formats.md. The process boundary alone writes the final diagnostic of a
 // Termination and maps its exit code. No variant is rendered into a JSON document.
+// decision:parallel-workspaces/component-runtime/termination-payloads
+// A variant that carries an error type holds it in a Box; the fields a variant holds inline are scalars or one
+// String. Termination is at most four words wide, whatever its error types grow to.
 pub enum Termination {
     Success,                           // exit 0
     Reported,                          // exit 1   the command's own result already carries the failure; nothing more is written
-    Usage(UsageError),                 // exit 2   the fault, the usage of the command at fault, where to ask for help
+    Usage(Box<UsageError>),            // exit 2   the fault, the usage of the command at fault, where to ask for help
     BareGroup { help: String },        // exit 2   no command given at the root or in a group; the diagnostic is that node's help
-    Command(CommandError),             // exit 1
-    StatusCollection(StatusCollectionError), // exit 2   ws status only
-    Config(ConfigError),               // exit 1
-    Repo(RepoError),                   // exit 1   message plus the detail fields that are present
-    Space(SpaceError),                 // exit 1
-    Env(EnvError),                     // exit 1
-    Scaffold(ScaffoldError),           // exit 1   ext new only
+    Command(Box<CommandError>),        // exit 1
+    StatusCollection(Box<StatusCollectionError>), // exit 2   ws status only
+    Config(Box<ConfigError>),          // exit 1
+    Repo(Box<RepoError>),              // exit 1   message plus the detail fields that are present
+    Space(Box<SpaceError>),            // exit 1
+    Env(Box<EnvError>),                // exit 1
+    Scaffold(Box<ScaffoldError>),      // exit 1   ext new only
     Aborted { interrupted: bool },     // exit 1   a declined or unanswerable confirmation
     Interrupted,                       // exit 130 service paths only; nothing written
     Provider(u8),                      // exit = the value, 1–255: the provider's own code, or 128 plus the number of
                                        //          the signal that ended it; service paths only; nothing written
-    ProviderNotStarted(ProviderStartError), // exit 126 a provider entrypoint could not be executed; service paths only
+    ProviderNotStarted(Box<ProviderStartError>), // exit 126 a provider entrypoint could not be executed; service paths only
     BrokenPipe,                        // exit 1   stdout closed by the reader; nothing written
-    Internal(InternalError),           // exit 1
+    Internal(Box<InternalError>),      // exit 1
 }
 // The name of each variant is also the value of the command span's error.type: tracing.md, What the span carries.
 
@@ -117,6 +120,17 @@ pub enum InternalError {
     Panic { message: String, backtrace: std::backtrace::Backtrace },
 }
 ```
+
+`Termination` is the `Err` type of nearly every fallible function of the library, and its error types grow with every
+epic. Under `decision:parallel-workspaces/component-runtime/termination-payloads` its width does not follow them: a
+variant that carries an error type holds it in a `Box`, and the only fields a variant holds inline are scalars or one
+`String`. A variant added later follows the same rule, whatever the size of its error type on the day it is added. The
+error types are written as their owning specs give them and hold no box for this purpose; the site that builds an ending
+boxes the error there, and a site that reads one reads through the box. The functions and command files that return
+`Result<_, Termination>` return it by value, and no function, module, or package carries a lint attribute or a lint
+setting for the size of an error. Where a spec or a change writes
+`Termination::Config(ConfigError::RootNotFound { .. })`, it names the variant and the error it holds; the box is not
+written out.
 
 `SpaceError`, `EnvError`, and `ScaffoldError` are the typed errors of `epic:agent-ready-operation/artifact-space`,
 `epic:running-environments/scope-environment`, and `epic:agent-ready-operation/executable-extensions`; each owning spec

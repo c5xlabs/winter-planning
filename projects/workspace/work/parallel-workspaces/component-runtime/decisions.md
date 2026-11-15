@@ -1,5 +1,15 @@
 # Component runtime decisions
 
+## Width of the termination (decision:parallel-workspaces/component-runtime/termination-payloads)
+
+**Decider:** engineering
+
+A `Termination` variant that carries an error type holds it in a `Box`, so the enum stays at most four words wide and is
+returned by value as the error of every fallible function, however large its error types grow. Permitting a large error
+type instead, by a lint attribute or a raised lint threshold, was rejected because the repository runs Clippy with its
+defaults and keeps lint attributes to a closed list; boxing only the variants that are too large today was rejected
+because every later growth of an error type would then change each site that builds or reads its ending.
+
 ## Trust roots of a trace export over TLS (decision:parallel-workspaces/component-runtime/trace-export-trust-roots)
 
 **Decider:** product owner
