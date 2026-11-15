@@ -21,16 +21,19 @@ it runs beside no other change.
 
 ## Change
 
-- `context/architecture/structure.md`: the sentence that tells a contributor to start the binary with `cargo run` links
-  to the built-binary rule of the entry point in its place; the package table gives each package the role
+- `context/architecture/structure.md`: the sentence of The Cargo workspace that says what a bare `cargo build` or
+  `cargo run` produces names the build alone and no longer `cargo run`; where the binary may be started is a link to the
+  built-binary rule of the entry point. The package table gives each package the role
   [repository-layout.md](../spec/repository-layout.md), Packages and edges, gives it, the scenario machinery of the
   support package included; a dependency table is added, which the document does not hold yet, written from the four
   manifests as they stand, each dependency with its user. It matches the same spec's Cargo workspace table except for
-  the rows `command-span-export` adds with its crates.
+  the rows `command-span-export` adds with its crates. The paragraphs of The library and the binary on the binary's two
+  files, and the `interrupt.rs` row of the Modules table, are `interrupt`'s and stay as they are.
 - `context/verification/matrix.md`: the `workspace:slice-gate` row's Proves cell is the one
-  [contributor-context.md](../spec/contributor-context.md), Verifiability matrix, gives; each manual method's setup
-  states the condition that spec gives for it, in the words of the entry point's built-binary rule or by a link to it.
-  Every method id, each `**Setup.**` and `**Success.**` marker, and the phrase "scratch copy of the checkout" stay.
+  [contributor-context.md](../spec/contributor-context.md), Verifiability matrix, gives; each manual method's setup,
+  that of `workspace:manual-interrupt` included, states the condition that spec gives for a manual method, in the words
+  of the entry point's built-binary rule or by a link to it. Every method id, each `**Setup.**` and `**Success.**`
+  marker, and the phrase "scratch copy of the checkout" stay.
 - `context/tooling/development.md`: Running the built binary keeps its link to the entry point's rule and restates none
   of it; the sentence that names bootstrap as the only step that needs the network stays true of every step the document
   lists.

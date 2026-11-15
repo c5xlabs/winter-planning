@@ -25,8 +25,8 @@ production source changes.
   else to the built binary than to another child, both ("a faulted stdout" in the same place).
 - `crates/cli/tests/closed_stdout.rs` exists and runs the built binary through it.
 - `context/standards/testing.md`:
-  - the executable tier names the three faults and says they are the one thing that tier holds for a command beyond its
-    recorded scenarios;
+  - the executable tier names the three faults and ends: "No other tier gives the binary such a stdout: how it ends
+    under each is held in `crates/cli/tests/closed_stdout.rs`.";
   - in What a test never does, the item that begins "It starts a child only through" names `invoke_with_stdout` beside
     `invoke` and `Git`: its first sentence would otherwise be false of the new test file. Nothing else of the item
     changes;

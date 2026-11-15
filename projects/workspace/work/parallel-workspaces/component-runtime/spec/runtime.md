@@ -379,18 +379,23 @@ The undeferred handler ends the process itself and returns no `Termination`. `Te
 `Termination::Aborted` are each added by the command that first returns one
 ([results-and-exit-codes.md](./results-and-exit-codes.md), Domain); this epic builds neither.
 
-`unsafe` in the binary is in two places, each carrying the comment the Library rules ask for: in `interrupt.rs`, the
-`sigaction` calls, the handler's `write` and `_exit`, and what its tests use, the `raise` and the setting of the ignore
-disposition; and in `trace.rs`, the one block that removes the generic exporter variables from the process environment
-([tracing.md](./tracing.md), The binary's part). The binary package's third-party dependencies are `libc` and the
-tracing crates of [repository-layout.md](./repository-layout.md), The Cargo workspace.
+`unsafe` in the binary is in two places, each carrying the comment the Library rules ask for. In `interrupt.rs`: the two
+zeroed `sigaction` structures, the two `sigaction` calls and the `sigemptyset` between them, the handler's one
+dereference of the address of its state, and its `write` and `_exit`; and what its tests use, the `raise` and the
+`signal` call by which each fixture sets the disposition of SIGINT it starts with. In `trace.rs`: the one block that
+removes the generic exporter variables from the process environment ([tracing.md](./tracing.md), The binary's part). The
+handler's state is a static `AtomicPtr<Interrupts>`: null until the installer stores the address of the
+`&'static Interrupts` it is given, which it does before it installs the handler, and never changed after. The binary
+package's third-party dependencies are `libc` and the tracing crates of [repository-layout.md](./repository-layout.md),
+The Cargo workspace.
 
 ```text
 testing the handler                     # test-harness.md, tier table
   a unit test of interrupt.rs starts a child test of the same test binary through the support package's `invoke`.
-  The child installs the handler on an Interrupts of its own, writes a line that says it is ready, and raises
-  SIGINT on itself with raise(3). No test sends a signal to another process, so no test needs a child's process id
-  or a readiness protocol: the parent reads the child's exit, stdout, and stderr once it has ended.
+  The child sets the disposition of SIGINT it is to start with, default or ignore, installs the handler on an
+  Interrupts of its own, writes a line that says it is ready, and raises SIGINT on itself with raise(3). No test
+  sends a signal to another process, so no test needs a child's process id or a readiness protocol: the parent
+  reads the child's exit, stdout, and stderr once it has ended.
     not deferred    the child's exit is 1, its stderr holds the notice, and nothing follows the ready line
     deferred        the handler returns; the child reads pending() as true and exits 0
     ignored         the child sets SIGINT to ignore itself, then calls the installer; after the raise it runs on,

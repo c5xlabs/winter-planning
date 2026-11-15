@@ -44,15 +44,20 @@ follows both.
     change edits; that change edits the item of the Tiers list that begins "An executable test starts the binary", and
     whichever of the two merges second rebases.
   - `context/standards/rust.md`: `unsafe` appears in `crates/cli/src/interrupt.rs` alone, each block with its reason.
+  - `context/verification/matrix.md`: the manual method `workspace:manual-interrupt` is added, with its setup and its
+    success. That `main` calls the installer has no automated test within the rules: no test sends a signal to another
+    process, and no present command runs long enough to be interrupted.
   - `AGENTS.md`, the library-boundary rule, names the binary package where it named `crates/cli/src/main.rs` alone, as
     [contributor-context.md](../spec/contributor-context.md), Entry point, words it.
 - Files touched: `crates/cli/src/interrupt.rs` (new), `crates/cli/src/main.rs`, `crates/cli/Cargo.toml`, `Cargo.lock`,
   `crates/core/src/{process,context,lib}.rs`, `crates/core/tests/support/in_process.rs`, `crates/core/tests/root.rs`,
-  `context/architecture/{structure,changes}.md`, `context/standards/{testing,rust}.md`, `AGENTS.md`.
-  `crates/core/src/termination.rs` and `crates/test-support/` are not touched.
-- `crates/dev/tests/architecture.rs`: the package-edge rules read workspace edges only, so a third-party dependency of
-  the binary alters no pin; the change confirms it by running the test. The binary package gains its first dependency on
-  the support package's use from a unit test, which is a development dependency the manifest already holds for its
+  `context/architecture/{structure,changes}.md`, `context/standards/{testing,rust}.md`,
+  `context/verification/matrix.md`, `crates/dev/tests/architecture.rs`, `AGENTS.md`. `crates/core/src/termination.rs`
+  and `crates/test-support/` are not touched.
+- `crates/dev/tests/architecture.rs`: its pin of the matrix's manual method ids gains `workspace:manual-interrupt`, the
+  one edit of the file. The package-edge rules read workspace edges only, so a third-party dependency of the binary
+  alters no other pin; the change confirms it by running the test. The binary package gains its first dependency on the
+  support package's use from a unit test, which is a development dependency the manifest already holds for its
   executable tests. The scope-token scan reads `AGENTS.md`, and the reworded rule holds none of the tokens. The
   dependency table of [repository-layout.md](../spec/repository-layout.md), Cargo workspace, already gives the binary
   `libc`; the open question there on the key order of a manifest is not raised by adding one dependency line.
@@ -73,6 +78,8 @@ follows both.
   - ignored at start: the child sets SIGINT's disposition to ignore itself, before it calls the installer, because the
     test runner cannot set a child's dispositions without `unsafe` code outside `interrupt.rs`; after the raise it
     continues, sees `pending` false, writes a second line, and ends by its own exit code, 0, with no notice on stderr.
+- `context/verification/matrix.md` holds `workspace:manual-interrupt` with its `**Setup.**` and `**Success.**` markers
+  and the phrase "scratch copy of the checkout", and the architecture test's pin of the manual method ids names it.
 - `grep -rn 'unsafe' crates/cli/src` prints lines of `interrupt.rs` only, each block preceded by a comment.
 - `grep -rnE 'Termination::(Aborted|Interrupted)' crates/core/src` prints nothing, and the enum declares neither
   variant: `grep -nE '^[[:space:]]*(Aborted|Interrupted)' crates/core/src/termination.rs` prints nothing.

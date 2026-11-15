@@ -209,12 +209,19 @@ invoke
   spawn         an executable that cannot be started is FailureKind::Spawn carrying the cause,
                 "<executable> in <cwd>: <error of the operating system>"; the failure's text is
                 "the executable could not be started: " followed by the cause
+                a stdout fault that cannot be set up — the pipe cannot be made, /dev/full cannot be opened — is the
+                same FailureKind::Spawn, the start never tried, with a cause of its own shape:
+                "the stdout of <executable>: <error of the operating system>"
   deadline      on expiry: SIGKILL to the group, reap, FailureKind::Timeout with the output captured so far
   unwind        a panic or early return in the caller kills and reaps the group
   signals       the runner sets no signal disposition for the child, in invoke and in invoke_with_stdout alike:
                 SIGPIPE is at its default when the child's program starts, as it is when a user's shell starts the
                 binary. What the binary does about a broken pipe is therefore its own doing, and the executable
                 tests hold it; a runner that ignored the signal for the child would hide a binary that did not.
+                The runner sets no signal mask either. The standard library resets the dispositions to their
+                defaults for a child it starts and passes on the mask of the thread that starts it: in a run
+                started with SIGPIPE blocked the signal ends no child, and a write fails with EPIPE in every child
+                where the table below says a signal.
   never         a shell; an executable looked up on PATH; a relative executable; a signal other than that SIGKILL:
                 the runner exposes no process id, and a test that needs a signalled child has the child signal itself
 a faulted stdout — what a write to stdout does to the child
