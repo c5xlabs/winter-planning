@@ -190,10 +190,12 @@ pub fn invoke(invocation: Invocation) -> Result<Observation, InvocationFailure>;
 // `invoke` with one difference: where the child's stdout goes. The group, the deadline, the environment, the
 // capture of stderr, and the reaping are those of `invoke`. Added with the executable tests of
 // results-and-exit-codes.md, A stdout that cannot be written.
+// A variant says what file descriptor 1 is when the child's program starts. What a write to it does to the child
+// depends on the child: "a faulted stdout" below.
 pub enum StdoutFault {
-    ClosedPipe,     // a pipe whose read end is closed before the child starts: every write fails with EPIPE
-    Full,           // /dev/full: every write fails with ENOSPC
-    Closed,         // no file descriptor 1 at all: the child's writes succeed and are dropped
+    ClosedPipe,     // a pipe whose read end is closed before the child starts
+    Full,           // /dev/full
+    Closed,         // no file descriptor 1 at all
 }
 // Observation.stdout is empty: nothing can be read from a faulted stdout.
 pub fn invoke_with_stdout(invocation: Invocation, stdout: StdoutFault) -> Result<Observation, InvocationFailure>;
@@ -209,8 +211,27 @@ invoke
                 "the executable could not be started: " followed by the cause
   deadline      on expiry: SIGKILL to the group, reap, FailureKind::Timeout with the output captured so far
   unwind        a panic or early return in the caller kills and reaps the group
+  signals       the runner sets no signal disposition for the child, in invoke and in invoke_with_stdout alike:
+                SIGPIPE is at its default when the child's program starts, as it is when a user's shell starts the
+                binary. What the binary does about a broken pipe is therefore its own doing, and the executable
+                tests hold it; a runner that ignored the signal for the child would hide a binary that did not.
   never         a shell; an executable looked up on PATH; a relative executable; a signal other than that SIGKILL:
                 the runner exposes no process id, and a test that needs a signalled child has the child signal itself
+a faulted stdout — what a write to stdout does to the child
+                the built binary                             a child without the Rust runtime, /bin/sh included
+  ClosedPipe    the write fails with EPIPE and no signal     the write raises SIGPIPE, which ends the child:
+                ends the process: the Rust runtime ignores   Exit::Signal. A child that ignores the signal first —
+                SIGPIPE at start (runtime.md, Interrupts     a script that opens with `trap '' PIPE` — sees the
+                and signals)                                 write fail with EPIPE and goes on
+  Full          the write fails with ENOSPC                  the same
+  Closed        the write succeeds and is dropped: the       the write is refused with EBADF: there is no
+                Rust runtime opens the null device on a      descriptor to write to
+                missing standard descriptor at start
+                (runtime.md, The process boundary, "no
+                stdout at all")
+  A test of this package runs /bin/sh as the child and asserts the right-hand column: the refusal under Closed is
+  what tells a missing descriptor from the null device, which would accept the write. The left-hand column is held
+  by the executable tests alone.
 ```
 
 ```rust
