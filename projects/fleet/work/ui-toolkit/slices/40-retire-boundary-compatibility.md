@@ -17,6 +17,8 @@ depends-on:
   - hub-read-domains
   - runner-host-domains
   - shell-auth-domains
+  - admin-history-domains
+  - member-domains
 code:
   - blizzard/web/scripts/wire-conformist-sweep.js::assertClientCallPlacementDetectorWorks
 ---
@@ -39,4 +41,6 @@ delivering the empty-exemption acceptance of `product:domain-boundary`.
   removal.
 - `web:typecheck`, `web:unit-test`, `web:story-render`, and `blizzard:exemplar-check` pass.
 - A source census finds no obsolete query projection or live citation of the retired conformist rule.
+- The census includes admin changes/history/counts and members. Typed transport and wire fixtures pass in their
+  specified test-only homes with no boundary exemption; regeneration cannot recreate a forbidden helper import.
 - The temporary `core/forms` placement exemption is absent; its both-app reach still passes the existing placement gate.
