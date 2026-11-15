@@ -66,7 +66,9 @@ AGENTS.md
        a command is one file under crates/core/src/commands/; no registry is edited
        the library returns values; only crates/cli/src/main.rs touches process streams, environment, and exit
        tests run in an isolated tree from winter-workspace-test-support; a test never touches a real workspace,
-         the network, or a host-installed tool other than git
+         a real repository, the network, or anything else outside its tree; the only host programs it runs are
+         git and the base system utilities on the pinned PATH, and nothing of the developer's own environment
+         reaches it
        nothing in the repository starts the reference tool; `cargo dev record` alone is handed its path
   3. routing table — one row per area index, each with "read when"
 a rule is present only while the tree makes it true: the gate rule from the change that adds the gates, the command

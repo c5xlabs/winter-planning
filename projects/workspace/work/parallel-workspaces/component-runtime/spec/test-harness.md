@@ -50,9 +50,17 @@ crates/test-support/src/
   git-template/    empty; GIT_TEMPLATE_DIR
   gitconfig        GIT_CONFIG_GLOBAL
 
-parent        WINTER_TEST_TMPDIR when set, else the system temporary directory
-refused       creation fails when the parent, or any ancestor of it, holds .winter/config.toml:
-              no walk upward from inside a tree can reach a real workspace
+parent        WINTER_TEST_TMPDIR when set, else the system temporary directory; canonicalised before any check
+refused       creation fails, creating nothing, when the parent, or any ancestor of it, holds
+                .winter/config.toml
+                    "no isolated tree is created in <parent>: <path> is a workspace configuration"
+                .git, as a directory or a file; or HEAD beside the directories objects and refs, which is a git
+                directory, a bare repository included
+                    "no isolated tree is created in <parent>: <path> is a git repository"
+              <path> is the entry found: the configuration file, the .git entry, or the git directory. The
+              workspace check runs first, so a workspace that is also a repository is reported as a workspace.
+              No walk upward from inside a tree can reach a real workspace or a real repository, under
+              decision:parallel-workspaces/component-runtime/git-discovery-containment
 path charset  the canonical ROOT matches [A-Za-z0-9/._-]+ ; anything else fails creation, so the ROOT can be
               replaced textually inside JSON without unescaping
 umask         the process runner starts every child with umask 022
@@ -73,6 +81,7 @@ Every child the harness starts, git and the binary alike, gets exactly this envi
 | `GIT_CONFIG_GLOBAL`                         | `<ROOT>/gitconfig`                                      |
 | `GIT_CONFIG_NOSYSTEM`                       | `1`                                                     |
 | `GIT_TEMPLATE_DIR`                          | `<ROOT>/git-template`                                   |
+| `GIT_CEILING_DIRECTORIES`                   | `<ROOT>/..`                                             |
 | `GIT_TERMINAL_PROMPT`                       | `0`                                                     |
 | `GIT_AUTHOR_NAME`, `GIT_AUTHOR_EMAIL`       | `Fixture Author`, `author@fixture.invalid`              |
 | `GIT_COMMITTER_NAME`, `GIT_COMMITTER_EMAIL` | `Fixture Committer`, `committer@fixture.invalid`        |
@@ -84,6 +93,12 @@ Every child the harness starts, git and the binary alike, gets exactly this envi
 
 ```text
 <directory of git>   the directory of the first `git` on the test process's own PATH, resolved once
+ceiling              git examines neither a directory GIT_CEILING_DIRECTORIES names nor any above it, and an entry
+                     binds only a working directory strictly below it, so the entry is the parent of <ROOT> and not
+                     <ROOT>: every working directory at or below <ROOT> is bounded, a repository a fixture makes
+                     at <ROOT>/ws or deeper is still found from inside it, and <ROOT> itself never holds .git.
+                     The parent is written <ROOT>/.., which git resolves to its real path before comparing, so the
+                     digest holds no host path.
 never passed         any WINTER_*, TRACEPARENT, TRACESTATE, any other OTEL_*, GIT_SSH_COMMAND, GIT_DIR, GIT_WORK_TREE,
                      VIRTUAL_ENV, PYTHONPATH, PYTHONHOME, FORCE_COLOR — unless a test adds one explicitly
 gitconfig            [url "<ROOT>/remotes/"] insteadOf = https://fixture.invalid/        and nothing else
@@ -105,6 +120,17 @@ names the package never spells
   child does not see it.
   Both rules are checked mechanically once crates/dev/tests/architecture.rs gains the substring rules of
   record-and-replay.md, System; every change before that keeps to them, so that check starts on a tree that passes.
+```
+
+```text
+fixtures that fail by design
+  A test of this package that must fail, or that leaves a tree its own drop cannot remove, is a fixture: it runs
+  only as a child test process of the test that asserts on it. That parent starts it through invoke under its own
+  tree's pinned environment, with WINTER_TEST_TMPDIR naming a directory inside that tree and
+  WINTER_TEST_FIXTURE=<the fixture's test name> added.
+  A fixture that does not find WINTER_TEST_FIXTURE equal to its own name returns at once and passes, having
+  created nothing. A run that selects ignored tests starts every fixture in the outer test process; there its tree
+  would land under the host's temporary directory, with no parent test to make it removable again.
 ```
 
 ## Interfaces
@@ -138,8 +164,10 @@ pub struct Invocation {
 }
 pub struct Observation { pub stdout: Vec<u8>, pub stderr: Vec<u8>, pub exit: Exit }
 pub enum Exit { Code(i32), Signal(i32) }  // a non-zero exit is an observation, not a failure
+// The failure has these three fields and no other, private ones included: any module of the package and any test
+// builds one as a literal and matches on all of it.
 pub struct InvocationFailure { pub kind: FailureKind, pub stdout: Vec<u8>, pub stderr: Vec<u8> }
-pub enum FailureKind { InvalidInvocation, Spawn, Timeout, OutputLimit, Cleanup }
+pub enum FailureKind { InvalidInvocation, Spawn(String), Timeout, OutputLimit, Cleanup }
 pub fn invoke(invocation: Invocation) -> Result<Observation, InvocationFailure>;
 ```
 
@@ -148,6 +176,9 @@ invoke
   environment   cleared, then exactly Invocation.env
   streams       stdout and stderr are drained concurrently into separate buffers; 8 MiB per stream, then OutputLimit
   group         the child leads its own process group
+  spawn         an executable that cannot be started is FailureKind::Spawn carrying the cause,
+                "<executable> in <cwd>: <error of the operating system>"; the failure's text is
+                "the executable could not be started: " followed by the cause
   deadline      on expiry: SIGKILL to the group, reap, FailureKind::Timeout with the output captured so far
   unwind        a panic or early return in the caller kills and reaps the group
   never         a shell; an executable looked up on PATH; a relative executable

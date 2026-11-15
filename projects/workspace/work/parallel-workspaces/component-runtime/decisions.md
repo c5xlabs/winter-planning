@@ -1,5 +1,14 @@
 # Component runtime decisions
 
+## Git discovery stops at the isolated tree (decision:parallel-workspaces/component-runtime/git-discovery-containment)
+
+**Decider:** program lead, under the owner's constraint that tests never touch a real workspace or repository
+
+A tree is refused when its parent lies inside a git repository, and the pinned environment also sets
+`GIT_CEILING_DIRECTORIES` so git's upward search for a repository stops at the tree. Either alone leaves a path open:
+the refusal sees only the directories that exist when the tree is created, and the ceiling binds only git calls made
+under the pinned environment.
+
 ## Gate scope (decision:parallel-workspaces/component-runtime/gate-scope)
 
 **Decider:** product owner
