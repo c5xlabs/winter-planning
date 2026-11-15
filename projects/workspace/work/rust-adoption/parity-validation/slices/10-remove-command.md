@@ -30,11 +30,14 @@ partly used"), so the port cannot land ahead of the command that calls it.
   [configuration-model.md](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md), Write
   integrity, give them — the lock, the temporary file and rename, the kept permission bits, and the symlink rule, all
   four; `Context` gains `file_writer`, and `run` binds `OsFiles` to it.
+- The test module of `crates/core/src/parse.rs` supplies `file_writer` where it builds a `Context`, and
+  `context/architecture/structure.md` lists the new modules.
 - `CommandError` gains `Catalog`; `lib.rs` re-exports `CatalogError` and `RepositoryKind` beside `CommandError`.
 - The `--json` document is encoded with `serde_json`, which the library already depends on.
 - Files touched: `crates/core/src/commands/repo/remove.rs`,
-  `crates/core/src/{config_edit,files,context,process,termination,lib}.rs`, `crates/core/Cargo.toml` (`toml_edit`,
-  `libc`), `Cargo.lock`, `crates/core/tests/repo_remove.rs`.
+  `crates/core/src/{config_edit,files,context,process,termination,lib}.rs`, `crates/core/src/parse.rs` (its test module
+  only, for the `Context` literal that gains the field), `crates/core/Cargo.toml` (`toml_edit`, `libc`), `Cargo.lock`,
+  `crates/core/tests/repo_remove.rs`, `context/architecture/structure.md` (for the new modules).
 
 ## Acceptance
 
@@ -79,8 +82,8 @@ partly used"), so the port cannot land ahead of the command that calls it.
 - A component test of the permission rule, run twice, with the configuration file's mode set to `0o600` and to `0o640`
   before the command: after a successful removal the file has the mode it had before. One of the two differs from what a
   plain create gives under any umask the test runs with.
-- `std::fs` occurs in `crates/core/src` only in `files.rs`; `registry.rs`, `groups.rs`, and `parse.rs` are unchanged; no
-  lint attribute was added or removed.
+- `std::fs` occurs in `crates/core/src` only in `files.rs`; `registry.rs` and `groups.rs` are unchanged, `parse.rs` is
+  unchanged outside its test module; no lint attribute was added or removed.
 - `cargo dev gate full` exits 0, and every scenario under `scenarios/` still passes.
 
 ## Out of scope
