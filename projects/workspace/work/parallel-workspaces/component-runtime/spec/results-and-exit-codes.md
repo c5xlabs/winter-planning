@@ -20,6 +20,7 @@ pub enum Termination {
     Success,                           // exit 0
     Reported,                          // exit 1   the command's own result already carries the failure; nothing more is written
     Usage(UsageError),                 // exit 2   usage plus the fault
+    BareGroup { help: String },        // exit 2   no command given at the root or in a group; the diagnostic is that node's help
     Command(CommandError),             // exit 1
     StatusCollection(StatusCollectionError), // exit 2   ws status only
     Config(ConfigError),               // exit 1
@@ -86,12 +87,12 @@ pub struct RepoError {                 // reference: modules/workspace/models/do
 //   CapabilityBinding (capability/models.py:120), VersionCompat (capability/version_compat.py:6).
 
 // decision:parallel-workspaces/component-runtime/internal-failure-rendering
-#[derive(Debug, thiserror::Error)]
+// Display and std::error::Error are implemented by hand, not derived (repository-layout.md, Errors the foundation
+// defines): Display is the source's for Unexpected and the message for Panic; source() is Unexpected's source.
+#[derive(Debug)]
 pub enum InternalError {
-    #[error("{source}")]
-    Unexpected { #[source] source: Box<dyn std::error::Error + Send + Sync>,
+    Unexpected { source: Box<dyn std::error::Error + Send + Sync>,
                  backtrace: std::backtrace::Backtrace },
-    #[error("{message}")]
     Panic { message: String, backtrace: std::backtrace::Backtrace },
 }
 ```
@@ -284,7 +285,7 @@ Exits and the command span:
 
 ## Open questions
 
-- The exit status on SIGTERM and SIGHUP is not recorded for the reference tool. Engineering records it with the
-  foundation's signal scenarios.
+- The exit status on SIGTERM and SIGHUP is not recorded for the reference tool. Engineering records it when the scenario
+  runner supports the `signal` facility.
 - Whether `ws status` with a pattern that matches no worktree is a collection failure (exit 2) or a clean result
   (exit 0) in the reference tool is not confirmed from source. Engineering records it with the `ws status` scenarios.

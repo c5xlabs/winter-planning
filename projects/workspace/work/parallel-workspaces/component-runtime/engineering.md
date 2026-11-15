@@ -9,6 +9,19 @@ platform's Rust executable and development-only sample process boundary, not a c
 installed-product resolver. Workspace is invoked directly and reads no launcher handoff, under
 `decision:rust-replacement`.
 
+## Rust-only code branch (engineering:rust-only-branch)
+
+The branch that carries the Rust binary holds no source, test, packaging, skill, or manual of the reference tool, and no
+root document that describes it. The reference tool stays readable and runnable only outside that branch, under
+`decision:rust-replacement`.
+
+Acceptance:
+
+- The tracked file set of the branch contains no path under `tools/`, `skills/`, or the reference tool's `context/`
+  tree, and no Python source, Python project file, or Python CI job.
+- The root `README.md`, `AGENTS.md`, `CLAUDE.md`, `.gitignore`, `dprint.json`, and `.rumdl.toml` name no reference-tool
+  command, path, or install step.
+
 ## Reproducible local development (engineering:reproducible-build)
 
 The Workspace repository pins its Rust toolchain and dependency resolution, documents build prerequisites, and exposes
@@ -20,8 +33,26 @@ Acceptance:
 - Fresh-checkout builds use the checked-in locks without rewriting them; build output is untracked.
 - After dependency bootstrap, local checks can run without credentials, network access, or live providers.
 - CI runs the same required checks, including rustfmt and Clippy, with compiler and lint warnings treated as failures.
-- Check mode does not rewrite source; required checks cover production code, test code, enabled targets/features,
-  repository-owned Markdown, and development/CI automation, with narrow documented exclusions.
+- Check mode does not rewrite source; required checks cover production code, test code, and every enabled target and
+  feature. Repository-owned Markdown and the CI workflow file are outside the gates, under
+  `decision:parallel-workspaces/component-runtime/gate-scope`.
+
+## Two gates, one command each (engineering:verification-gates)
+
+The repository has a slice gate and a full gate. Each is one command run from the repository root, runs every one of its
+steps even after a step fails, names the failed steps, and exits 0 only when all passed. The slice gate is rustfmt in
+check mode, Clippy with warnings denied, and the test suite without recorded scenarios; the full gate is the slice gate
+plus every recorded scenario of `epic:rust-adoption/parity-validation`, under
+`decision:parallel-workspaces/component-runtime/gate-scope`. Neither gate executes Python, reads the network, or
+rewrites a tracked file. Serves `epic:parallel-workspaces/component-runtime`.
+
+Acceptance:
+
+- A formatting fault, a Clippy warning, a compiler warning, and a failing test each make the slice gate exit non-zero
+  and name the step that failed.
+- A failing recorded scenario makes the full gate exit non-zero and leaves the slice gate at 0.
+- Running either gate on a clean checkout leaves `git status` clean.
+- Every step of either gate starts the Cargo executable that started the gate and no other program.
 
 ## Testable production boundaries (engineering:testable-boundaries)
 
@@ -37,6 +68,36 @@ Acceptance:
 - Executable tests use an explicit built path and isolated cwd, HOME, configuration, and environment snapshots.
 - Test subprocesses have finite deadlines and are terminated and reaped on failure; real user workspaces and installed
   executables are not test fixtures.
+
+## Library never owns a stream (engineering:library-output-boundary)
+
+The library crate writes only to the output handles its caller passes in and returns a typed termination; it never opens
+the process's standard streams, never exits the process, and never reads the process environment or working directory
+except through values the caller passes. The binary crate alone binds the real streams, environment, and working
+directory, writes the final diagnostic, and maps the termination to an exit code. Inside the library, files are reached
+only through the file port, which applies `engineering:domain-io-boundaries`. Serves `product:automation-boundary` and
+applies `engineering:composition-root`.
+
+Acceptance:
+
+- A check over the library's sources fails when one names the process's standard output, standard error, process exit,
+  or a print macro, or names the filesystem module outside the file port's own source.
+- A component test runs a command in process with in-memory output handles and reads its result and termination without
+  starting a process.
+
+## Additive command registration (engineering:additive-registration)
+
+Adding a command adds files and edits none: the command's parser, its dispatch entry, its tests, and its recorded
+scenarios are each a new file that the build or the test runner discovers by location. Two changes that each add a
+different command merge without touching a common tracked file. Serves `epic:parallel-workspaces/component-runtime`.
+
+Acceptance:
+
+- A change that adds one command file under the command directory makes the command appear in help and dispatch with no
+  other tracked file changed.
+- A file in the command directory that does not satisfy the registration contract fails the build with a message naming
+  the file.
+- An alias that names no sibling command fails the test suite, naming the alias file.
 
 ## Native invocation fidelity (engineering:handoff-fidelity)
 
@@ -57,7 +118,8 @@ logs; the only non-JSON text on that channel is the set the output formats spec 
 
 Repository-owned context documents Rust conventions, command registration, dependency direction, wiring, errors,
 reporting, test tiers, and concrete verification commands under the suite's shared context governance. Implementation
-and review discover the same guidance through the code repository's entry point. Serves `product:governed-context` and
+and review discover the same guidance through the code repository's entry point. The context covers building and
+verifying the binary; it is not a manual of the binary's commands. Serves `product:governed-context` and
 `product:local-component-evaluation`.
 
 Acceptance:
@@ -72,6 +134,11 @@ Acceptance:
   component or change the target workspace.
 - The repository's agent entry point routes to this guidance; essential invocation instructions do not live only in the
   planning repository or a human-only development guide.
+- Every document under the repository's context tree is reachable from the root `AGENTS.md` by following links.
+- The verifiability matrix gives each verification method a scoped id and one command, or for a manual method its setup
+  and success condition; each listed command exists and exits 0 on a clean checkout.
+- No context document describes a command's user-facing usage beyond what a contributor needs to run the binary from the
+  checkout.
 
 ## Production handoff agreement (engineering:production-handoff-agreement)
 
@@ -79,3 +146,11 @@ Production component-description and invocation metadata consume the contract se
 `decision:platform/launcher-shim/component-discovery`, including its agreement with invocation-aware help; the
 development sample does not define that transport. This remains a production integration prerequisite for
 `product:component-help-version` and `product:automation-boundary`, not a blocker to direct local execution.
+
+## Open questions
+
+- The epic's present slices build the repository, its gates, its test support, and its contributor context, and stop
+  there. `engineering:handoff-fidelity` and `engineering:machine-output-boundary` are delivered by no slice yet, and no
+  slice builds the root options, logging, tracing, or the parts of the command surface, output formats, and results
+  specs beyond the errors and parser answers the layout and registration specs name. Engineering states, when the epic
+  is next sliced, which slices build them.

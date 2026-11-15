@@ -1,5 +1,66 @@
 # Component runtime decisions
 
+## Gate scope (decision:parallel-workspaces/component-runtime/gate-scope)
+
+**Decider:** product owner
+
+The gates are Cargo only: the format check, Clippy with warnings denied, and the tests, with the recorded scenarios
+added in the full gate. No Markdown or workflow lint step joins either gate, because those tools are installed outside
+Cargo and the gates run on nothing but the pinned toolchain.
+
+## Test harness provenance (decision:parallel-workspaces/component-runtime/harness-provenance)
+
+**Decider:** product owner
+
+The test harness is written fresh in this repository from the platform harness's pattern — an isolated tree, a pinned
+environment, a bounded process runner — and no platform source is copied or adapted. The platform repository carries no
+licence and this repository is FSL-1.1-ALv2, so the pattern is taken and the text is not.
+
+## Command registration by file location (decision:parallel-workspaces/component-runtime/command-registration)
+
+**Decider:** engineering
+
+A command is one file under the library's command directory, built with the argument parser's builder interface; a build
+script derives each command path from its file path and generates the module declarations and the registry, so adding a
+command edits no tracked file. A hand-kept or committed registry makes every parallel command change collide in one
+file, link-time registration hides a missing command until run time, and the parser's derive interface needs one shared
+enum.
+
+## Four packages, one library (decision:parallel-workspaces/component-runtime/crate-layout)
+
+**Decider:** engineering
+
+The repository is one Cargo workspace of four packages: the binary, one library holding every command and domain module,
+test support, and the development driver. A package per domain was rejected for now because every new package edits the
+shared workspace and binary manifests, and module boundaries inside one library are enough until a domain needs its own
+dependency set.
+
+## Gates run plain Cargo through one driver (decision:parallel-workspaces/component-runtime/gate-driver)
+
+**Decider:** engineering
+
+Each gate is one subcommand of a Rust development binary reached through a Cargo alias, because an alias cannot chain
+commands and a shell script would be a second language to lint. Recorded scenarios are one test target of the binary
+package selected by a Cargo feature that changes no compiled code, which keeps them out of the slice gate and gives them
+the built binary's path from Cargo.
+
+## One CI workflow that runs the full gate (decision:parallel-workspaces/component-runtime/ci-workflow)
+
+**Decider:** engineering
+
+The reference tool's CI workflow is deleted with the reference tool, and the repository carries one workflow whose only
+build step is the full gate command, so CI and a local run cannot drift. Keeping no workflow was rejected because
+`engineering:reproducible-build` requires CI to run the same checks; the workflow is not exercised until the branch is
+pushed.
+
+## Root documents kept through the wipe (decision:parallel-workspaces/component-runtime/retained-root-documents)
+
+**Decider:** engineering
+
+`LICENSE` and `PRINCIPLES.md` stay on the Rust branch unchanged: the licence covers the repository whatever its
+language, and the principles state why the product exists without naming the reference tool, its commands, or its files.
+Every other root document is rewritten because each one instructs the reader to install or run the reference tool.
+
 ## Git failure rendering (decision:parallel-workspaces/component-runtime/git-failure-rendering)
 
 **Decider:** product owner

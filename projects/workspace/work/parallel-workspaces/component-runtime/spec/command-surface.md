@@ -301,6 +301,7 @@ behaviour are not listed: they fall under `decision:functional-parity`.
 | Failed git call before a repo error                                           | failure text written twice on stderr                                                                 | written once; a log record as well only under `-v` or `WINTER_LOG_LEVEL` | `decision:parallel-workspaces/component-runtime/git-failure-rendering`         |
 | Non-list value for `git_excludes` or `cmd`; non-string `main_branch` or `ref` | a string is read as its characters and a table as its keys; other wrong types fail unhandled, exit 1 | configuration error naming the key, exit 1                               | `decision:parallel-workspaces/workspace-configuration/element-type-validation` |
 | In-process plugins                                                            | `plugin.py` files and plugin directories are imported                                                | none is loaded; the tmux service badge is native                         | `decision:agent-ready-operation/workspace-dashboard/contribution-scope`        |
+| `repo remove` of a block with comment lines directly above it or the next     | keeps the lines above the removed block; removes the lines above the next block with it              | removes the lines above the removed block; keeps those above the next    | `decision:parallel-workspaces/repository-catalog/removal-comment-extent`       |
 
 ## Open questions
 
