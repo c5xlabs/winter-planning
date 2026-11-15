@@ -1,7 +1,7 @@
 ---
 epic: cli-context
-refinement: outline
-status: planned
+refinement: final
+status: ready
 ---
 
 # CLI context
