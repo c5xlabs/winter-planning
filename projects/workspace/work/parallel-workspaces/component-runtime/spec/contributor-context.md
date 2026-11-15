@@ -70,10 +70,16 @@ AGENTS.md
          git and the base system utilities on the pinned PATH, and nothing of the developer's own environment
          reaches it
        nothing in the repository starts the reference tool; `cargo dev record` alone is handed its path
+       the built binary is run by hand only with its working directory inside an isolated tree, a scratch
+         workspace under a temporary directory, or a scratch copy of the checkout under a temporary directory;
+         never in the checkout and never in a real workspace, because it resolves the workspace upward from its
+         working directory and `repo remove` writes there; it is never installed, and never put on PATH under
+         the name of the installed `winter`
   3. routing table — one row per area index, each with "read when"
 a rule is present only while the tree makes it true: the gate rule from the change that adds the gates, the command
-rule from the change that adds registration, the test rule from the change that adds the harness, the last rule
-from the change that adds `cargo dev record`
+rule from the change that adds registration, the test rule from the change that adds the harness, the reference-tool
+rule from the change that adds `cargo dev record`, the built-binary rule once the binary has a command
+AGENTS.md owns the built-binary rule: context/tooling/development.md links to it and does not restate it
 ```
 
 ### Routing

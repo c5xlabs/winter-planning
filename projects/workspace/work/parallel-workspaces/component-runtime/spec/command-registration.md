@@ -34,6 +34,22 @@ no command           commands/ absent, or present with no file, yields an empty 
 A command file holds the node's arguments and the adapter from parsed arguments to one call into a domain module. Logic
 shared by two commands lives in a domain module, never in `commands/`.
 
+```text
+what a command file holds
+  the node's arguments; the typed parameters read from the parsed arguments; one call into a domain module, which is
+  handed cx.files, cx.file_writer, and cx.cwd as they are; the mapping of that call's typed outcome to a Termination;
+  the text of the human line and the fields of the --json document, written as Writing a result gives
+what a command file does not name — checked by crates/dev/tests/architecture.rs over crates/core/src/commands/**
+  the file port                        ReadFiles   WriteFiles   OsFiles
+  modules a domain entry stands on     workspace_root   workspace_files   config_raw   config_edit   state_registry
+  file formats                         toml::   toml_edit
+  writing, and how a failed write ends writeln!   write!(   to_writer   InternalError   Backtrace
+  the scan is over the text of each file as it stands, as the Library rules of repository-layout.md are scanned: a test
+  module and a comment are checked like the rest, and a failure names the file, the line, and the name
+the list is a deny-list: the change that adds a module only a domain entry may call adds its name to the list
+the check cannot tell one call from logic of its own written without these names; that remains a matter of review
+```
+
 ## Interfaces
 
 ```rust
@@ -104,6 +120,34 @@ pub fn generate(files: &[CommandFile], commands_dir_absolute: &str) -> String;
 
 On a `DiscoverError`, `build.rs` prints its `Display` text as the first line of its error output and exits non-zero; it
 adds no prefix of its own before the path.
+
+### Writing a result
+
+```rust
+// crates/core/src/output.rs — engineering:typed-outcomes
+// The one owner of how a result reaches the stdout handle and of how a failed write ends. A command's `run` and the
+// parser's help and version path write through it and return what it returns; neither inspects a write error.
+// Each function writes to `out` and returns how the invocation ends on that write.
+pub(crate) fn line(out: &mut dyn std::io::Write, line: &str) -> Termination;      // the text, then "\n"
+pub(crate) fn text(out: &mut dyn std::io::Write, text: &str) -> Termination;      // the text as it stands
+// repository-layout.md, Cargo workspace: encoded with serde_json::to_writer into a buffer, "\n" appended, and the
+// whole line handed to `out` in one write_all, so a reader never sees half a document from this call.
+pub(crate) fn document(out: &mut dyn std::io::Write, document: &serde_json::Value) -> Termination;
+```
+
+```text
+how a write ends — results-and-exit-codes.md, Domain and Internal failures
+  written                                           Termination::Success
+  an error of kind std::io::ErrorKind::BrokenPipe   Termination::BrokenPipe     exit 1, no diagnostic: the reader
+                                                                                closed stdout, and nothing is written
+  any other write error, and an encoding error      Termination::Internal(InternalError::Unexpected { source, backtrace })
+                                                    with the error as source and the backtrace captured in output.rs
+callers
+  a command           ends `run` with output::document(cx.out, &…) under --json, else output::line(cx.out, &…)
+  parse.rs            --help: output::text with the rendered help; --version: output::line with "<program> <version>"
+Termination::BrokenPipe is added to crates/core/src/termination.rs with this module, the behaviour that first
+returns it (repository-layout.md, Errors the foundation defines).
+```
 
 ### Parser construction
 
