@@ -22,6 +22,8 @@ nothing an earlier change of this epic adds.
 - The file port arrives: `crates/core/src/files.rs` with `ReadFiles` and `OsFiles` as
   [repository-layout.md](../../../parallel-workspaces/component-runtime/spec/repository-layout.md), What a command
   receives, gives them, without `WriteFiles`; `Context` gains `files`, and `run` binds `OsFiles` to it.
+- The test module of `crates/core/src/parse.rs` supplies `files` where it builds a `Context`, and
+  `context/architecture/structure.md` lists the new modules.
 - `workspace_root.rs`, `config_raw.rs`, `state_registry.rs`, and `env_index.rs` exist, each implementing the sections of
   [configuration-model.md](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md) and
   [lock-and-state.md](../../../parallel-workspaces/workspace-configuration/spec/lock-and-state.md) that the method-proof
@@ -37,8 +39,9 @@ nothing an earlier change of this epic adds.
 - `crates/core` gains `sha1` and `serde_json`, and `winter-workspace-test-support` as a dev-dependency.
 - Files touched: `crates/core/src/commands/ws/index.rs`,
   `crates/core/src/{files,workspace_root,config_raw,state_registry,env_index}.rs`,
-  `crates/core/src/{lib,context,process,termination}.rs`, `crates/core/Cargo.toml`, `Cargo.lock`,
-  `crates/core/tests/ws_index.rs`.
+  `crates/core/src/{lib,context,process,termination}.rs`, `crates/core/src/parse.rs` (its test module only, for the
+  `Context` literal that gains the field), `crates/core/Cargo.toml`, `Cargo.lock`, `crates/core/tests/ws_index.rs`,
+  `context/architecture/structure.md` (for the new modules).
 
 ## Acceptance
 
@@ -61,8 +64,8 @@ nothing an earlier change of this epic adds.
   - `envs_per_workspace` smaller than the alias count allows gives `ConfigError::EnvsPerWorkspaceTooSmall`.
 - `winter-workspace ws --help` lists `index`; `winter-workspace ws index` without NAME exits 2; `winter-workspace ws`
   alone exits 2 with the `ws` help on stderr and nothing on stdout.
-- `crates/core/src/registry.rs`, `groups.rs`, and `parse.rs` are unchanged, and no lint attribute was added or removed
-  anywhere.
+- `crates/core/src/registry.rs` and `groups.rs` are unchanged, `parse.rs` is unchanged outside its test module, and no
+  lint attribute was added or removed anywhere.
 - `cargo dev gate full` exits 0.
 
 ## Out of scope
