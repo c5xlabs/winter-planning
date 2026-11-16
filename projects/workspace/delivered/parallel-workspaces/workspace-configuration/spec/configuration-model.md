@@ -294,7 +294,8 @@ keybindings, tui, capabilities, core_checks, env, space, model_tiers
                                                 -> read as absent: the defaults of the rows above, no message
 tui.dashboard, keybindings.bindings, core_checks.file_size,
   env.<band>, env.<band>.vars, space.kinds      -> read as absent: the defaults, no message
-git, git.user                                   -> ConfigError::ValueType; see Value types
+git, git.user                                   -> an empty form reads as absent: no identity, no message;
+                                                   any other non-table -> ConfigError::ValueType; see Value types
 agent_model_overrides                           -> ConfigError::AgentOverridesNotTable, in the file that holds it
 provision                                       -> read as empty
 service that is not an array                    -> read as []
@@ -423,10 +424,15 @@ keys that fall back) keep that rule.
 
 ```text
 # decision:parallel-workspaces/workspace-configuration/unhandled-reference-failures
-# the same outcome in both tools, exit 1; the reference tool fails unhandled (config/workspace.py:179-212)
+# a refusal is the same outcome in both tools, exit 1; the reference tool fails unhandled (config/workspace.py:179-212)
+# an empty form of git or of git.user is no refusal in either tool: it reads as absent, so no identity, no message
+#   (config/workspace.py:209); any other non-table, a string, number, boolean, array, or datetime, has no `get`
+#   there, and the reference tool fails unhandled on git at line 209 and on git.user at line 211
 key                                            accepted                 refused as
-git                                            a table                  ValueType { key: Table(Git) }
-git.user                                       a table, or absent       ValueType { key: GitUser }
+git                                            a table, an empty form,  ValueType { key: Table(Git) }
+                                                 or absent
+git.user                                       a table, an empty form,  ValueType { key: GitUser }
+                                                 or absent
 git.user.name, git.user.email                  a string                 ValueType { key: GitUserName | GitUserEmail },
                                                                           only when both values are not empty forms
 ```
