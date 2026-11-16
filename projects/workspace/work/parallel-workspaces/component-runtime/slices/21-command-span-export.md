@@ -18,19 +18,35 @@ fourth parameter of `conclude` and `Invocation.tracer` of [runtime.md](../spec/r
 `decision:parallel-workspaces/component-runtime/trace-exporter`,
 `decision:parallel-workspaces/component-runtime/interrupt-trace-export`, and
 `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`: the exporter verifies an `https` endpoint
-against the public roots bundled in the binary and reads no other trust input. It follows `command-span-record`, is the
+against the operating system's trust store, and the binary bundles no roots. It follows `command-span-record`, is the
 last change of the epic, and runs beside no other change.
 
 ## Change
 
-- `crates/cli/Cargo.toml` names `opentelemetry`, `opentelemetry_sdk`, and `opentelemetry-otlp`, each at the newest
-  release that builds on toolchain 1.99.1, with default features off and the features [tracing.md](../spec/tracing.md),
-  The binary's part, lists. The TLS feature taken is the one with bundled public roots, and none that reads a system
-  store, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`. `Cargo.lock` gains the three
-  crates and everything they pull in. The build of this change fetches from crates.io; after it, `cargo fetch --locked`
-  is again the only step that needs the network. The change confirms each feature name, and each point the spec's Open
-  questions mark as remembered, against the releases it takes; one that does not hold and changes anything the spec
-  lists under Function goes back to engineering before the change merges.
+- `crates/cli/Cargo.toml` names `opentelemetry`, `opentelemetry_sdk`, and `opentelemetry-otlp`, each at `0.33.1` with
+  `default-features = false`: `opentelemetry` and `opentelemetry_sdk` with the feature `trace`, and `opentelemetry-otlp`
+  with `trace`, `http-proto`, `reqwest-blocking-client`, and `reqwest-rustls`, as
+  [repository-layout.md](../spec/repository-layout.md), The Cargo workspace, writes the three lines. The manifest names
+  no other new crate: the HTTP client, the TLS stack, and `tokio` arrive through the exporter alone. `reqwest-rustls` is
+  the TLS feature, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`: it verifies through
+  the platform's trust store. `Cargo.lock` gains the three crates and everything they pull in, `tokio` and `aws-lc-sys`
+  among them, and the build compiles bundled C, so it needs a C compiler. The build of this change fetches from
+  crates.io; after it, `cargo fetch --locked` is again the only step that needs the network.
+- Before it writes anything else, the change confirms against the releases it takes each point the Open questions of
+  [tracing.md](../spec/tracing.md) mark as remembered or not read, and stops at the first that does not hold, which goes
+  back to engineering with nothing merged:
+  - the feature name `trace` on the three crates, and that each builds on toolchain 1.99.1 with default features off;
+  - the calls that give the exporter its endpoint, its headers, and its timeout of 100 ms: the endpoint is used as
+    `TraceConfig` holds it, with nothing appended, and the headers are exactly the configured ones beside the client's
+    own;
+  - that the exporter reads `OTEL_EXPORTER_OTLP_*` when it is built, and that with every such variable removed from the
+    process environment the request is built from `TraceConfig` alone, so no variable applies a setting twice or in
+    place of the tool's own;
+  - that no variable the SDK or the exporter reads alters the sampler, the resource, or the request, and that settings
+    `Off` and `Unavailable` construct nothing whatever the environment holds;
+  - that the unbatched processor calls the exporter on the thread that ends the span;
+  - how the platform's verifier reads the trust store: whether an empty or absent store keeps the exporter from being
+    built, and which environment variables, if any, redirect the reading.
 - `crates/core/src/trace.rs`: `CommandTracer`, `NoTrace`, and `TraceLog` exist as the spec gives them; the two records
   go through `diagnostics::record`.
 - `crates/core/src/process.rs`: `Invocation` carries `tracer`; step 2 of `run_with` announces the command once, after
@@ -40,7 +56,8 @@ last change of the epic, and runs beside no other change.
   `span_name`, `TraceConfig`, and `TraceSettings`, which it re-exports already.
 - `crates/cli/src/trace.rs` exists with `Tracer`, `Tracer::new`, `Tracer::with_exporter`, `finish`, and
   `hide_generic_exporter_variables`. Its one `unsafe` block is the removal of the variables, with the reason the spec
-  gives.
+  gives. It names no asynchronous runtime and starts none: the runtime of the exporter's HTTP client is the client's
+  own.
 - `crates/cli/src/main.rs`: `main` reads `settings`, hides the generic exporter variables when they are `On`, builds the
   tracer, and passes it; `conclude` has its fourth parameter and step 5.
 - The scaffold passes a recording tracer, and `Ended` gains `announced`.
@@ -57,10 +74,11 @@ last change of the epic, and runs beside no other change.
     Output and environment access says the library opens no socket, reads no clock, and names no tracing crate.
   - `context/standards/testing.md`: a test wanting a span clears the kill switch of the pinned environment; the unit
     tier's exception for the binary package covers the collector in the tests of `crates/cli/src/trace.rs`.
-  - `context/tooling/development.md`: the prerequisites name a C compiler if the TLS stack's build needs one; the
-    sentence that names bootstrap as the only step that needs the network stays.
-- The backlog's dependency table, [repository-layout.md](../spec/repository-layout.md), The Cargo workspace, receives
-  the versions and feature names this change took.
+  - `context/tooling/development.md`: the prerequisites name a C compiler, which the build of the binary needs for the
+    cryptography of the TLS stack, and anything else that build needed on the machine of this change; the sentence that
+    names bootstrap as the only step that needs the network stays.
+- The backlog's dependency lines, [repository-layout.md](../spec/repository-layout.md), The Cargo workspace, are
+  corrected where a version or a feature name this change took differs from them.
 - Files touched: `crates/cli/Cargo.toml`, `Cargo.lock`, `crates/cli/src/trace.rs` (new), `crates/cli/src/main.rs`,
   `crates/core/src/{trace,process,lib}.rs`, `crates/core/tests/support/in_process.rs`, `crates/core/tests/root.rs`,
   `crates/cli/tests/trace.rs` (new), `AGENTS.md`, `context/architecture/structure.md`,
@@ -128,7 +146,12 @@ last change of the epic, and runs beside no other change.
   ready line, and raises SIGINT on itself; the child exits 1 and the collector holds no request.
 - `grep -rn 'unsafe' crates/cli/src` prints lines of `interrupt.rs` and `trace.rs` only, each block preceded by a
   comment; `grep -rn 'opentelemetry' crates/core crates/test-support crates/dev` prints nothing.
-- `git diff --stat` of the change names `crates/cli/Cargo.toml` and `Cargo.lock`, and no other manifest.
+- `grep -rnE 'tokio|async[-_]std|block_on' crates/cli/src crates/core/src` prints nothing: the sources of the binary and
+  the library name no asynchronous runtime and start none.
+- `git diff --stat` of the change names `crates/cli/Cargo.toml` and `Cargo.lock`, and no other manifest. The diff of
+  `crates/cli/Cargo.toml` adds the three lines of [repository-layout.md](../spec/repository-layout.md), The Cargo
+  workspace, and no other dependency; `Cargo.lock` holds the three crates at 0.33.1.
+- The change's report lists every package `Cargo.lock` gained, by name and version, as the diff of the lock gives them.
 - After the change, `cargo fetch --locked` with the network exits 0, and then `cargo dev gate full` with no network
   exits 0. No acceptance step runs `cargo fetch` with `--offline`: it would ask for crates of targets the host never
   builds.
@@ -137,8 +160,8 @@ last change of the epic, and runs beside no other change.
 
 - Spans of single operations, `winter.env`, trace context in a child's environment, and the dashboard's spans:
   [tracing.md](../spec/tracing.md), System, names the owner of each.
-- A collector whose certificate chains to a private authority: not reachable over `https`, under
-  `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`. A completed TLS handshake in a test:
-  [tracing.md](../spec/tracing.md), Test seams.
+- A collector whose certificate chains to a private authority: reachable over `https` when that authority is in the
+  machine's trust store, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`, and installed
+  by no test. A completed TLS handshake in a test: [tracing.md](../spec/tracing.md), Test seams.
 - A bound on name resolution: [tracing.md](../spec/tracing.md), Open questions.
 - A span for a deferred interrupt: built with the first command that returns `Termination::Interrupted`.

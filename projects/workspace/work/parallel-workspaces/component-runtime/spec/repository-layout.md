@@ -128,7 +128,7 @@ dependency with what uses it.
 
 | Package                         | Third-party dependencies, each with its user in parentheses                                                                                                                                                                                                                                                                                                                          |
 | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `winter-workspace`              | `libc` 0.2 (the SIGINT handler of `src/interrupt.rs`); none before that file exists. `opentelemetry`, `opentelemetry_sdk`, and `opentelemetry-otlp` (the tracer of `src/trace.rs`), each with `default-features = false` and the features of [tracing.md](./tracing.md), The binary's part, at the newest release that builds on the pinned toolchain; none before that file exists. |
+| `winter-workspace`              | `libc` 0.2 (the SIGINT handler of `src/interrupt.rs`); none before that file exists. `opentelemetry`, `opentelemetry_sdk`, and `opentelemetry-otlp` (the tracer of `src/trace.rs`), each with `default-features = false` and the features of [tracing.md](./tracing.md), The binary's part, at release 0.33.1, with its manifest line below the table; none before that file exists. |
 | `winter-workspace-core`         | `thiserror` 2 and `toml` 1.2 (error types); `clap` 4.6 with `default-features = false` and `std`, `help`, `usage`, `error-context`, `suggestions` (parser); `sha1` 0.10 (env index) and `serde_json` 1 (first command with `--json`); `toml_edit` 0.25 with `default-features = false` and `parse` (first configuration writer)                                                      |
 | `winter-workspace-test-support` | `libc` 0.2 (the process runner: groups, signals, umask); `tempfile` 3 (the isolated tree); `toml` 1.2 (the scenario model); `serde_json` 1 (scenario JSON normalisation and comparison); `sha1` 0.10 (the environment digest and state snapshots)                                                                                                                                    |
 | `winter-workspace-dev`          | `cargo_metadata` 0.23 and `toml` 1.2 (architecture rules: the package graph, and the alias table of `.cargo/config.toml`); `libc` 0.2 (step process groups and the driver's signal handling); `tempfile` 3 (the temporary home and directories of `cargo dev record`, `src/record.rs`)                                                                                               |
@@ -136,12 +136,33 @@ dependency with what uses it.
 `libc` is already resolved in `Cargo.lock` for the support and driver packages; the change that names it in the binary's
 manifest fetches nothing new, and the lock gains one edge.
 
-The three tracing crates and everything they depend on — an HTTP client, a TLS stack, protobuf encoding — are in no
-`Cargo.lock` so far. The change that names them fetches them from the crate registry, which is the one change of this
-epic that needs the network at build time, and `Cargo.lock` grows by their whole tree. Their version numbers and exact
-feature names are written into this table by that change, from the releases it resolved; they were not read in a
-registry when this spec was written. Only the binary package names them: the library, the support package, and the
-driver stay as the table has them, so `cargo test -p winter-workspace-core` builds none of the tracing tree.
+```toml
+# crates/cli/Cargo.toml, [dependencies] — the tracing crates; tracing.md, The binary's part
+opentelemetry = { version = "0.33.1", default-features = false, features = ["trace"] }
+opentelemetry_sdk = { version = "0.33.1", default-features = false, features = ["trace"] }
+opentelemetry-otlp = { version = "0.33.1", default-features = false, features = [
+    "trace",
+    "http-proto",
+    "reqwest-blocking-client",
+    "reqwest-rustls",
+] }
+```
+
+The three tracing crates and everything they depend on — an HTTP client (`reqwest` 0.13), a TLS stack (`rustls` over
+`aws-lc-rs`, with `rustls-platform-verifier`), protobuf encoding, and `tokio` — are in no `Cargo.lock` so far. The
+change that names them fetches them from the crate registry, which is the one change of this epic that needs the network
+at build time, and `Cargo.lock` grows by their whole tree. The binary's manifest names the three crates and none of
+those they bring. 0.33.1 is the newest release of each, and the exporter's `http-proto`, `reqwest-blocking-client`, and
+`reqwest-rustls` were read in that release; the feature name `trace` was not read in a registry, and that change
+confirms it and corrects the lines above where a release it resolved differs. Only the binary package names the three
+crates: the library, the support package, and the driver stay as the table has them, so
+`cargo test -p winter-workspace-core` builds none of the tracing tree.
+
+Two things follow from that tree. `tokio` is in `Cargo.lock`, because the HTTP client depends on it unconditionally and
+its blocking form runs a runtime on a helper thread of its own; the binary and the library start no asynchronous runtime
+of their own, and no source file of either names one. And the build of the binary needs a C compiler, because
+`aws-lc-sys`, the cryptography under the TLS stack, compiles bundled C in its build script; no system library is linked.
+`context/tooling/development.md` names the C compiler among the prerequisites from that change on.
 
 `serde_json` is the library's one JSON encoder: every `--json` document and event is a `serde_json::Value` written with
 `serde_json::to_writer`, followed by a newline. No module escapes a JSON string by hand.

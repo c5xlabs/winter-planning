@@ -346,9 +346,10 @@ first command that starts one adds.
 One group of variables is read by a library the binary links and not by the binary's own code, and only while a command
 span is exported ([tracing.md](./tracing.md), The binary's part): the proxy variables of the export's HTTP client
 (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, in either letter case), which the reference tool's HTTP library
-reads as well. No variable and no system certificate store supplies a trust root for an `https` endpoint, under
-`decision:parallel-workspaces/component-runtime/trace-export-trust-roots`. With tracing off the client is not
-constructed and none of the proxy variables is read.
+reads as well. The trust roots of an `https` endpoint are read by a linked library likewise, from the operating system's
+trust store, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`; whether a variable
+redirects that reading is [tracing.md](./tracing.md), Open questions. With tracing off the client is not constructed and
+none of the proxy variables is read.
 
 `PATH` and `HOME` are no rows: no command built so far looks up a program or a home directory. What a child process
 reads from its inherited environment is that child's own; a row is added for each variable the binary itself consults
@@ -362,7 +363,6 @@ Read by the reference tool and not by the binary:
 | `COLUMNS`, the terminal size | Help width only; the binary renders help at a fixed width.                         |
 | `XDG_CACHE_HOME`             | Bytecode cache location; see Deliberately absent.                                  |
 | `OTEL_EXPORTER_OTLP_*`       | The reference tool hides them from its exporter; the binary's exporter reads none. |
-| the system certificate store | Believed to supply the reference export's trust roots; the binary bundles its own. |
 
 ### Deliberately absent
 
@@ -395,7 +395,7 @@ behaviour are not listed: they fall under `decision:functional-parity`.
 | A service provider ended by a signal                                          | exit 256 minus the signal number (`modules/service/handler.py:68-73`)                                | exit 128 plus the signal number                                          | `decision:parallel-workspaces/component-runtime/provider-signal-exit`          |
 | A run SIGINT aborts outside the service paths, with tracing on                | the command span is exported before the exit (`cli.py:451-455`)                                      | no span is exported                                                      | `decision:parallel-workspaces/component-runtime/interrupt-trace-export`        |
 | Values of the command span's `error.type`                                     | exception class names (`cli.py:150-162`)                                                             | the ending's name; [tracing.md](./tracing.md), What the span carries     | `decision:parallel-workspaces/component-runtime/span-error-type`               |
-| Trust roots of an `https` trace endpoint                                      | believed: the runtime's default trust locations, the system certificate store among them             | the bundled public roots alone; no variable or system store is read      | `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`      |
+| Trust roots of an `https` trace endpoint                                      | believed: the runtime's default trust locations, the system certificate store among them             | the operating system's trust store alone; the binary bundles no roots    | `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`      |
 | Three inputs of the trace export headers                                      | value sent undecoded; item skipped; name sent decoded (`opentelemetry/util/re.py:52-93`)             | value decoded; item sent; item skipped; [tracing.md](./tracing.md)       | `decision:parallel-workspaces/component-runtime/trace-header-parsing`          |
 | Failed git call before a repo error                                           | failure text written twice on stderr                                                                 | written once; a log record as well only under `-v` or `WINTER_LOG_LEVEL` | `decision:parallel-workspaces/component-runtime/git-failure-rendering`         |
 | Non-list value for `git_excludes` or `cmd`; non-string `main_branch` or `ref` | a string is read as its characters and a table as its keys; other wrong types fail unhandled, exit 1 | configuration error naming the key, exit 1                               | `decision:parallel-workspaces/workspace-configuration/element-type-validation` |

@@ -46,14 +46,23 @@ because every later growth of an error type would then change each site that bui
 
 **Decider:** product owner
 
-An `https` trace endpoint is verified against the public roots bundled in the binary and against nothing else: no
-environment variable and no system certificate store is read, so a collector whose certificate chains to a private
-authority is not reachable over `https`, and its export takes the failed path of the tracing spec. The reference tool
+An `https` trace endpoint is verified against the operating system's trust store, through the exporter's
+`reqwest-rustls` feature: the OpenTelemetry crates are used as they ship, the binary bundles no roots, and a collector
+whose certificate chains to a private authority installed on the machine is reachable over `https`. The reference tool
 builds its exporter with no certificate argument and hides the generic exporter variables from it
 (`core/internal/otel_command_tracer.py:43-58,177-179`), and its lock file has the exporter send through an HTTP library
 that carries no root bundle (`tools/winter-cli/uv.lock`); that library is not in the reference tree and is believed to
-verify against the language runtime's default trust locations, the system certificate store among them, so the bundled
-set alone is a registered deviation.
+verify against the language runtime's default trust locations, the system certificate store among them. The two agree
+wherever those locations are the system's store, and a difference between them is a registered deviation.
+
+Three other ways were rejected. An HTTP client built in the binary with bundled public roots and handed to the exporter
+adds three direct dependencies and more code to the binary. Pinning the exporter at 0.31, which still has a feature with
+bundled roots, starts the binary two releases behind. An exporter encoded by hand for `http` alone, with no dependency,
+does not serve `https`.
+
+Two consequences are accepted with it. `tokio` enters `Cargo.lock`, because the exporter's HTTP client depends on it
+unconditionally and runs a runtime on a helper thread of its own, though the binary starts none. The build needs a C
+compiler, because the TLS stack's cryptography (`aws-lc-sys`) compiles bundled C in its build script.
 
 ## Trace export transport (decision:parallel-workspaces/component-runtime/trace-export-transport)
 
@@ -116,8 +125,10 @@ registered deviation toward trace consumers.
 The OpenTelemetry crates are dependencies of the binary package alone, with a blocking HTTP client, a TLS stack that
 needs no system library, and the SDK's unbatched processor, so the one span is exported once on the thread that ends it
 and the binary starts no asynchronous runtime of its own; with no endpoint configured none of it is constructed. The
-batching processor was rejected because one span per process gains nothing from a background worker, and a dependency of
-the library was rejected because `engineering:library-output-boundary` keeps sockets out of it.
+client runs a runtime on a helper thread it keeps to itself, and the TLS stack's cryptography is compiled from bundled C
+when the binary is built. The batching processor was rejected because one span per process gains nothing from a
+background worker, and a dependency of the library was rejected because `engineering:library-output-boundary` keeps
+sockets out of it.
 
 ## Repeated options (decision:parallel-workspaces/component-runtime/repeated-options)
 

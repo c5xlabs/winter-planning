@@ -88,10 +88,14 @@ headers      WINTER_OTEL_EXPORTER_OTLP_HEADERS, blank meaning none
                authorization=Bearer abc%3D    the value sent undecoded         the value sent decoded
                x-a=a;b                        the item skipped                 the item sent
                bad%3Aname=2                   sent under the name bad:name     the item skipped
-TLS          an `https` endpoint is verified against the public roots bundled in the binary and against nothing
-             else: no environment variable names a certificate or a bundle, and no system certificate store is
-             read. A collector whose certificate chains to a private authority is not reachable over `https`: its
-             export is a failed export. decision:parallel-workspaces/component-runtime/trace-export-trust-roots
+TLS          an `https` endpoint is verified against the operating system's trust store, as the platform's
+             certificate verifier reads it; the binary bundles no roots. A collector whose certificate chains to a
+             private authority installed in that store is reachable over `https`; one whose authority is not there
+             is a failed export. No variable of this tool names a certificate or a bundle.
+             the reference tool's HTTP library is believed to verify against its runtime's default trust locations,
+             the system certificate store among them: the two agree wherever those locations are the system's
+             store, and a difference between them is a registered deviation
+             decision:parallel-workspaces/component-runtime/trace-export-trust-roots
 ```
 
 ### Parent, sampling, and ids
@@ -229,25 +233,38 @@ Records                                 # runtime.md, Diagnostics on the stderr 
 ### The binary's part
 
 ```text
-crates and features                     # repository-layout.md, The Cargo workspace, holds the manifest rows
+crates and features                     # repository-layout.md, The Cargo workspace, holds the manifest lines
   opentelemetry          the API: span, status, attributes, context, the W3C propagator's carrier
   opentelemetry_sdk      the tracer provider, the sampler, the resource, the W3C trace-context propagator, the
                          unbatched span processor, the span exporter trait
   opentelemetry-otlp     the OTLP span exporter over HTTP with protobuf, with a blocking HTTP client and TLS through
-                         rustls with bundled public roots
-  each at the newest release that builds on the pinned toolchain, 1.99.1, with default features off and only the
-  features this contract uses on. The feature names expected are `trace` on all three and, on the exporter,
-  `http-proto`, `reqwest-blocking-client`, and the rustls feature with bundled web roots; they are written from the
-  crates' documentation as remembered and were not read in a registry, so the change that adds the crates confirms
-  each name against the release it takes and records the names it used in the dependency table.
+                         rustls, verified by the platform's certificate verifier
+  each at 0.33.1, the newest release, with default features off
+    opentelemetry        features: trace
+    opentelemetry_sdk    features: trace
+    opentelemetry-otlp   features: trace, http-proto, reqwest-blocking-client, reqwest-rustls
+  read in release 0.33.1 of the exporter:
+    http-proto               OTLP over HTTP with protobuf. It switches the exporter's `metrics` feature on, and with
+                             it `metrics` of the API and of the SDK: more than this contract uses, and not
+                             avoidable. Nothing of metrics is constructed.
+    reqwest-blocking-client  the blocking client of reqwest 0.13.5. reqwest depends on tokio unconditionally, and
+                             its blocking client runs a runtime on a helper thread of its own.
+    reqwest-rustls           reqwest's `rustls` feature: rustls over aws-lc-rs, verifying through
+                             rustls-platform-verifier, which reads the platform's trust store. It is the exporter's
+                             one rustls feature for HTTP: it has none with bundled web roots, its `tls-*` features
+                             serve gRPC alone, and with no TLS feature `https` is not served at all.
+  stated as remembered and not read in a registry: the feature name `trace` on the three crates, and that each
+  builds with default features off. The change that adds the crates confirms both (Open questions).
 why these choices                       # decision:parallel-workspaces/component-runtime/trace-exporter
-  a blocking client    one request at exit needs no event loop. The binary starts no asynchronous runtime; a helper
-                       thread the client keeps for itself is the client's own and ends with the process.
+  a blocking client    one request at exit needs no event loop in the binary. The binary and the library start no
+                       asynchronous runtime and name none in their sources. The client runs one of its own on a
+                       helper thread it keeps for itself, which ends with the process, so `tokio` is in Cargo.lock.
   rustls               no system TLS library is linked or looked up at run time, so the binary stays one file. The
-                       bundled public roots are the whole trust set, and no feature that reads a system store is
-                       enabled (decision:parallel-workspaces/component-runtime/trace-export-trust-roots).
-                       If the TLS stack's cryptography needs a C compiler to build, that is a build prerequisite
-                       the change states in context/tooling/development.md.
+                       trust roots are not in the binary: the platform's verifier reads the operating system's
+                       trust store at run time. The cryptography under rustls, aws-lc-sys, compiles bundled C in
+                       its build script, so a C compiler is a build prerequisite, which the change states in
+                       context/tooling/development.md.
+                       decision:parallel-workspaces/component-runtime/trace-export-trust-roots
   no batching          one span per process: the unbatched processor exports on the thread that ends the span
   no retry, no compression, no gRPC: none of those features is enabled
 ```
@@ -325,10 +342,11 @@ the collector                        test-harness.md, Interfaces: a listener on 
                                      no tracing crate: the decoder is an independent reading of the wire format, so
                                      a test compares what the crates sent with what the contract says, not the
                                      crates with themselves.
-TLS                                  no automated test completes a TLS handshake: a test would need a certificate
-                                     the bundled roots trust. An executable test names the plain collector with an
-                                     `https` URL and asserts that a connection arrives and the export fails within
-                                     the cap, which shows the scheme is served and bounded.
+TLS                                  no automated test completes a TLS handshake: a test would need an authority in
+                                     the trust store of the machine that runs it. An executable test names the plain
+                                     collector with an `https` URL and asserts that a connection arrives and the
+                                     export fails within the cap, which shows the scheme is served and bounded. The
+                                     collector answers no handshake, so no certificate is judged in it.
 no scenario                          the pinned environment of a scenario turns tracing off, and a collector is no
                                      dimension a scenario compares
 no network                           every test addresses 127.0.0.1 alone; none resolves a name or reaches a real
@@ -368,8 +386,15 @@ tests).
 - Whether the exporter's timeout covers the resolution of a host name is a property of the HTTP client that was not read
   in its source; `decision:observability-shutdown` leaves resolution outside the cap. Engineering answers it when a
   collector is first addressed by name in a deployment.
-- The names of the crate features, the way the exporter is given its timeout and headers, that it reads
-  `OTEL_EXPORTER_OTLP_*` when built, that the unbatched processor exports on the ending thread, and that the TLS stack
-  with bundled roots reads no variable and no system store are stated from the crates' documentation as remembered. The
-  change that adds the crates confirms each against the release it takes; a point that does not hold and changes
-  anything under Function above goes back to engineering before the change merges.
+- These points are stated from the crates' documentation as remembered: the feature name `trace` on the three crates and
+  that each builds with default features off; the way the exporter is given its timeout and headers; that it reads
+  `OTEL_EXPORTER_OTLP_*` when built and reads none of them once they are removed, so the request is built from
+  `TraceConfig` alone; that no other variable the SDK or the exporter reads alters the sampler, the resource, or the
+  request; and that the unbatched processor exports on the ending thread. The change that adds the crates confirms each
+  against the release it takes; a point that does not hold and changes anything under Function above goes back to
+  engineering before the change merges.
+- How the platform's certificate verifier reads the trust store was not read in its source: whether the store is read
+  when the exporter is built or when a certificate is judged, whether an empty or absent store keeps the exporter from
+  being built, and which environment variables, if any, redirect the reading. The change that adds the crates reads each
+  in the release it takes; a variable found there is a process input for [command-surface.md](./command-surface.md),
+  Process inputs, and goes back to engineering before the change merges.
