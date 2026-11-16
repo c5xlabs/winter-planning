@@ -15,7 +15,7 @@ under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at
 # decision:parallel-workspaces/component-runtime/trace-exporter
 # decision:parallel-workspaces/component-runtime/trace-export-total-bound
 crates/core/src/trace.rs       pure: the settings read from the environment snapshot, the launch time, the export
-                               headers, the resource, the span's name, the tracer port `run` calls, and the two log
+                               headers, the resource, the span's name, the tracer port `run` calls, and the three log
                                records about tracing. It names no tracing crate.
 crates/core/src/termination.rs Termination::error_type
 crates/cli/src/trace.rs        the binary's tracer: the OpenTelemetry SDK's provider, the OTLP exporter, the open
@@ -89,8 +89,20 @@ headers      WINTER_OTEL_EXPORTER_OTLP_HEADERS, blank meaning none
              lower-cased; an item with no "=", an empty name, or a name that is no HTTP token is skipped, and the
              others still apply (reference: opentelemetry/util/re.py:52-93, the liberal form)
              a name given twice keeps its first position and its last value
-             the parsed pairs are handed to the exporter, which adds them to its request; each value is sent as
-             parsed here, decoded once and never a second time (The binary's part, construction)
+             two kinds of parsed pair are left out of the export, and the others still apply. Both are judged on
+             the pairs as parsed, after a name given twice has taken its last value
+             (decision:parallel-workspaces/component-runtime/trace-header-precedence)
+               the name content-type          ignored: the export always carries the protobuf content type.
+                                              No record is written for it.
+               a value that is not legal      skipped, and named in a Debug record by its name alone, never by its
+               in an HTTP header              value (Records below). Not legal is a value that holds a byte below
+                                              0x20 other than the tab, or the byte 0x7F: the rule by which the
+                                              exporter's HTTP crate refuses a value, as read in release 1.5.0 of
+                                              `http` (header/value.rs). A byte of 0x80 and above is legal.
+             the pairs that remain are handed to the exporter, which adds them to its request; each value is sent
+             as parsed here, decoded once and never a second time (The binary's part, construction)
+             a configured user-agent is such a pair and replaces the exporter's own
+             (decision:parallel-workspaces/component-runtime/trace-user-agent)
              three inputs are read differently from the reference's helper, a registered deviation
              (decision:parallel-workspaces/component-runtime/trace-header-parsing)
                input                          the reference                    this tool
@@ -139,6 +151,9 @@ WINTER_LAUNCH_TIME   trimmed; "," read as "."; then digits, optionally "." and d
 start instant        the launch time when it is valid; otherwise the instant `run` announces the command
 end instant          the instant the boundary ends the span (Flows): `finish` reads it before it starts the export
                      thread, so the span's duration holds nothing of the export
+the clock            the sources of the binary read it in two files: main.rs, for the instant the settings are read
+                     at, and trace.rs, for the end instant. The library reads none.
+                     decision:parallel-workspaces/component-runtime/clock-readers
 ```
 
 ### What the span carries
@@ -180,17 +195,22 @@ error.type vocabulary                  # decision:parallel-workspaces/component-
 
 | Function: equal to the reference tool, or a registered deviation                         | Free: the SDK's and the exporter's own                 |
 | ---------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Whether a request is sent, and that it is one                                            | The instrumentation scope's name and version           |
+| Whether a request is sent, and that it is one unless the collector answers a redirect    | The instrumentation scope's name and version           |
 | Span name; `winter.command`; presence of `error.type`; status code; empty status message | `telemetry.sdk.*` resource attributes                  |
 | Trace id and parent span id under a sampled `TRACEPARENT`; a new root otherwise          | The `flags` and `trace_state` fields of the span       |
 | Start instant under a valid `WINTER_LAUNCH_TIME`                                         | The `User-Agent` header and any header the client adds |
-| `service.name` and the other resource attributes                                         | Wording of the two records                             |
+| `service.name` and the other resource attributes                                         | Wording of the three records                           |
 | Request path, method `POST`, protobuf content type, and configured headers               | The response body                                      |
 | The 100 ms cap; no effect on stdout, the exit code, or stderr without a logging switch   | HTTP version and connection handling                   |
 
 Registered deviations: the values of `error.type`, no span for a run SIGINT aborts, the trust roots of an `https`
 endpoint, no tracing on a machine whose trust store yields no certificate, and the three inputs of the configured
 headers that Endpoint and headers lists ([command-surface.md](./command-surface.md), Registered deviations).
+
+Following a redirect and the two rules for a configured header are intended behaviour, under
+`decision:parallel-workspaces/component-runtime/trace-export-redirects` and
+`decision:parallel-workspaces/component-runtime/trace-header-precedence`. What the reference tool does in either case
+was read in no source: its HTTP library is believed to follow a redirect as well. Neither is registered as a deviation.
 
 ## Interfaces
 
@@ -206,7 +226,8 @@ pub enum TraceSettings {
 }
 pub struct TraceConfig {
     pub endpoint: String,                         // ends in /v1/traces
-    pub headers: Vec<(String, String)>,
+    pub headers: Vec<(String, String)>,           // what is sent: no content-type, no value illegal in a header
+    pub skipped_headers: Vec<String>,             // the names left out for an illegal value, in configured order
     pub resource: Vec<(String, String)>,          // service.name first
     pub traceparent: Option<String>,              // the variable's value, for the propagator; None: a new root
     pub launch_time_unix_nano: Option<u64>,
@@ -229,6 +250,7 @@ pub struct TraceLog(/* Log */);
 impl TraceLog {
     pub fn export_failed(self, err: &mut dyn std::io::Write, cause: &dyn std::fmt::Display);
     pub fn unavailable(self, err: &mut dyn std::io::Write, cause: &dyn std::fmt::Display);
+    pub fn header_skipped(self, err: &mut dyn std::io::Write, name: &str);
 }
 
 // crates/core/src/termination.rs
@@ -244,8 +266,13 @@ Records                                 # runtime.md, Diagnostics on the stderr 
                    was no success status — or the export thread did not complete in time, panicked, or could not
                    be started (The binary's part, finish)
   unavailable      Level::Debug, origin "trace", only_when_switched
-  both go through diagnostics::record, so neither is written without -v or a valid WINTER_LOG_LEVEL, and stderr of
-  an invocation with no logging switch is the same with tracing on, off, failing, or unavailable
+  header_skipped   Level::Debug, origin "trace", only_when_switched: a configured header was left out of the export
+                   because its value is not legal in an HTTP header (Endpoint and headers). The record holds the
+                   name of the header and never its value.
+                   decision:parallel-workspaces/component-runtime/trace-header-precedence
+  the levels: decision:parallel-workspaces/component-runtime/trace-record-levels
+  all three go through diagnostics::record, so none is written without -v or a valid WINTER_LOG_LEVEL, and stderr
+  of an invocation with no logging switch is the same with tracing on, off, failing, or unavailable
   the crates write nothing themselves: their internal-logging feature is not enabled, and the binary installs no
   subscriber for it
   reference: container.py:120-133; tests/test_cli_otel_process.py (the two "surfaces opentelemetry diagnostics" tests)
@@ -272,7 +299,8 @@ crates and features                     # repository-layout.md, The Cargo worksp
                              its blocking client runs a runtime on a helper thread of its own. Dropping the last
                              handle of the client joins that thread. The exporter builds the client with a timeout
                              and nothing else, so it follows redirects, ten at most, which is the client's default.
-                             What the timeout covers is under the cap, below.
+                             What the timeout covers is under the cap, and what a redirect does under redirects,
+                             below.
     reqwest-rustls           reqwest's `rustls` feature: rustls over aws-lc-rs, verifying through
                              rustls-platform-verifier, which reads the platform's trust store. It is the exporter's
                              one rustls feature for HTTP: it has none with bundled web roots, its `tls-*` features
@@ -313,7 +341,7 @@ impl<E: opentelemetry_sdk::trace::SpanExporter + 'static> Tracer<E> {
         build: Box<dyn FnOnce(&TraceConfig) -> Result<E, String>>,
     ) -> Self;
     // Ends the span when one is open — on the export thread, which exports it and is waited for no longer than
-    // the cap — and writes at most one record. Does nothing otherwise.
+    // the cap — and writes at most one record about it, after one for each header skipped. Does nothing otherwise.
     pub(crate) fn finish(&self, error_type: Option<&'static str>, stderr: &mut dyn std::io::Write);
 }
 impl<E: opentelemetry_sdk::trace::SpanExporter + 'static> CommandTracer for Tracer<E> { /* opens the span */ }
@@ -335,7 +363,11 @@ construction                            # nothing before a command is announced
                       make that client a direct dependency of the binary.
                       one name is respelled: `user-agent` is handed as `User-Agent`, the key the exporter keeps its
                       own under, so that which of the two values is sent does not hang on the order of a map
-                      (Open questions)
+                      (decision:parallel-workspaces/component-runtime/trace-user-agent)
+                      left to itself the exporter lets a configured content-type replace the protobuf one, which
+                      it sets first, and drops a header whose value is not legal without a word. TraceConfig.headers
+                      holds neither kind (Endpoint and headers), so the exporter is handed nothing it replaces its
+                      content type with and nothing it drops.
     the provider      the explicit sampler; span limits given explicitly, 128 attributes, 128 events, and 128
                       links for a span, which are the SDK's defaults written out; a resource built from the empty
                       one, with no detector, that holds exactly TraceConfig.resource; and the unbatched processor
@@ -373,6 +405,11 @@ finish
                                       the thread could not be started    log.export_failed, the system's error
   a span the sampler did not record  goes the same way: ending it exports nothing, the thread answers that there was
                                     nothing to export, and nothing is written
+  skipped headers                   with a span open, recorded or not, `finish` writes one log.header_skipped for
+                                    each name of TraceConfig.skipped_headers, in their order, on the ending thread
+                                    and before the record of the export. With no span open — tracing off or
+                                    unavailable, the exporter not built, or no command announced — it writes none:
+                                    nothing was to be sent.
 the export thread                       # decision:parallel-workspaces/component-runtime/trace-export-total-bound
   the one thread the sources of the binary start, named `trace-export`, started by `finish` and only for an open
   span: with tracing off, unavailable, or no command announced, none is started
@@ -432,6 +469,31 @@ the cap                                 # decision:observability-shutdown; core/
                           The request may be out in full, in part, or not at all, so a collector may still receive
                           the span the record calls not exported. stdout is complete and flushed before `finish`
                           runs, and the exit code is the ending's: an expiry changes neither.
+redirects                               # decision:parallel-workspaces/component-runtime/trace-export-redirects
+  followed, as the client follows them by default: the exporter builds the client with a timeout and nothing else,
+  and its builder has no switch for the redirect policy. Read in reqwest 0.13.5 (redirect.rs, async_impl/client.rs,
+  blocking/client.rs) and in tower-http 0.6.11 (follow_redirect), through which that client follows a redirect:
+  how many          ten in a row are followed; an eleventh ends the request with an error, which is a failed export
+  301, 302          the POST is sent on as a GET with no body, and without the headers content-type,
+                    content-length, content-encoding, and transfer-encoding
+  303               the same: a GET with no body, without those four headers
+  307, 308          the method and the body stay: the POST is sent on with the span
+  not followed      an answer of another status, and a redirect whose Location is absent or cannot be read as an
+                    address, is the answer of the export. A 3xx left so is no success status: a failed export.
+  the next address  `http` or `https`; any other scheme ends the request with an error
+  headers           every other header of the request goes on to the next address, the configured ones among them,
+                    with two changes. When the next address differs from the one before it in host, port, or
+                    scheme, the headers authorization, cookie, cookie2, proxy-authorization, and www-authenticate
+                    are left off. And a Referer header is added that names the address before, without user,
+                    password, or fragment, unless the step is from `https` to `http`.
+  what arrives      the export is judged by the last answer alone. After a 307 or a 308 the span arrives at the
+                    address the collector named. After a 301, a 302, or a 303 no span arrives anywhere: what is
+                    sent on is a GET without it, and a success status in answer to that GET counts as exported, so
+                    no record is written.
+  the bound         the outer bound of the cap covers every step
+  the reference     what its HTTP library does with a redirect was read in no source; it is believed to follow one
+                    as well
+  read and not run: no test has a collector answer a redirect (Open questions)
 at exit
   `main` returns std::process::ExitCode (runtime.md, The process boundary); no source of the binary calls
   std::process::exit. On that return the Rust runtime ends the process through the C library's `exit`, which waits
@@ -444,6 +506,43 @@ at exit
   thread after an expiry, and no exit handler that waits.
   an interrupt is unchanged: the handler ends the process with `_exit` on whichever thread the signal lands,
   during the wait of `finish` as anywhere else (runtime.md, Interrupts and signals)
+```
+
+### What a user is told
+
+```text
+# decision:parallel-workspaces/component-runtime/tracing-user-notice
+README.md      a section for users (repository-layout.md, Root after the wipe) that states, each as this spec has it:
+  tracing exists      a command can send one trace span to a collector, and does so only when switched on
+  the switch          WINTER_OTEL_EXPORTER_OTLP_ENDPOINT, set and not blank. The installed `winter` reads the same
+                      variable, so a shell set up for that tool switches tracing on for this binary as well.
+  the kill switch     OTEL_SDK_DISABLED=true
+  ignored             the generic OTEL_EXPORTER_OTLP_* variables neither switch tracing on nor alter the request
+  where               one POST to the endpoint followed by /v1/traces, at the end of each invocation that names a
+                      command or a group, its --help and its usage errors included. --version, root help, and a
+                      command line that names neither send nothing.
+  what is sent        the span's name, `winter` and the command path, and the same text as winter.command;
+                      error.type, one name of the closed vocabulary, when the exit code is not 0; the start and
+                      end instants of the span and its ids, the trace id and the parent of a sampled TRACEPARENT
+                      among them; service.name and every entry of OTEL_RESOURCE_ATTRIBUTES; the headers of
+                      WINTER_OTEL_EXPORTER_OTLP_HEADERS, which may hold credentials; and what the SDK and the HTTP
+                      client add of their own (What is function and what is free)
+  what is never sent  an argument, an option value, a path, a message, an environment value other than those named
+                      above, or anything a command wrote
+  redirects           a redirect the collector answers is followed, so the request and the configured headers can
+                      go to an address the collector names (The binary's part, redirects)
+  the bound           the ending of a command waits for the export for 100 ms at most
+  a failed export     changes neither stdout nor the exit code, and is reported only as a log record under a
+                      logging switch: -v, or a valid WINTER_LOG_LEVEL at ERROR or below
+               the same section gives, each from its owner:
+  exit codes          0, 1, and 2 as results-and-exit-codes.md, Exit codes, has them for the commands that exist,
+                      and that an interrupt ends with a notice on stderr and exit 1, not 130 (Interrupts there)
+  WINTER_LOG_LEVEL    the names it accepts, the threshold without it, and that any other value is ignored
+                      silently (runtime.md, Logging)
+root help      one line, after the options, that names WINTER_OTEL_EXPORTER_OTLP_ENDPOINT as the variable that makes
+               a command send a trace span and README.md as the place that says what is sent. Its wording is free
+               (command-surface.md). The help of a group and of a command carries no such line. The diagnostic of
+               a bare root is the root help and carries it too.
 ```
 
 ### Test seams
@@ -504,6 +603,13 @@ the cap, executable                  three collectors hold the bound from outsid
                                      bound. On a machine so loaded that the bytes of a drip arrive more than
                                      100 ms apart the inner bound ends a drip too, and the test then passes without
                                      telling the two apart; it never fails for it.
+configured headers                   unit, crates/core/src/trace.rs: `settings` leaves a content-type and a header
+                                     with an illegal value out of TraceConfig.headers and names the second in
+                                     skipped_headers. Unit, crates/cli/src/trace.rs: one record for each skipped
+                                     name, with the name and without the value. Executable: with a content-type
+                                     and an illegal value configured, the one request carries the protobuf content
+                                     type, the other configured headers, and not the skipped one.
+redirects                            no test: the collector of the support package answers none (Open questions)
 TLS                                  no automated test completes a TLS handshake: the collector of the support
                                      package speaks none. An executable test names the plain collector with an
                                      `https` URL and asserts that a connection arrives and the export fails within
@@ -528,7 +634,8 @@ conclude  runtime.md, The process boundary, in its order:
             the ending is final once the last flush is classified
             -> the diagnostic and the backtrace are written
             -> tracer.finish(termination.error_type(), stderr)
-                 span open         the export thread is started; it ends the span, exports it, and shuts the
+                 span open         log.header_skipped for each skipped header; then
+                                   the export thread is started; it ends the span, exports it, and shuts the
                                    provider down, and `finish` waits for its answer for the cap at most
                                      an answer in time    the thread is joined; on a failure, log.export_failed
                                      the cap expires      the thread is abandoned; log.export_failed
@@ -571,19 +678,7 @@ tests).
 - `SSL_CERT_FILE` and `SSL_CERT_DIR` were read for Linux. How the platform's verifier reads the store on another
   operating system, and whether the two variables apply there, was not read; engineering reads it when the binary is
   first built for one.
-- Three behaviours of the exporter toward a configured header, each as read in release 0.33.1 and each awaiting the
-  product owner, who says whether it is to be refused, sent, or registered as a deviation. What the reference tool does
-  with each was not read, so none of the three is contract.
-  - A configured header whose decoded value is no legal header value is dropped by the exporter without a word: the
-    request is sent without it, and no record says so.
-  - A configured `content-type` replaces the protobuf one: the exporter sets its own on the request and then the
-    configured headers over it. The protobuf content type is Function in this spec.
-  - A configured `user-agent` replaces the exporter's own. The exporter keeps its own under the key `User-Agent` in a
-    map keyed by spelling, and under another spelling the two would meet later, in an order nothing fixes; the binary
-    hands the configured one under the exporter's spelling so that the replacement is the same on every run.
-- The exporter's HTTP client follows redirects, ten at most, as read in reqwest 0.13.5: the exporter builds the client
-  with a timeout and nothing else, and its builder offers no switch for the redirect policy short of a client of the
-  binary's own. A collector that answers 307 or 308 therefore has the request sent again, with its body and its
-  configured headers, to the address the answer names, and the cap bounds the whole of it. "Whether a request is sent,
-  and that it is one" is Function in this spec, and what the reference tool's HTTP library does with a redirect was not
-  read. The product owner says whether following a redirect is accepted, registered as a deviation, or to be refused.
+- What the client does on a redirect was read in the sources of reqwest 0.13.5 and tower-http 0.6.11 and not run: the
+  collector of the support package answers no redirect, so no test has one. One point was not read to its end: that the
+  client can send the body of the export a second time after a 307 or a 308. Engineering confirms both with the first
+  test collector that answers a redirect.

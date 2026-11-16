@@ -17,7 +17,7 @@ source of the platform repository's harness is copied or adapted, under
 # engineering:testable-boundaries, engineering:rust-adoption/parity-validation/disposable-runtime-proof
 crates/test-support/src/
   lib.rs          facade: named re-exports only
-  tree.rs         TempTree
+  tree.rs         TempTree, Found, snapshot
   env.rs          PinnedEnv
   process.rs      Invocation, invoke, invoke_with_stdout, StdoutFault, Observation, InvocationFailure
   git.rs          Git, CommitSpec, GitError
@@ -46,6 +46,17 @@ the unit tier's exceptions, all in the binary package (crates/cli/src), none in 
                      this package and hands the child its endpoint. The real exporter is built in the child, under
                      the pinned environment, and never in a test process (tracing.md, Test seams).
   the unit tests of this package's own modules use the package, as they always have
+```
+
+```text
+a helper that test files share
+  A helper that more than one test file needs has one owner, and no test file holds a copy of another's.
+    reads or builds a tree, and names nothing of the library     this package, beside TempTree: `snapshot` and
+                                                                 `Found` (Interfaces, tree.rs)
+    asserts on what `run` answered                               the scaffold's result type, `Ended`
+                                                                 (runtime.md, Test seams)
+  The package depends on no workspace package, so a helper that names a type of the library cannot live in it; the
+  component tests already depend on the package, so a helper moved into it adds no edge.
 ```
 
 ## Domain
@@ -165,6 +176,18 @@ impl TempTree {
     pub fn invocation(&self, executable: &Path) -> Invocation; // pinned env, cwd <ROOT>/ws, 30 s deadline
 }
 
+// What a test compares a directory by, before and after a command: every entry below it. Tests share this one;
+// no test file holds a copy (System, a helper that test files share).
+#[derive(Debug, PartialEq, Eq)]
+pub enum Found {
+    Directory,
+    File(Vec<u8>),                                             // its content
+    Link(PathBuf),                                             // its target as written; the link is not followed
+}
+// Every entry below `directory`, keyed by its path from there. It reads and never writes, and panics on an entry
+// it cannot read.
+pub fn snapshot(directory: &Path) -> BTreeMap<PathBuf, Found>;
+
 // env.rs
 pub struct PinnedEnv { /* BTreeMap<OsString, OsString> */ }
 impl PinnedEnv {
@@ -226,6 +249,14 @@ invoke
                 where the table below says a signal.
   never         a shell; an executable looked up on PATH; a relative executable; a signal other than that SIGKILL:
                 the runner exposes no process id, and a test that needs a signalled child has the child signal itself
+  signals sent  the signals the tests of the library, of the binary, and of this package send to another process
+                are these two, and no other:
+                  the runner's SIGKILL to the group of the child it started, on every way out of `invoke` that
+                  leaves the child unreaped: the deadline, a stream past its limit, and an unwind among them
+                  one test of this package, of a process that left that group, ends the process with SIGKILL by
+                  the id the process itself reported: the runner's kill does not reach it
+                Nothing sends SIGINT, or any signal but SIGKILL, to another process, and nothing signals a subject
+                other than through the runner.
 a faulted stdout — what a write to stdout does to the child
                 the built binary                             a child without the Rust runtime, /bin/sh included
   ClosedPipe    the write fails with EPIPE and no signal     the write raises SIGPIPE, which ends the child:

@@ -1,5 +1,80 @@
 # Component runtime decisions
 
+## Redirects of the trace export (decision:parallel-workspaces/component-runtime/trace-export-redirects)
+
+**Decider:** product owner
+
+A collector that answers the trace export with a redirect is followed, as the HTTP client the exporter links follows one
+by default: ten in a row at most, and an eleventh is a failed export. After a 307 or a 308 the request is sent again as
+it was, with the span; after a 301, a 302, or a 303 the client sends a GET with no body, so no span arrives, and a
+success status in answer to that GET still counts as exported. The configured headers go to the address the redirect
+names, except that `authorization`, `cookie`, `cookie2`, `proxy-authorization`, and `www-authenticate` are left off when
+that address differs in host, port, or scheme. The behaviour stays as the client has it because the OpenTelemetry crates
+are used as they ship (`decision:parallel-workspaces/component-runtime/trace-export-trust-roots`), and the exporter's
+builder has no switch for it short of an HTTP client of the binary's own.
+
+The reference tool's HTTP library is not in the reference tree. It is believed to follow redirects as well, and what it
+sends again was read in no source, so no deviation is registered.
+
+## Headers the trace export sets itself (decision:parallel-workspaces/component-runtime/trace-header-precedence)
+
+**Decider:** product owner
+
+The export always carries the protobuf content type: a `content-type` among the configured headers is ignored. A
+configured header whose value is not legal in an HTTP header is skipped, and a debug record, written only under a
+logging switch, names it by its name and never by its value; the export goes out without it. Every other item is sent as
+`decision:parallel-workspaces/component-runtime/trace-header-parsing` has it.
+
+As the exporter ships, a configured `content-type` takes the place of the protobuf one over a protobuf body, and a
+header with an illegal value is dropped without a word. What the reference tool's exporter does with either was read in
+no source, so neither is registered as a deviation.
+
+## What a user is told about tracing (decision:parallel-workspaces/component-runtime/tracing-user-notice)
+
+**Decider:** engineering
+
+The README has a section for users that says the binary can send a trace span off the machine, which variable switches
+that on and that the installed `winter` reads the same one, how to switch it off, what is sent and where, what is never
+sent, and how the export is bounded; the same section gives the exit codes and the values of `WINTER_LOG_LEVEL`. Root
+help carries one line that names the variable and points to the README, beside the commands and options
+`decision:parallel-workspaces/component-runtime/help-rendering` has it list. A shell set up for the installed `winter`
+switches tracing on for this binary too, and its user is otherwise never told.
+
+Help alone was rejected because the list is longer than a help screen should carry, and a document of the context tree
+was rejected because that tree is for contributors (`engineering:workspace-development-context`). The section states
+what the specs fix and is no manual of the commands.
+
+## A configured `user-agent` (decision:parallel-workspaces/component-runtime/trace-user-agent)
+
+**Decider:** engineering
+
+A `user-agent` among the configured headers replaces the exporter's own, in whatever letter case it was written: it is
+an item like any other under `decision:parallel-workspaces/component-runtime/trace-header-parsing`, and no rule sets it
+aside as `decision:parallel-workspaces/component-runtime/trace-header-precedence` sets the content type aside. The
+binary hands it to the exporter under the spelling `User-Agent`, the key the exporter keeps its own under, so that the
+configured one replaces the default on every run. What the reference tool's exporter does with a configured `user-agent`
+was read in no source.
+
+## Level of the failed-export record (decision:parallel-workspaces/component-runtime/trace-record-levels)
+
+**Decider:** engineering
+
+A failed export is recorded at ERROR, and an unavailable tracer and a skipped header at DEBUG. All three are written
+only under a logging switch, whatever their level, so
+`decision:parallel-workspaces/component-runtime/unswitched-log-records` does not apply to them and stderr without a
+switch is the same with tracing on, off, or failing. ERROR stays because a span that was not delivered is a failure of
+the export, while the other two say why nothing, or less, was sent; a caller who sets `WINTER_LOG_LEVEL=ERROR` sees the
+first and not the others.
+
+## Which files read the clock (decision:parallel-workspaces/component-runtime/clock-readers)
+
+**Decider:** engineering
+
+The binary's sources read the clock in two files: `main.rs`, for the instant the trace settings are read at, and
+`trace.rs`, where `finish` reads the instant a span ends on the ending thread before it starts the export thread. The
+library reads none. Having `conclude` hand the end instant to `finish` was rejected because it adds a parameter to
+`conclude` and to each of its tests for a value the tracer alone uses.
+
 ## Parsing of the trace export headers (decision:parallel-workspaces/component-runtime/trace-header-parsing)
 
 **Decider:** product owner

@@ -55,6 +55,23 @@ checked by crates/dev/tests/architecture.rs
                                context/verification/scenarios.md alone is exempt
 ```
 
+```text
+facts with one owner in context/standards/testing.md; every other document links to it and restates none
+  signals          what a test sends to another process, in its whole extent, as test-harness.md, invoke, signals
+                   sent, gives it: the runner's SIGKILL of the group of a child it started, the one test of the
+                   support package that ends a process that left that group, and nothing else — no SIGINT and no
+                   other signal to a subject. The same rule is a bullet under "What a test never does".
+                   context/verification/matrix.md links to it where it says why the interrupt is verified by hand.
+                   The driver is no subject of the rule: its step runner kills the group of a step that ran past
+                   its deadline, which is the tooling and no test of the product.
+  shared helpers   where a helper that more than one test file needs lives, as test-harness.md, System, gives it:
+                   the support package for one that reads or builds a tree, the scaffold's `Ended` for an
+                   assertion on what `run` answered. The test file of a new command copies neither from another.
+facts with one owner in context/architecture/structure.md
+  the clock        which sources of the binary read it, as tracing.md, Start instant, gives it: main.rs and
+                   trace.rs, and no source of the library
+```
+
 ## Interfaces
 
 ### Entry point
@@ -154,7 +171,8 @@ workspace:manual-registration
 workspace:manual-interrupt
   setup and success: SIGINT sent to the built binary while it waits in a write, once started with the default
   disposition and once with SIGINT ignored, with the endings of runtime.md, Interrupts and signals — stated in full
-  likewise. It is what shows that `main` installs the handler: no test sends a signal to another process
+  likewise. It is what shows that `main` installs the handler: no test sends SIGINT to another process, by the
+  signal rule context/standards/testing.md owns (System), to which the document links
   use when: the change touches crates/cli/src/interrupt.rs or the start of `main`
 ```
 

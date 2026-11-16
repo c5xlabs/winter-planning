@@ -399,9 +399,9 @@ The Cargo workspace.
 testing the handler                     # test-harness.md, tier table
   a unit test of interrupt.rs starts a child test of the same test binary through the support package's `invoke`.
   The child sets the disposition of SIGINT it is to start with, default or ignore, installs the handler on an
-  Interrupts of its own, writes a line that says it is ready, and raises SIGINT on itself with raise(3). No test
-  sends a signal to another process, so no test needs a child's process id or a readiness protocol: the parent
-  reads the child's exit, stdout, and stderr once it has ended.
+  Interrupts of its own, writes a line that says it is ready, and raises SIGINT on itself with raise(3). The
+  parent sends the child no signal (test-harness.md, invoke, signals sent), so the test needs no process id of the
+  child and no readiness protocol: the parent reads the child's exit, stdout, and stderr once it has ended.
     not deferred    the child's exit is 1, its stderr holds the notice, and nothing follows the ready line
     deferred        the handler returns; the child reads pending() as true and exits 0
     ignored         the child sets SIGINT to ignore itself, then calls the installer; after the raise it runs on,
@@ -459,7 +459,7 @@ the runtime's own record
   step 2 of run_with (The parse and the run): one Debug record, origin "parse", naming the command path. It is
   written at Stage::Command whatever the outcome — a dispatch, a command's --help, and a command-stage usage error
   alike — and it is the record that shows -v and WINTER_LOG_LEVEL=DEBUG working on a command that logs nothing else.
-the two records about tracing: tracing.md, The library's part
+the three records about tracing: tracing.md, The library's part
 ```
 
 ### Writing more than one piece of a result
@@ -555,12 +555,25 @@ pub struct Ended {
     pub stderr: String,
     pub announced: Option<Vec<String>>,     // the command path `run` gave the tracer port; with the tracer
 }
+// The assertions more than one component test file makes on an ending. Each panics with what it found, and
+// `subject` names the case in that message.
+impl Ended {
+    // A success that wrote one JSON document and nothing else: asserts Termination::Success and an empty stderr,
+    // and answers stdout parsed as JSON.
+    pub fn document(&self, subject: &str) -> serde_json::Value;
+    // An ending that wrote nothing: asserts an empty stdout, an empty stderr, and this exit code, and answers the
+    // termination, for the test to match its variant.
+    pub fn wrote_nothing(self, exit_code: u8, subject: &str) -> Termination;
+}
 ```
 
 Each constructor, setter, and field marked "with …" is added by the change that builds what it names. The scaffold holds
 no writer type: a test that needs a stdout that fails keeps that writer in its own file and hands it to
 `run_with_stdout`. The scaffold file opens with `#![allow(dead_code, reason = "…")]`: each test target uses part of it.
 It is the one lint attribute for unused code outside the command contract of repository-layout.md.
+
+`Ended` owns the assertions more than one component test file makes on an ending, and no test file repeats one
+([test-harness.md](./test-harness.md), System). A helper that reads a tree lives in the support package.
 
 The scaffold is for the component tests, which are outside the library. A unit test inside the library uses
 `run_in_memory` (The parse and the run). The process runner that gives the built binary a stdout it cannot write,
