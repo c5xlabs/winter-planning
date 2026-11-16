@@ -64,6 +64,15 @@ Two consequences are accepted with it. `tokio` enters `Cargo.lock`, because the 
 unconditionally and runs a runtime on a helper thread of its own, though the binary starts none. The build needs a C
 compiler, because the TLS stack's cryptography (`aws-lc-sys`) compiles bundled C in its build script.
 
+Four more are accepted with it, each read in the releases the crates resolve to. `Cargo.lock` grows by 161 packages, 27
+of them with a build script and 12 procedural macros. The HTTP client reads the trust store when the exporter is built,
+for an `http` endpoint as for an `https` one, and on a machine whose store yields no certificate tracing is unavailable
+over both. `SSL_CERT_FILE` and `SSL_CERT_DIR`, which the certificate loader reads, name the store in place of the
+system's and are inputs of the binary. A test that runs the real exporter needs a store: it names one inside its own
+tree through `SSL_CERT_FILE`, and should that not hold, reading the host's store is accepted as an exception to the rule
+that a test touches nothing outside its tree. Against these four, the exporter encoded by hand for `http` alone was
+rejected again, and so was parking the export, which would leave the binary without its command span.
+
 ## Trace export transport (decision:parallel-workspaces/component-runtime/trace-export-transport)
 
 **Decider:** product owner

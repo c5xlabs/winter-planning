@@ -30,23 +30,25 @@ last change of the epic, and runs beside no other change.
   no other new crate: the HTTP client, the TLS stack, and `tokio` arrive through the exporter alone. `reqwest-rustls` is
   the TLS feature, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`: it verifies through
   the platform's trust store. `Cargo.lock` gains the three crates and everything they pull in, `tokio` and `aws-lc-sys`
-  among them, and the build compiles bundled C, so it needs a C compiler. The build of this change fetches from
-  crates.io; after it, `cargo fetch --locked` is again the only step that needs the network.
+  among them: 161 packages as the three lines resolved when they were read, 27 with a build script and 12 procedural
+  macros, with no package changed or removed. A resolution that differs is reported with the difference and stops
+  nothing. The build compiles bundled C, so it needs a C compiler; whether `aws-lc-sys` needs CMake beside it is found
+  by building. The build of this change fetches from crates.io; after it, `cargo fetch --locked` is again the only step
+  that needs the network.
 - Before it writes anything else, the change confirms against the releases it takes each point the Open questions of
-  [tracing.md](../spec/tracing.md) mark as remembered or not read, and stops at the first that does not hold, which goes
-  back to engineering with nothing merged:
-  - the feature name `trace` on the three crates, and that each builds on toolchain 1.99.1 with default features off;
-  - the calls that give the exporter its endpoint, its headers, and its timeout of 100 ms: the endpoint is used as
-    `TraceConfig` holds it, with nothing appended, and the headers are exactly the configured ones beside the client's
-    own;
-  - that the exporter reads `OTEL_EXPORTER_OTLP_*` when it is built, and that with every such variable removed from the
-    process environment the request is built from `TraceConfig` alone, so no variable applies a setting twice or in
-    place of the tool's own;
-  - that no variable the SDK or the exporter reads alters the sampler, the resource, or the request, and that settings
-    `Off` and `Unavailable` construct nothing whatever the environment holds;
+  [tracing.md](../spec/tracing.md) mark as read and not run, or as not read, and stops at the first that does not hold,
+  which goes back to engineering with nothing merged:
+  - that each of the three crates builds on toolchain 1.99.1 with default features off;
   - that the unbatched processor calls the exporter on the thread that ends the span;
-  - how the platform's verifier reads the trust store: whether an empty or absent store keeps the exporter from being
-    built, and which environment variables, if any, redirect the reading.
+  - that with `SSL_CERT_FILE` naming a file that holds the one certificate of `crates/cli/tests/data/trust-root.pem`,
+    and `SSL_CERT_DIR` unset, the exporter is built and a request reaches a plain collector; and that with
+    `SSL_CERT_FILE` naming an empty file the exporter is not built. The two together show that the variable governs the
+    reading, which is what lets every test of the real exporter stay inside its tree;
+  - that a header value handed to the exporter with each `%` written `%25` is sent as `TraceConfig` holds it, and that a
+    header name is sent as handed;
+  - that the exporter takes the disabled retry policy with the features of the three lines;
+  - that with explicit span limits, an explicit sampler, and a resource built from the empty one, no `OTEL_*` variable
+    alters the span, and that settings `Off` and `Unavailable` construct nothing whatever the environment holds.
 - `crates/core/src/trace.rs`: `CommandTracer`, `NoTrace`, and `TraceLog` exist as the spec gives them; the two records
   go through `diagnostics::record`.
 - `crates/core/src/process.rs`: `Invocation` carries `tracer`; step 2 of `run_with` announces the command once, after
@@ -57,13 +59,23 @@ last change of the epic, and runs beside no other change.
 - `crates/cli/src/trace.rs` exists with `Tracer`, `Tracer::new`, `Tracer::with_exporter`, `finish`, and
   `hide_generic_exporter_variables`. Its one `unsafe` block is the removal of the variables, with the reason the spec
   gives. It names no asynchronous runtime and starts none: the runtime of the exporter's HTTP client is the client's
-  own.
+  own. The exporter is built as [tracing.md](../spec/tracing.md), The binary's part, construction, gives it: the
+  protocol named explicitly, each header value with `%` written `%25`, the timeout of 100 ms, and the disabled retry
+  policy; the provider with the explicit sampler, explicit span limits, and a resource built from the empty one. A trust
+  store that yields no certificate fails the building of the exporter and turns the tracer unavailable, like any other
+  such failure.
 - `crates/cli/src/main.rs`: `main` reads `settings`, hides the generic exporter variables when they are `On`, builds the
   tracer, and passes it; `conclude` has its fourth parameter and step 5.
 - The scaffold passes a recording tracer, and `Ended` gains `announced`.
+- `crates/cli/tests/data/trust-root.pem` holds one self-signed certificate made for the tests, whose key is discarded
+  and committed nowhere. A test compiles its text in and writes it under `<ROOT>/tmp` of its tree; none reads the
+  committed file when it runs. The change's report says how the certificate was made.
+- The real exporter is built in no test process: the tests of `crates/cli/src/trace.rs` go through
+  `Tracer::with_exporter`, and those that need the real exporter are executable tests, or the one child test of the
+  interrupt ([tracing.md](../spec/tracing.md), Test seams).
 - Contributor documents, each a sentence this change makes false or a rule it adds:
   - `AGENTS.md`, the library-boundary rule, names sockets, as [contributor-context.md](../spec/contributor-context.md),
-    Entry point, words it.
+    Entry point, words it. The test rule gains no exception.
   - `context/architecture/structure.md`: the Modules table gains the row of the binary's `trace.rs` and the library's
     row names the port; The library and the binary counts three files of the binary, hands `conclude` four things, lists
     the tracer among what an `Invocation` carries, and names `trace.rs` wherever it says which files and which test
@@ -72,18 +84,22 @@ last change of the epic, and runs beside no other change.
     test module of `src/trace.rs`.
   - `context/standards/rust.md`: `unsafe` appears in `crates/cli/src/interrupt.rs` and `crates/cli/src/trace.rs` alone;
     Output and environment access says the library opens no socket, reads no clock, and names no tracing crate.
-  - `context/standards/testing.md`: a test wanting a span clears the kill switch of the pinned environment; the unit
-    tier's exception for the binary package covers the collector in the tests of `crates/cli/src/trace.rs`.
+  - `context/standards/testing.md`: a test wanting a span clears the kill switch of the pinned environment and sets
+    `SSL_CERT_FILE` to the certificate file it wrote in its tree; the real exporter is built only in a child started
+    under the pinned environment, the built binary by preference, and never in a test process; the unit tier's exception
+    for the binary package names the tracer under the interrupt handler beside the handler, with the collector the
+    parent holds for it.
   - `context/tooling/development.md`: the prerequisites name a C compiler, which the build of the binary needs for the
     cryptography of the TLS stack, and anything else that build needed on the machine of this change; the sentence that
-    names bootstrap as the only step that needs the network stays.
+    names bootstrap as the only step that needs the network stays. No prerequisite names a certificate store: the tests
+    bring their own.
 - The backlog's dependency lines, [repository-layout.md](../spec/repository-layout.md), The Cargo workspace, are
   corrected where a version or a feature name this change took differs from them.
 - Files touched: `crates/cli/Cargo.toml`, `Cargo.lock`, `crates/cli/src/trace.rs` (new), `crates/cli/src/main.rs`,
   `crates/core/src/{trace,process,lib}.rs`, `crates/core/tests/support/in_process.rs`, `crates/core/tests/root.rs`,
-  `crates/cli/tests/trace.rs` (new), `AGENTS.md`, `context/architecture/structure.md`,
-  `context/standards/{rust,testing}.md`, `context/tooling/development.md`. `crates/test-support/` is not touched: the
-  collector exists.
+  `crates/cli/tests/trace.rs` (new), `crates/cli/tests/data/trust-root.pem` (new), `AGENTS.md`,
+  `context/architecture/structure.md`, `context/standards/{rust,testing}.md`, `context/tooling/development.md`.
+  `crates/test-support/` is not touched: the collector exists.
 - `crates/dev/tests/architecture.rs`: the package-edge rules read workspace edges only, so third-party dependencies of
   the binary alter no pin; the change confirms it by running the test. The library's `trace.rs` and `process.rs` spell
   none of the forbidden tokens; `AGENTS.md` and the context documents gain no scope token and no command;
@@ -111,39 +127,51 @@ last change of the epic, and runs beside no other change.
     switched one;
   - a builder that answers an error, and settings `Unavailable`: nothing is exported; one record under a switched log at
     Debug, none otherwise, and none when no command was announced.
-- Unit tests in `crates/cli/src/trace.rs`, `Tracer::new` against a `Collector` in the test process:
-  - `Answer::Ok`: one request arrives with method `POST`, a target ending in `/v1/traces`,
-    `content-type: application/x-protobuf`, and the configured headers; its body read through `decode_export` holds the
-    one span; `finish` writes nothing under a switched log;
-  - `Answer::Status(500)`: one request arrived, and `finish` writes the export record under a switched log;
-  - `Answer::Hang`: `finish` returns within 1 s and writes the export record;
-  - `Collector::refused_endpoint()`: `finish` writes the export record.
 - A unit test of `hide_generic_exporter_variables`, in a child test of the same test binary by the fixture rule of the
   unit tier's exceptions: with `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_HEADERS` in the child's
   environment, after the call the process environment holds neither and the snapshot holds both.
 - Component tests, through the scaffold: `announced` is `["ws", "index"]` for `ws index NAME` and for
   `ws index --bogus`, `["ws"]` for `ws --help` and for `ws nope`, and `None` for `--version`, `--help`, `--bogus`,
   `nope`, `-v -v ws index NAME`, and no arguments.
-- `crates/cli/tests/trace.rs`, the built binary in an isolated tree with a `Collector`, the kill switch cleared:
+- `crates/cli/tests/trace.rs`, the built binary in an isolated tree with a `Collector`, the kill switch cleared, and
+  `SSL_CERT_FILE` naming the certificate file the test wrote in its tree, unless the test says otherwise:
   - `ws index NAME` with a sampled `TRACEPARENT` and a `WINTER_LAUNCH_TIME` written with a comma: exit 0, stderr empty,
     one request; its span is named `winter ws index`, has the trace id and the parent of the `TRACEPARENT`, starts at
     the launch time, and carries only `winter.command`; the resource's `service.name` is `winter`;
+  - the same request has method `POST`, a target ending in `/v1/traces`, and `content-type: application/x-protobuf`, and
+    its body reads through `decode_export`;
+  - `WINTER_OTEL_EXPORTER_OTLP_HEADERS` of `x-probe=a%2541,x-plain=b`: the request carries `x-probe` with the value
+    `a%41` and `x-plain` with `b`. Without the escape the first arrives as `aA`;
   - `ws index` with no name: exit 2; the span's attributes are exactly `winter.command` and `error.type` of `Usage`, and
     its status is code 2 with an empty message;
+  - the same command with `OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT` of `0`, and again of `1`, in the child's environment: the
+    span carries the same two attributes. With `OTEL_TRACES_SAMPLER` of `always_off`: one request still arrives;
   - `--version`, `nope`, and no arguments: no connection;
   - the kill switch left at `true`, and a blank endpoint: no connection; an unsampled `TRACEPARENT`: no request;
   - `Answer::Hang`, `Answer::Status(500)`, and a refused endpoint: stdout, stderr, and the exit code are those of the
     same command with tracing off, and the process ends within 2 s;
-  - `-v` with a refused endpoint: stderr holds a record of origin `trace`;
-  - the `Collector`'s own endpoint with its scheme written `https`, the address still 127.0.0.1 and no certificate
-    anywhere: `connections()` counts one, no request is recorded, the exit code and stdout are unchanged, stderr is
-    empty without `-v`, and the process ends within 2 s. This is the one test of `https`; none completes a handshake;
+  - `-v` with `Answer::Ok`: stderr holds no record of origin `trace`; `-v` with `Answer::Status(500)`, with
+    `Answer::Hang`, and with a refused endpoint: stderr holds the export record of origin `trace`;
+  - `Answer::Status(503)`, an answer the exporter retries by default, and `Answer::Hang`: once the process has ended,
+    `connections()` counts exactly one;
+  - `SSL_CERT_FILE` naming an empty file of the tree, with a plain `http` collector: exit 0, stdout that of the same
+    command with tracing off, stderr empty, and `connections()` counts none; with `-v`, stderr holds the one Debug
+    record of origin `trace` that says tracing is unavailable, and no export record;
+  - the `Collector`'s own endpoint with its scheme written `https`, the address still 127.0.0.1 and no certificate of
+    the collector anywhere: `connections()` counts one, no request is recorded, the exit code and stdout are unchanged,
+    stderr is empty without `-v`, and the process ends within 2 s. This is the one test of `https`; none completes a
+    handshake;
   - `OTEL_EXPORTER_OTLP_ENDPOINT` and `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` naming a second collector beside the Winter
     endpoint: the first collector holds the one request and the second sees no connection; the same two variables with
     no Winter endpoint: no connection at either.
-- A unit test in `crates/cli/src/trace.rs` that starts a child test of the same test binary through `invoke`: the child
+- A unit test in `crates/cli/src/trace.rs` that starts a child test of the same test binary through `invoke`, with
+  `SSL_CERT_FILE` in the child's environment naming the certificate file the parent wrote in its tree: the child
   installs the interrupt handler, announces a command to a `Tracer` whose endpoint is the parent's `Collector`, writes a
   ready line, and raises SIGINT on itself; the child exits 1 and the collector holds no request.
+- `grep -n 'RetryPolicy::disabled' crates/cli/src/trace.rs` prints a line. The count of connections above holds the
+  behaviour, and this line holds the call: as the release was read, the cap alone already leaves a retry no room.
+- No test of `crates/cli/src/trace.rs` calls `Tracer::new` outside a child test, and `grep -rn 'SSL_CERT_DIR' crates`
+  prints nothing.
 - `grep -rn 'unsafe' crates/cli/src` prints lines of `interrupt.rs` and `trace.rs` only, each block preceded by a
   comment; `grep -rn 'opentelemetry' crates/core crates/test-support crates/dev` prints nothing.
 - `grep -rnE 'tokio|async[-_]std|block_on' crates/cli/src crates/core/src` prints nothing: the sources of the binary and
@@ -151,7 +179,8 @@ last change of the epic, and runs beside no other change.
 - `git diff --stat` of the change names `crates/cli/Cargo.toml` and `Cargo.lock`, and no other manifest. The diff of
   `crates/cli/Cargo.toml` adds the three lines of [repository-layout.md](../spec/repository-layout.md), The Cargo
   workspace, and no other dependency; `Cargo.lock` holds the three crates at 0.33.1.
-- The change's report lists every package `Cargo.lock` gained, by name and version, as the diff of the lock gives them.
+- The change's report lists every package `Cargo.lock` gained, by name and version, as the diff of the lock gives them,
+  with their count beside the 161 read before, and gives the start-up time of a traced command beside an untraced one.
 - After the change, `cargo fetch --locked` with the network exits 0, and then `cargo dev gate full` with no network
   exits 0. No acceptance step runs `cargo fetch` with `--offline`: it would ask for crates of targets the host never
   builds.
@@ -164,4 +193,6 @@ last change of the epic, and runs beside no other change.
   machine's trust store, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`, and installed
   by no test. A completed TLS handshake in a test: [tracing.md](../spec/tracing.md), Test seams.
 - A bound on name resolution: [tracing.md](../spec/tracing.md), Open questions.
+- A configured header the exporter drops or lets replace one of its own: [tracing.md](../spec/tracing.md), Open
+  questions.
 - A span for a deferred interrupt: built with the first command that returns `Termination::Interrupted`.

@@ -95,6 +95,11 @@ exception from the change that adds the trace collector of test-harness.md, and 
 library-boundary rule from the change that makes the binary open one
 context/standards/testing.md owns which sockets a test opens, as test-harness.md, Collector, lists them: the entry
 point says loopback alone, names the collector's listener, and points there for the rest, restating no other item
+context/standards/testing.md owns likewise where a test builds the real trace exporter and which trust store that
+exporter reads, as tracing.md, Test seams, words both: only in a child started under the pinned environment, with
+SSL_CERT_FILE naming a certificate file the test wrote in its tree. The entry point gains no third exception for
+it: such a test reads nothing of the host's trust store, so the rule that a test touches nothing outside its tree
+holds for it as written
 the clause on the driver's own tests is the sentence the checkout's AGENTS.md carries today: those tests are no tests
 of the product, they read the checkout because the checkout is their subject, and the isolated-tree rule does not
 bind them

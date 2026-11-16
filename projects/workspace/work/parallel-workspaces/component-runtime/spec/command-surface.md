@@ -319,9 +319,9 @@ anything else is refused before any other check
 
 ### Process inputs
 
-Every environment variable the binary reads from its own environment. The table is complete: a variable not listed is
-not read, though every variable is passed on to child processes unless a row says otherwise. No variable selects the
-workspace root, colour, width, or JSON mode.
+Every environment variable the binary reads from its own environment. The table, with the list below it of the variables
+a linked library reads, is complete: a variable named in neither is not read, though every variable is passed on to
+child processes unless a row says otherwise. No variable selects the workspace root, colour, width, or JSON mode.
 
 | Variable                                                                            | Use                                                                                                                                                                                                                                                                                         | Reference                                                                   |
 | ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
@@ -343,13 +343,24 @@ The binary reads its environment once, as a snapshot the process boundary takes;
 snapshot. The rows for `WINTER_LAUNCH_TIME` and `GIT_SSH_COMMAND` bind the port that starts a child process, which the
 first command that starts one adds.
 
-One group of variables is read by a library the binary links and not by the binary's own code, and only while a command
-span is exported ([tracing.md](./tracing.md), The binary's part): the proxy variables of the export's HTTP client
-(`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, in either letter case), which the reference tool's HTTP library
-reads as well. The trust roots of an `https` endpoint are read by a linked library likewise, from the operating system's
-trust store, under `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`; whether a variable
-redirects that reading is [tracing.md](./tracing.md), Open questions. With tracing off the client is not constructed and
-none of the proxy variables is read.
+Three groups of variables are read by a library the binary links and not by the binary's own code, and only when the
+exporter of a command span is built ([tracing.md](./tracing.md), The binary's part). With tracing off, and in an
+invocation that announces no command, nothing of the export is constructed and none of them is read.
+
+- The proxy variables of the export's HTTP client (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, in either
+  letter case), which the reference tool's HTTP library reads as well, and `REQUEST_METHOD`: when it is set, the client
+  ignores `HTTP_PROXY`. Whether the reference tool's library reads `REQUEST_METHOD`: not verified.
+- `SSL_CERT_FILE` and `SSL_CERT_DIR`, read by the certificate loader of the export's TLS stack when the client is
+  constructed, for an `http` endpoint as for an `https` one. When either is set, the trust roots are the certificates of
+  the file and of the directory named, and the operating system's own locations are not read; when neither is set, they
+  are the operating system's trust store, under
+  `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`. A store that yields no certificate makes
+  tracing unavailable ([tracing.md](./tracing.md), When tracing is on). Whether the reference tool's library reads the
+  two variables: not verified.
+- The SDK's own variables — `OTEL_TRACES_SAMPLER`, `OTEL_TRACES_SAMPLER_ARG`, `OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT`,
+  `OTEL_SPAN_EVENT_COUNT_LIMIT`, `OTEL_SPAN_LINK_COUNT_LIMIT` — alter nothing: the binary sets the sampler, the span
+  limits, and the resource itself. The SDK may still look one up while it builds a default the binary replaces, and its
+  value is then discarded.
 
 `PATH` and `HOME` are no rows: no command built so far looks up a program or a home directory. What a child process
 reads from its inherited environment is that child's own; a row is added for each variable the binary itself consults
@@ -395,7 +406,8 @@ behaviour are not listed: they fall under `decision:functional-parity`.
 | A service provider ended by a signal                                          | exit 256 minus the signal number (`modules/service/handler.py:68-73`)                                | exit 128 plus the signal number                                          | `decision:parallel-workspaces/component-runtime/provider-signal-exit`          |
 | A run SIGINT aborts outside the service paths, with tracing on                | the command span is exported before the exit (`cli.py:451-455`)                                      | no span is exported                                                      | `decision:parallel-workspaces/component-runtime/interrupt-trace-export`        |
 | Values of the command span's `error.type`                                     | exception class names (`cli.py:150-162`)                                                             | the ending's name; [tracing.md](./tracing.md), What the span carries     | `decision:parallel-workspaces/component-runtime/span-error-type`               |
-| Trust roots of an `https` trace endpoint                                      | believed: the runtime's default trust locations, the system certificate store among them             | the operating system's trust store alone; the binary bundles no roots    | `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`      |
+| Trust roots of an `https` trace endpoint                                      | believed: the runtime's default trust locations, the system certificate store among them             | the system's trust store, or what `SSL_CERT_FILE` / `SSL_CERT_DIR` name  | `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`      |
+| Tracing on, on a machine whose trust store holds no certificate               | not verified; believed to export to an `http` endpoint                                               | tracing is unavailable, for `http` and `https` endpoints alike           | `decision:parallel-workspaces/component-runtime/trace-export-trust-roots`      |
 | Three inputs of the trace export headers                                      | value sent undecoded; item skipped; name sent decoded (`opentelemetry/util/re.py:52-93`)             | value decoded; item sent; item skipped; [tracing.md](./tracing.md)       | `decision:parallel-workspaces/component-runtime/trace-header-parsing`          |
 | Failed git call before a repo error                                           | failure text written twice on stderr                                                                 | written once; a log record as well only under `-v` or `WINTER_LOG_LEVEL` | `decision:parallel-workspaces/component-runtime/git-failure-rendering`         |
 | Non-list value for `git_excludes` or `cmd`; non-string `main_branch` or `ref` | a string is read as its characters and a table as its keys; other wrong types fail unhandled, exit 1 | configuration error naming the key, exit 1                               | `decision:parallel-workspaces/workspace-configuration/element-type-validation` |
@@ -409,6 +421,8 @@ behaviour are not listed: they fall under `decision:functional-parity`.
   the reference tool's.
 - The `WINTER_GIT_TIMEOUT_S` and `WINTER_NESTED_CHAIN` rows have not been checked against the reference sources they
   cite. Engineering checks each when the epic that reads the variable is refined.
-- That the export's HTTP client reads the proxy variables, and that the reference tool's HTTP library reads the same
-  ones, is stated from the two libraries' documented behaviour and was read in neither's source. The builder of the
-  export confirms the binary's side; a difference found there is put to the product owner.
+- That the export's HTTP client reads the proxy variables and `REQUEST_METHOD`, and its TLS stack `SSL_CERT_FILE` and
+  `SSL_CERT_DIR`, was read in the sources of the releases the export resolves to. What the reference tool's HTTP library
+  reads was read in no source: the proxy variables are stated from its documented behaviour, and the other three are not
+  verified. Engineering reads that library when a difference is reported, and a difference found there is put to the
+  product owner.

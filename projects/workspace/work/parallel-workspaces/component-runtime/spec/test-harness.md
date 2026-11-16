@@ -42,8 +42,9 @@ the unit tier's exceptions, all in the binary package (crates/cli/src), none in 
                      Domain, "fixtures that fail by design": std::env::current_exe(), the child test's exact name,
                      and WINTER_TEST_FIXTURE. The child signals itself; the parent signals nothing
                      (runtime.md, Interrupts and signals).
-  the collector      a unit test of crates/cli/src/trace.rs sends through the real exporter to a `Collector` of this
-                     package, in the test process
+  the collector      a unit test of crates/cli/src/trace.rs that starts such a child test holds a `Collector` of
+                     this package and hands the child its endpoint. The real exporter is built in the child, under
+                     the pinned environment, and never in a test process (tracing.md, Test seams).
   the unit tests of this package's own modules use the package, as they always have
 ```
 
@@ -113,10 +114,11 @@ ceiling              git examines neither a directory GIT_CEILING_DIRECTORIES na
                      The parent is written <ROOT>/.., which git resolves to its real path before comparing, so the
                      digest holds no host path.
 never passed         any WINTER_*, TRACEPARENT, TRACESTATE, any other OTEL_*, GIT_SSH_COMMAND, GIT_DIR, GIT_WORK_TREE,
-                     VIRTUAL_ENV, PYTHONPATH, PYTHONHOME, FORCE_COLOR, any proxy variable — unless a test adds one
-                     explicitly
-tracing              a test that wants a span sets OTEL_SDK_DISABLED to `false` and
-                     WINTER_OTEL_EXPORTER_OTLP_ENDPOINT to the endpoint of its own Collector, through PinnedEnv::set
+                     VIRTUAL_ENV, PYTHONPATH, PYTHONHOME, FORCE_COLOR, any proxy variable, SSL_CERT_FILE,
+                     SSL_CERT_DIR — unless a test adds one explicitly
+tracing              a test that wants a span sets OTEL_SDK_DISABLED to `false`,
+                     WINTER_OTEL_EXPORTER_OTLP_ENDPOINT to the endpoint of its own Collector, and SSL_CERT_FILE to
+                     a certificate file it wrote in its tree (tracing.md, Test seams), through PinnedEnv::set
 gitconfig            [url "<ROOT>/remotes/"] insteadOf = https://fixture.invalid/        and nothing else
 digest               PinnedEnv::digest(): SHA-1 over the sorted NAME=VALUE lines with <ROOT> and <directory of git>
                      left as those placeholders, and over the gitconfig text likewise
@@ -309,8 +311,9 @@ Collector
                   the test process, outside the isolated tree, and holds no file.
   sockets         the one list of the sockets a test opens, each on 127.0.0.1; a test opens no other
                     the listener of a Collector
-                    the client side of a connection to a Collector: the exporter under test in the test process, a
-                    plain TcpStream in the collector's own tests, or the built binary the test started
+                    the client side of a connection to a Collector: the exporter under test in a child test the
+                    test started, a plain TcpStream in the collector's own tests, or the built binary the test
+                    started
                     the client side of a connection attempt to a refused_endpoint address, by the same three:
                     nothing listens there and the attempt is refused
                     the listener refused_endpoint binds and releases, and the one a test of this package binds

@@ -56,12 +56,16 @@ no effect        OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
                  exporter setting neither switches tracing on nor alters the request. The reference tool hides the
                  OTEL_EXPORTER_OTLP_ and OTEL_PYTHON_EXPORTER_OTLP_ variables from its exporter while it builds it
                  (core/internal/otel_command_tracer.py:43-58); how the binary does it is The binary's part.
+                 OTEL_TRACES_SAMPLER_ARG and the SDK's span limits, OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
+                 OTEL_SPAN_EVENT_COUNT_LIMIT, and OTEL_SPAN_LINK_COUNT_LIMIT, likewise: the binary sets the sampler,
+                 the limits, and the resource itself (The binary's part, construction).
 off              nothing of the tracing stack is constructed: no provider, no exporter, no HTTP client, no TLS
                  configuration, no thread. No span is recorded, no socket is opened, no request is sent, and no
                  record is written. The crates are linked into the binary and cost it size, not start-up work.
-unavailable      tracing is on and the exporter cannot be built as configured: the endpoint value is not UTF-8, or
-                 the exporter refuses it. Nothing is recorded or sent, and the invocation is otherwise untouched;
-                 one Debug record says why (Records below).
+unavailable      tracing is on and the exporter cannot be built: the endpoint value is not UTF-8, the exporter
+                 refuses it, or the trust store yields no certificate, whatever the endpoint's scheme (TLS below).
+                 Nothing is recorded or sent, and the invocation is otherwise untouched: stdout and the exit code
+                 are those of the same command with tracing off, and one Debug record says why (Records below).
                  reference: container.py:120-133
 a variable whose value is not UTF-8
                  the endpoint: unavailable. The headers, OTEL_SERVICE_NAME, OTEL_RESOURCE_ATTRIBUTES, TRACEPARENT,
@@ -81,7 +85,8 @@ headers      WINTER_OTEL_EXPORTER_OTLP_HEADERS, blank meaning none
              lower-cased; an item with no "=", an empty name, or a name that is no HTTP token is skipped, and the
              others still apply (reference: opentelemetry/util/re.py:52-93, the liberal form)
              a name given twice keeps its first position and its last value
-             the parsed pairs are handed to the exporter, which adds them to its request
+             the parsed pairs are handed to the exporter, which adds them to its request; each value is sent as
+             parsed here, decoded once and never a second time (The binary's part, construction)
              three inputs are read differently from the reference's helper, a registered deviation
              (decision:parallel-workspaces/component-runtime/trace-header-parsing)
                input                          the reference                    this tool
@@ -92,6 +97,15 @@ TLS          an `https` endpoint is verified against the operating system's trus
              certificate verifier reads it; the binary bundles no roots. A collector whose certificate chains to a
              private authority installed in that store is reachable over `https`; one whose authority is not there
              is a failed export. No variable of this tool names a certificate or a bundle.
+             the store is read when the exporter is built, at the announcement of the command, and for an `http`
+             endpoint as for an `https` one: the exporter's HTTP client builds its TLS configuration whatever the
+             scheme. A store that yields no certificate — none installed, as in a container image without CA
+             certificates, or an empty file named by a variable below — keeps the exporter from being built, so
+             tracing is unavailable on that machine for both schemes (When tracing is on).
+             SSL_CERT_FILE, SSL_CERT_DIR: read by the certificate loader under the verifier, as read for Linux.
+             When either is set, the certificates are those of the file and of the directory named, and the
+             system's own locations are not read. Neither is a variable of this tool; both are process inputs
+             (command-surface.md, Process inputs).
              the reference tool's HTTP library is believed to verify against its runtime's default trust locations,
              the system certificate store among them: the two agree wherever those locations are the system's
              store, and a difference between them is a registered deviation
@@ -170,8 +184,8 @@ error.type vocabulary                  # decision:parallel-workspaces/component-
 | The 100 ms cap; no effect on stdout, the exit code, or stderr without a logging switch   | HTTP version and connection handling                   |
 
 Registered deviations: the values of `error.type`, no span for a run SIGINT aborts, the trust roots of an `https`
-endpoint, and the three inputs of the configured headers that Endpoint and headers lists
-([command-surface.md](./command-surface.md), Registered deviations).
+endpoint, no tracing on a machine whose trust store yields no certificate, and the three inputs of the configured
+headers that Endpoint and headers lists ([command-surface.md](./command-surface.md), Registered deviations).
 
 ## Interfaces
 
@@ -253,20 +267,24 @@ crates and features                     # repository-layout.md, The Cargo worksp
                              rustls-platform-verifier, which reads the platform's trust store. It is the exporter's
                              one rustls feature for HTTP: it has none with bundled web roots, its `tls-*` features
                              serve gRPC alone, and with no TLS feature `https` is not served at all.
-  stated as remembered and not read in a registry: the feature name `trace` on the three crates, and that each
-  builds with default features off. The change that adds the crates confirms both (Open questions).
+  the feature `trace` exists on the three crates at 0.33.1. That each builds with default features off is not
+  shown: the change that adds the crates confirms it (Open questions).
 why these choices                       # decision:parallel-workspaces/component-runtime/trace-exporter
   a blocking client    one request at exit needs no event loop in the binary. The binary and the library start no
                        asynchronous runtime and name none in their sources. The client runs one of its own on a
                        helper thread it keeps for itself, which ends with the process, so `tokio` is in Cargo.lock.
   rustls               no system TLS library is linked or looked up at run time, so the binary stays one file. The
                        trust roots are not in the binary: the platform's verifier reads the operating system's
-                       trust store at run time. The cryptography under rustls, aws-lc-sys, compiles bundled C in
-                       its build script, so a C compiler is a build prerequisite, which the change states in
-                       context/tooling/development.md.
+                       trust store at run time, once for each invocation that builds the exporter, when the client
+                       is constructed and whatever the endpoint's scheme. The cryptography under rustls,
+                       aws-lc-sys, compiles bundled C in its build script, so a C compiler is a build
+                       prerequisite, which the change states in context/tooling/development.md.
                        decision:parallel-workspaces/component-runtime/trace-export-trust-roots
   no batching          one span per process: the unbatched processor exports on the thread that ends the span
-  no retry, no compression, no gRPC: none of those features is enabled
+  no retry             the exporter retries by default in this release, three times and first after 100 ms. The
+                       binary hands it the disabled retry policy, so that the one request is one by construction
+                       and not because the cap leaves a second no room.
+  no compression, no gRPC: neither feature is enabled
 ```
 
 ```rust
@@ -295,17 +313,31 @@ pub(crate) fn hide_generic_exporter_variables(env: &ProcessEnv);
 ```text
 construction                            # nothing before a command is announced
   Tracer::new keeps the settings and builds nothing. At command_started with settings On, and never earlier:
-    the exporter      built for TraceConfig.endpoint with TraceConfig.headers and a timeout of 100 ms
-    the provider      the explicit sampler, a resource of exactly TraceConfig.resource and whatever the SDK adds
-                      about itself, and the unbatched processor over a wrapper of the exporter that keeps the
-                      result of its one export
+    the exporter      built for TraceConfig.endpoint, with the protocol HTTP with protobuf named explicitly,
+                      TraceConfig.headers, a timeout of 100 ms, and the disabled retry policy
+                      the exporter percent-decodes every header value it is handed, and `settings` has decoded
+                      each already. The binary therefore hands every value with each "%" written "%25", and the
+                      name as it is, so that the value sent is the value of TraceConfig byte for byte. The escape
+                      was taken over an HTTP client of the binary's own that carries the headers, which would
+                      make that client a direct dependency of the binary.
+    the provider      the explicit sampler; span limits given explicitly, 128 attributes, 128 events, and 128
+                      links for a span, which are the SDK's defaults written out; a resource built from the empty
+                      one, with no detector, that holds exactly TraceConfig.resource; and the unbatched processor
+                      over a wrapper of the exporter that keeps the result of its one export
+                      left to its defaults, the SDK would read OTEL_TRACES_SAMPLER, OTEL_TRACES_SAMPLER_ARG,
+                      OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT, OTEL_SPAN_EVENT_COUNT_LIMIT, OTEL_SPAN_LINK_COUNT_LIMIT,
+                      OTEL_SERVICE_NAME, and OTEL_RESOURCE_ATTRIBUTES. With the three set here none of them
+                      alters what is sent: the last two reach the resource through `settings` alone, and an
+                      attribute limit of 0 or 1 drops neither winter.command nor error.type.
     the span          named span_name(path), kind internal, attribute winter.command, the parent the propagator
                       reads from TraceConfig.traceparent, started at the launch time or now
-  a failure to build the exporter turns the tracer unavailable with the failure's text
+  a failure to build the exporter turns the tracer unavailable with the failure's text; a trust store that yields
+  no certificate is such a failure
   an invocation that ends at the root never announces a command, so it constructs nothing even with tracing on
 hide_generic_exporter_variables         # reference: core/internal/otel_command_tracer.py:43-58
-  the exporter crate reads OTEL_EXPORTER_OTLP_* from the process environment when it is built and lets them
-  override what the program configured. `main` therefore removes from its own process environment every variable
+  the exporter crate reads OTEL_EXPORTER_OTLP_* from the process environment when it is built: it lets the
+  endpoint, timeout, compression, and protocol variables stand in where the program set none, and adds the header
+  variables over the programmed headers. `main` therefore removes from its own process environment every variable
   of the snapshot whose name starts with OTEL_EXPORTER_OTLP_, before any thread exists and before the tracer is
   built. This is the one `unsafe` block of trace.rs (std::env::remove_var), sound because the process is
   single-threaded there. The snapshot is untouched and is what a child's environment is built from (System).
@@ -319,9 +351,9 @@ finish
   a span the sampler did not record  ending it exports nothing; no result is kept and nothing is written
 the cap                                 # decision:observability-shutdown; core/internal/otel_command_tracer.py:35
   the exporter's timeout is the one bound on the export: 100 ms from the start of the request, the value the
-  reference tool gives its exporter as "the exit cap: one request, never longer than this". One request, no retry.
-  The executable tests hold the bound from outside: a collector that accepts and never answers does not keep the
-  process alive (Test seams).
+  reference tool gives its exporter as "the exit cap: one request, never longer than this". One request: retry is
+  disabled. The executable tests hold the bound from outside: a collector that accepts and never answers does not
+  keep the process alive (Test seams).
 ```
 
 ### Test seams
@@ -330,23 +362,39 @@ the cap                                 # decision:observability-shutdown; core/
 unit, crates/core/src/trace.rs       `settings` over literal environments
 unit, crates/cli/src/trace.rs        `Tracer::with_exporter` and an exporter of the test's own that records the
                                      span data it is handed, or answers an error; no socket
-                                     the real exporter against the loopback collector, in the test process
 component                            the scaffold passes a recording CommandTracer and reports what `run` announced
                                      (runtime.md, Test seams)
 executable, crates/cli/tests/        the built binary with WINTER_OTEL_EXPORTER_OTLP_ENDPOINT naming the loopback
                                      collector of the test; OTEL_SDK_DISABLED of the pinned environment is cleared
                                      by the test that wants tracing on
+the real exporter                    is built only in a child a test starts through `invoke` under the pinned
+                                     environment, and never in a test process. That child is the built binary of an
+                                     executable test, which is where a claim about the real exporter is tested by
+                                     preference, or a child test of the binary package's own test binary where the
+                                     subject ends its own process (test-harness.md, Tiers that use it). The
+                                     child's environment is cleared and then explicit, so no proxy variable, no
+                                     OTEL_* variable, and no SSL_CERT_* variable of the developer reaches the
+                                     exporter; built in the test process it would inherit all of them.
+the trust store of a test            a test that clears the kill switch sets SSL_CERT_FILE, through PinnedEnv::set,
+                                     to a file it wrote under <ROOT>/tmp. The file holds the text of
+                                     crates/cli/tests/data/trust-root.pem, compiled into the test: one self-signed
+                                     certificate made for this purpose, whose key was discarded. The exporter then
+                                     reads that file and nothing of the host's store, so the test touches nothing
+                                     outside its tree, needs no exception to that rule, and passes on a machine
+                                     that has no store. No test completes a handshake, so the certificate judges
+                                     nothing. The test of a machine without a store names an empty file of its tree
+                                     instead and expects tracing unavailable. No test sets SSL_CERT_DIR.
 the collector                        test-harness.md, Interfaces: a listener on 127.0.0.1 that reads what the
                                      standard exporter sends and decodes the protobuf body with a decoder written in
                                      the support package from the OTLP field table there. The support package takes
                                      no tracing crate: the decoder is an independent reading of the wire format, so
                                      a test compares what the crates sent with what the contract says, not the
                                      crates with themselves.
-TLS                                  no automated test completes a TLS handshake: a test would need an authority in
-                                     the trust store of the machine that runs it. An executable test names the plain
-                                     collector with an `https` URL and asserts that a connection arrives and the
-                                     export fails within the cap, which shows the scheme is served and bounded. The
-                                     collector answers no handshake, so no certificate is judged in it.
+TLS                                  no automated test completes a TLS handshake: the collector of the support
+                                     package speaks none. An executable test names the plain collector with an
+                                     `https` URL and asserts that a connection arrives and the export fails within
+                                     the cap, which shows the scheme is served and bounded. The collector answers
+                                     no handshake, so no certificate is judged in it.
 no scenario                          the pinned environment of a scenario turns tracing off, and a collector is no
                                      dimension a scenario compares
 no network                           every test addresses 127.0.0.1 alone; none resolves a name or reaches a real
@@ -386,15 +434,21 @@ tests).
 - Whether the exporter's timeout covers the resolution of a host name is a property of the HTTP client that was not read
   in its source; `decision:observability-shutdown` leaves resolution outside the cap. Engineering answers it when a
   collector is first addressed by name in a deployment.
-- These points are stated from the crates' documentation as remembered: the feature name `trace` on the three crates and
-  that each builds with default features off; the way the exporter is given its timeout and headers; that it reads
-  `OTEL_EXPORTER_OTLP_*` when built and reads none of them once they are removed, so the request is built from
-  `TraceConfig` alone; that no other variable the SDK or the exporter reads alters the sampler, the resource, or the
-  request; and that the unbatched processor exports on the ending thread. The change that adds the crates confirms each
-  against the release it takes; a point that does not hold and changes anything under Function above goes back to
-  engineering before the change merges.
-- How the platform's certificate verifier reads the trust store was not read in its source: whether the store is read
-  when the exporter is built or when a certificate is judged, whether an empty or absent store keeps the exporter from
-  being built, and which environment variables, if any, redirect the reading. The change that adds the crates reads each
-  in the release it takes; a variable found there is a process input for [command-surface.md](./command-surface.md),
-  Process inputs, and goes back to engineering before the change merges.
+- These points were read in the sources of the releases and not yet run: that a header value handed with each `%`
+  written `%25` arrives as `TraceConfig` holds it, and that a name is not decoded; that the disabled retry policy can be
+  handed to the exporter with the features this contract enables; that explicit span limits, an explicit sampler, and a
+  resource built from the empty one leave no SDK variable an effect; and that `SSL_CERT_FILE` naming a file with one
+  self-signed certificate lets the exporter be built while the host's store is not read. Two were not read: that each
+  crate builds with default features off, and that the unbatched processor exports on the ending thread. The change that
+  adds the crates confirms each against the release it takes; a point that does not hold goes back to engineering before
+  the change merges.
+- What reading the trust store costs an invocation was not measured: the store of the machine the sources were read on
+  holds 243 certificates in 180 kB, read and parsed before the one request. The change that adds the crates reports the
+  start-up time of a traced command beside an untraced one; engineering weighs it then.
+- `SSL_CERT_FILE` and `SSL_CERT_DIR` were read for Linux. How the platform's verifier reads the store on another
+  operating system, and whether the two variables apply there, was not read; engineering reads it when the binary is
+  first built for one.
+- As read in release 0.33.1, the exporter drops without a word a configured header whose decoded value is no legal
+  header value, lets a configured `content-type` replace the protobuf one, and sends either a configured `user-agent` or
+  its own. What the reference tool does with each was not read, so none of the three is contract and no test asserts
+  one; the product owner says whether any is to be refused, sent, or registered as a deviation.
