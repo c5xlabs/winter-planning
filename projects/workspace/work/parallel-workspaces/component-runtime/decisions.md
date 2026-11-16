@@ -1,5 +1,21 @@
 # Component runtime decisions
 
+## Proxies of the trace export (decision:parallel-workspaces/component-runtime/trace-export-proxies)
+
+**Decider:** engineering
+
+The trace export goes through a proxy when the environment names one for the endpoint, as the HTTP client the exporter
+links does by default: the client reads `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, and `NO_PROXY`, in capitals or in
+lower case, and a user name and a password in the address of the proxy are sent to that proxy. The behaviour stays as
+the client has it because the OpenTelemetry crates are used as they ship
+(`decision:parallel-workspaces/component-runtime/trace-export-trust-roots`), and the exporter builds its client with a
+timeout and nothing else, so the proxies can be switched off only by an HTTP client of the binary's own. That the export
+went through the proxy, with the credentials, was observed for `HTTP_PROXY` and an `http` endpoint; the names of the
+variables were read in the client's source, and the other three were not run.
+
+The reference tool's HTTP library is not in the reference tree. It is believed, and was read in no source, to honour the
+same variables, so no deviation is registered.
+
 ## Redirects of the trace export (decision:parallel-workspaces/component-runtime/trace-export-redirects)
 
 **Decider:** product owner

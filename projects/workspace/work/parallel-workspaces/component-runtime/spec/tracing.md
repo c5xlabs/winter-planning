@@ -148,7 +148,10 @@ ids          a new trace id and the span id come from the SDK's random id genera
 WINTER_LAUNCH_TIME   trimmed; "," read as "."; then digits, optionally "." and digits, and nothing else
                      epoch seconds; the fraction is cut or padded to nine digits
                      zero, or later than the instant the settings are read: ignored
-start instant        the launch time when it is valid; otherwise the instant `run` announces the command
+start instant        the launch time when it is valid, which the binary hands to the SDK. Otherwise no source of
+                     the binary reads one: the SDK reads the clock when it builds the span, at the announcement of
+                     the command, and only for a span the sampler records (read in opentelemetry_sdk 0.33.1,
+                     trace/tracer.rs). For a span the sampler does not record no instant is read.
 end instant          the instant the boundary ends the span (Flows): `finish` reads it before it starts the export
                      thread, so the span's duration holds nothing of the export
 the clock            the sources of the binary read it in two files: main.rs, for the instant the settings are read
@@ -211,6 +214,10 @@ Following a redirect and the two rules for a configured header are intended beha
 `decision:parallel-workspaces/component-runtime/trace-export-redirects` and
 `decision:parallel-workspaces/component-runtime/trace-header-precedence`. What the reference tool does in either case
 was read in no source: its HTTP library is believed to follow a redirect as well. Neither is registered as a deviation.
+
+An export that goes through the proxy a proxy variable names is as built, under
+`decision:parallel-workspaces/component-runtime/trace-export-proxies` (The binary's part, proxies). The reference tool's
+HTTP library is believed to honour the same variables, which was read in no source, and no deviation is registered.
 
 ## Interfaces
 
@@ -494,6 +501,23 @@ redirects                               # decision:parallel-workspaces/component
   the reference     what its HTTP library does with a redirect was read in no source; it is believed to follow one
                     as well
   read and not run: no test has a collector answer a redirect (Open questions)
+proxies                                 # decision:parallel-workspaces/component-runtime/trace-export-proxies
+  honoured, as the client honours them by default: the exporter builds the client with a timeout and nothing else,
+  so the client takes its proxies from the environment. Read in reqwest 0.13.5 (proxy.rs, async_impl/client.rs)
+  and in hyper-util 0.1.21 (client/proxy/matcher.rs), which reads the variables for that client:
+  the variables     HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, and NO_PROXY, each looked up in capitals first and then in
+                    lower case, when the client is built, at the announcement of the command. With REQUEST_METHOD
+                    set, HTTP_PROXY is ignored (command-surface.md, Process inputs).
+  what it does      when a variable names a proxy for the endpoint, the request goes to the proxy and not to the
+                    endpoint's host. A user name and a password in the proxy's address are sent to the proxy, in
+                    a proxy-authorization header of the Basic scheme.
+  observed          with HTTP_PROXY=http://user:password@127.0.0.1:<port> naming a second loopback collector, and
+                    an `http` endpoint: the endpoint's collector received nothing, and the second received
+                    `POST http://127.0.0.1:<port of the endpoint>/v1/traces` with `proxy-authorization: Basic …`
+  read and not run  HTTPS_PROXY, ALL_PROXY, NO_PROXY, the lower-case names, and an `https` endpoint through a proxy
+  the bound         the outer bound of the cap covers the way through a proxy like every other step
+  the reference     its HTTP library is believed to honour the same variables; that was read in no source
+  no test names a proxy (Open questions)
 at exit
   `main` returns std::process::ExitCode (runtime.md, The process boundary); no source of the binary calls
   std::process::exit. On that return the Rust runtime ends the process through the C library's `exit`, which waits
@@ -520,23 +544,36 @@ README.md      a section for users (repository-layout.md, Root after the wipe) t
   ignored             the generic OTEL_EXPORTER_OTLP_* variables neither switch tracing on nor alter the request
   where               one POST to the endpoint followed by /v1/traces, at the end of each invocation that names a
                       command or a group, its --help and its usage errors included. --version, root help, and a
-                      command line that names neither send nothing.
+                      command line that names neither send nothing, and nothing is sent under a TRACEPARENT whose
+                      sampled flag is clear or when the exporter cannot be built.
   what is sent        the span's name, `winter` and the command path, and the same text as winter.command;
                       error.type, one name of the closed vocabulary, when the exit code is not 0; the start and
-                      end instants of the span and its ids, the trace id and the parent of a sampled TRACEPARENT
-                      among them; service.name and every entry of OTEL_RESOURCE_ATTRIBUTES; the headers of
-                      WINTER_OTEL_EXPORTER_OTLP_HEADERS, which may hold credentials; and what the SDK and the HTTP
-                      client add of their own (What is function and what is free)
-  what is never sent  an argument, an option value, a path, a message, an environment value other than those named
-                      above, or anything a command wrote
+                      end instants of the span, the start being the value of WINTER_LAUNCH_TIME when that is
+                      valid, and its ids, the trace id and the parent of a sampled TRACEPARENT among them;
+                      service.name and every entry of OTEL_RESOURCE_ATTRIBUTES; the headers of
+                      WINTER_OTEL_EXPORTER_OTLP_HEADERS, which may hold credentials, with the two exceptions
+                      below; and what the SDK and the HTTP client add of their own (What is function and what is
+                      free)
+  headers not sent    a configured content-type, since the export always carries the protobuf one; and a header
+                      whose value is not legal in an HTTP header, which is named, without its value, in a log
+                      record at the debug level (Endpoint and headers)
+  what is never sent  an argument, an option value, a path, a message, an environment value other than those this
+                      list names, or anything a command wrote
   redirects           a redirect the collector answers is followed, so the request and the configured headers can
                       go to an address the collector names (The binary's part, redirects)
+  proxies             the proxy variables HTTP_PROXY, HTTPS_PROXY, ALL_PROXY, and NO_PROXY, in capitals or in lower
+                      case, are honoured: the export goes through the proxy they name for the endpoint, and a
+                      user name and a password in that proxy's address are sent to the proxy (The binary's part,
+                      proxies)
   the bound           the ending of a command waits for the export for 100 ms at most
   a failed export     changes neither stdout nor the exit code, and is reported only as a log record under a
                       logging switch: -v, or a valid WINTER_LOG_LEVEL at ERROR or below
                the same section gives, each from its owner:
   exit codes          0, 1, and 2 as results-and-exit-codes.md, Exit codes, has them for the commands that exist,
-                      and that an interrupt ends with a notice on stderr and exit 1, not 130 (Interrupts there)
+                      and that an interrupt ends with a notice on stderr and exit 1, not 130 (Interrupts there),
+                      except in a process started with the interrupt signal ignored, which leaves it ignored, so
+                      that an interrupt does nothing to it (runtime.md, Interrupts and signals;
+                      decision:parallel-workspaces/component-runtime/interrupt-ignored-at-start)
   WINTER_LOG_LEVEL    the names it accepts, the threshold without it, and that any other value is ignored
                       silently (runtime.md, Logging)
 root help      one line, after the options, that names WINTER_OTEL_EXPORTER_OTLP_ENDPOINT as the variable that makes
@@ -610,6 +647,15 @@ configured headers                   unit, crates/core/src/trace.rs: `settings` 
                                      and an illegal value configured, the one request carries the protobuf content
                                      type, the other configured headers, and not the skipped one.
 redirects                            no test: the collector of the support package answers none (Open questions)
+proxies                              no test: none sets a proxy variable (Open questions)
+counted requests                     a test that counts the connections or the requests of one invocation hands it
+                                     an endpoint whose path is the name of its tree, and asserts that every request
+                                     its collector read was sent to that path followed by /v1/traces. It runs its
+                                     invocation once and replaces no collector: a request at another target fails
+                                     the test with the targets read.
+a refused address                    a test of an endpoint nothing listens at holds a RefusedEndpoint of the support
+                                     package until the child it handed the endpoint to has ended (test-harness.md,
+                                     RefusedEndpoint)
 TLS                                  no automated test completes a TLS handshake: the collector of the support
                                      package speaks none. An executable test names the plain collector with an
                                      `https` URL and asserts that a connection arrives and the export fails within
@@ -682,3 +728,7 @@ tests).
   collector of the support package answers no redirect, so no test has one. One point was not read to its end: that the
   client can send the body of the export a second time after a 307 or a 308. Engineering confirms both with the first
   test collector that answers a redirect.
+- What the client does with a proxy variable was observed for `HTTP_PROXY` with an `http` endpoint. For `HTTPS_PROXY`,
+  `ALL_PROXY`, `NO_PROXY`, the lower-case names, and an `https` endpoint it was read in the sources of reqwest 0.13.5
+  and hyper-util 0.1.21 and not run, and no test names a proxy. Engineering confirms the rest with the first test that
+  does.

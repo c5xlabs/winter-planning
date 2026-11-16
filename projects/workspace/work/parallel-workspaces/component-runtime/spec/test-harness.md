@@ -22,7 +22,7 @@ crates/test-support/src/
   process.rs      Invocation, invoke, invoke_with_stdout, StdoutFault, Observation, InvocationFailure
   git.rs          Git, CommitSpec, GitError
   workspace.rs    WorkspaceBuilder, Workspace
-  otlp.rs         decode_export, Collector; added ahead of the tracer of tracing.md
+  otlp.rs         decode_export, Collector, RefusedEndpoint; added ahead of the tracer of tracing.md
   scenario.rs, scenario/…     scenario-format.md, record-and-replay.md
 ```
 
@@ -128,8 +128,9 @@ never passed         any WINTER_*, TRACEPARENT, TRACESTATE, any other OTEL_*, GI
                      VIRTUAL_ENV, PYTHONPATH, PYTHONHOME, FORCE_COLOR, any proxy variable, SSL_CERT_FILE,
                      SSL_CERT_DIR — unless a test adds one explicitly
 tracing              a test that wants a span sets OTEL_SDK_DISABLED to `false`,
-                     WINTER_OTEL_EXPORTER_OTLP_ENDPOINT to the endpoint of its own Collector, and SSL_CERT_FILE to
-                     a certificate file it wrote in its tree (tracing.md, Test seams), through PinnedEnv::set
+                     WINTER_OTEL_EXPORTER_OTLP_ENDPOINT to the endpoint of its own Collector or of a RefusedEndpoint
+                     it holds, and SSL_CERT_FILE to a certificate file it wrote in its tree (tracing.md, Test seams),
+                     through PinnedEnv::set
 gitconfig            [url "<ROOT>/remotes/"] insteadOf = https://fixture.invalid/        and nothing else
 digest               PinnedEnv::digest(): SHA-1 over the sorted NAME=VALUE lines with <ROOT> and <directory of git>
                      left as those placeholders, and over the gitconfig text likewise
@@ -251,12 +252,16 @@ invoke
                 the runner exposes no process id, and a test that needs a signalled child has the child signal itself
   signals sent  the signals the tests of the library, of the binary, and of this package send to another process
                 are these two, and no other:
-                  the runner's SIGKILL to the group of the child it started, on every way out of `invoke` that
-                  leaves the child unreaped: the deadline, a stream past its limit, and an unwind among them
+                  the runner's SIGKILL to the group of the child it started, before it reaps that child, on every
+                  way out of `invoke`: a child that ended by itself, the deadline, a stream past its limit, and an
+                  unwind before the reap among them; once the child is reaped nothing is sent
                   one test of this package, of a process that left that group, ends the process with SIGKILL by
                   the id the process itself reported: the runner's kill does not reach it
-                Nothing sends SIGINT, or any signal but SIGKILL, to another process, and nothing signals a subject
-                other than through the runner.
+                No test of the library, of the binary, or of this package sends SIGINT, or any signal but SIGKILL,
+                to another process, and none signals a subject other than through the runner. The driver's step
+                runner is no such test (contributor-context.md, System), and the interrupt of the built binary
+                from outside is sent by a person, in the manual method of the verification matrix
+                (contributor-context.md, Verifiability matrix).
 a faulted stdout — what a write to stdout does to the child
                 the built binary                             a child without the Rust runtime, /bin/sh included
   ClosedPipe    the write fails with EPIPE and no signal     the write raises SIGPIPE, which ends the child:
@@ -315,7 +320,12 @@ impl Collector {
     pub fn endpoint(&self) -> String;                          // "http://127.0.0.1:<port>"
     pub fn connections(&self) -> usize;                        // how many connections were accepted so far
     pub fn requests(self) -> Vec<ReceivedRequest>;             // stops the listener; every request that arrived
-    pub fn refused_endpoint() -> std::io::Result<String>;      // a loopback port bound and released: connects fail
+}
+// An address at which nothing listens for as long as the value lives: it owns a socket bound to the port.
+pub struct RefusedEndpoint { /* the bound socket */ }
+impl RefusedEndpoint {
+    pub fn hold() -> std::io::Result<Self>;                    // binds 127.0.0.1, port chosen by the system; no listen
+    pub fn endpoint(&self) -> String;                          // "http://127.0.0.1:<port>", refused while self lives
 }
 ```
 
@@ -351,10 +361,11 @@ Collector
                     the client side of a connection to a Collector: the exporter under test in a child test the
                     test started, a plain TcpStream in the collector's own tests, or the built binary the test
                     started
-                    the client side of a connection attempt to a refused_endpoint address, by the same three:
-                    nothing listens there and the attempt is refused
-                    the listener refused_endpoint binds and releases, and the one a test of this package binds
-                    to show that a released port is free
+                    the bound socket of a RefusedEndpoint, which never listens
+                    the client side of a connection attempt to the address of a RefusedEndpoint that is still
+                    held, by the same three: nothing listens there and the attempt is refused
+                    in the tests of this package alone, a listener of the test's own: the one whose bind to a
+                    held port fails, and the one bound to show that the port of a dropped RefusedEndpoint is free
   what it reads   one HTTP/1.1 request per connection: the request line, the headers, and a body of Content-Length
                   bytes, which is how the standard exporter's blocking client sends a protobuf body. A request it
                   cannot read that way — a TLS handshake, a chunked body — counts as a connection and adds no
@@ -374,6 +385,34 @@ Collector
                   longer: there is no fixed length of a stall for a test to wait out
   bounded         each connection is read with a 5 s limit; `requests` joins the thread, and a drop does the same;
                   a held connection adds no wait to either: the thread closes it as it returns
+RefusedEndpoint
+  what it is      an address on 127.0.0.1 at which nothing listens, with the socket that keeps it so: `hold` binds a
+                  TCP socket to a port the system chooses and never calls listen on it; `endpoint` answers
+                  "http://127.0.0.1:<port>" and opens nothing
+  why it owns     a port that is bound and released can be given by the system to the next socket bound to port 0,
+                  the listener of a Collector another test starts among them, in the same process or in another;
+                  an invocation aimed at the released port then exports to that collector. A port that stays bound
+                  is given to no one.
+  lifetime        the address is refused from `hold` until the value is dropped, and no longer. A test keeps the
+                  value until every child it handed the endpoint to has ended; an endpoint taken from a value
+                  that is dropped in the same expression is a released port again.
+  how it is made  through libc, which the package names already: socket(AF_INET, SOCK_STREAM | SOCK_CLOEXEC), held
+                  in an OwnedFd from the moment it exists, then bind to 127.0.0.1 port 0 and getsockname for the
+                  port. The socket is not made through the standard library, so that it carries no option this
+                  entry does not name: SO_REUSEADDR is not set. Close-on-exec keeps the socket out of every
+                  child, so no child keeps the port bound past the value. Nothing is sent or received on it.
+  rests on the    three points of the operating system, read in no source of it and to be confirmed by the builder
+  system          with the tests below, on Linux:
+                    a connection to a socket that is bound and does not listen is refused (ECONNREFUSED)
+                    a bind to the port by TcpListener::bind fails (EADDRINUSE) while the value lives
+                    a socket bound to port 0 is never given a port that is held
+  its tests       in this package, each client a plain TcpStream
+                    held: three connections in a row are each refused, and one more after a Collector was started
+                    and dropped in between
+                    64 values held at once have 64 different ports
+                    held: TcpListener::bind to the port fails with AddrInUse; after the drop the same bind succeeds
+                    held: 64 collectors started and kept running have 64 ports, none of them the held one, and
+                    the held address is still refused once they are dropped
 ```
 
 ```rust
@@ -546,3 +585,7 @@ without it; none changes a contract above.
 - The pinned environment sets `GIT_CONFIG_NOSYSTEM` and not `GIT_ATTR_NOSYSTEM`, and does not restrict git's transports
   with `GIT_ALLOW_PROTOCOL`; the fixture remotes are reached by path, so neither is exercised.
 - The retry around a text-file-busy error when a freshly written stub is started exists in two helpers.
+- `RefusedEndpoint` rests on three points of the operating system that were read in no source of it (Interfaces,
+  RefusedEndpoint). The change that adds the type confirms them on Linux with the tests named there; a point that does
+  not hold goes back to engineering before that change merges, and no released port stands in for it. Other operating
+  systems were not looked at: engineering takes them up with the first build on one.

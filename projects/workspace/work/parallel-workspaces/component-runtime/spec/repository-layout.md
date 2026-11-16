@@ -153,10 +153,10 @@ The three tracing crates and everything they depend on — an HTTP client (`reqw
 change that names them fetches them from the crate registry, which is the one change of this epic that needs the network
 at build time, and `Cargo.lock` grows by their whole tree. The binary's manifest names the three crates and none of
 those they bring. 0.33.1 is the newest release of each, and the exporter's `http-proto`, `reqwest-blocking-client`, and
-`reqwest-rustls` were read in that release; the feature name `trace` was not read in a registry, and that change
-confirms it and corrects the lines above where a release it resolved differs. Only the binary package names the three
-crates: the library, the support package, and the driver stay as the table has them, so
-`cargo test -p winter-workspace-core` builds none of the tracing tree.
+`reqwest-rustls` were read in that release; the feature `trace` is declared in the manifest of each of the three crates
+at that release, the binary's manifest holds the lines above as they stand, and `Cargo.lock` resolves the three at
+0.33.1. Only the binary package names the three crates: the library, the support package, and the driver stay as the
+table has them, so `cargo test -p winter-workspace-core` builds none of the tracing tree.
 
 Two things follow from that tree. `tokio` is in `Cargo.lock`, because the HTTP client depends on it unconditionally and
 its blocking form runs a runtime on a helper thread of its own; the binary and the library start no asynchronous runtime

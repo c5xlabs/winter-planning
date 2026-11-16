@@ -62,8 +62,9 @@ facts with one owner in context/standards/testing.md; every other document links
                    support package that ends a process that left that group, and nothing else — no SIGINT and no
                    other signal to a subject. The same rule is a bullet under "What a test never does".
                    context/verification/matrix.md links to it where it says why the interrupt is verified by hand.
-                   The driver is no subject of the rule: its step runner kills the group of a step that ran past
-                   its deadline, which is the tooling and no test of the product.
+                   The driver is no subject of the rule: its step runner kills the group of a step it ends, at
+                   the step's deadline, at an interrupt of the driver, and when the wait for the step fails,
+                   which is the tooling and no test of the product.
   shared helpers   where a helper that more than one test file needs lives, as test-harness.md, System, gives it:
                    the support package for one that reads or builds a tree, the scaffold's `Ended` for an
                    assertion on what `run` answered. The test file of a new command copies neither from another.

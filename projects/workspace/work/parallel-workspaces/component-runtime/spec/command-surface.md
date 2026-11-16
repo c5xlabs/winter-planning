@@ -337,7 +337,9 @@ child processes unless a row says otherwise. No variable selects the workspace r
 | `RUST_BACKTRACE`, `RUST_LIB_BACKTRACE`                                              | Local development only: a backtrace follows an internal-failure diagnostic. No reference equivalent.                                                                                                                                                                                        | `decision:parallel-workspaces/component-runtime/internal-failure-rendering` |
 
 `WINTER_INVOCATION_CWD` and `WINTER_LAUNCH_TIME` are honoured when a caller sets them. In the reference setup only the
-bash launcher does; nothing in this binary sets either, so a direct invocation takes the stated fallback.
+bash launcher does; nothing in this binary sets either, so a direct invocation takes the stated fallback. With tracing
+on, a valid `WINTER_LAUNCH_TIME` is sent to the collector as the start instant of the command span
+([tracing.md](./tracing.md), What a user is told).
 
 The binary reads its environment once, as a snapshot the process boundary takes; a command reads a variable through that
 snapshot. The rows for `WINTER_LAUNCH_TIME` and `GIT_SSH_COMMAND` bind the port that starts a child process, which the
@@ -348,8 +350,13 @@ exporter of a command span is built ([tracing.md](./tracing.md), The binary's pa
 invocation that announces no command, nothing of the export is constructed and none of them is read.
 
 - The proxy variables of the export's HTTP client (`HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, `NO_PROXY`, in either
-  letter case), which the reference tool's HTTP library reads as well, and `REQUEST_METHOD`: when it is set, the client
-  ignores `HTTP_PROXY`. Whether the reference tool's library reads `REQUEST_METHOD`: not verified.
+  letter case, the capitals read first), which the reference tool's HTTP library is believed to read as well. When one
+  names a proxy for the endpoint, the export goes through that proxy, and a user name and password in the proxy's
+  address are sent to it; this was observed for `HTTP_PROXY` with an `http` endpoint, and the other names were read in
+  the client's source and not run. It is as built, under
+  `decision:parallel-workspaces/component-runtime/trace-export-proxies` ([tracing.md](./tracing.md), The binary's part,
+  proxies). And `REQUEST_METHOD`: when it is set, the client ignores `HTTP_PROXY`. Whether the reference tool's library
+  reads `REQUEST_METHOD`: not verified.
 - `SSL_CERT_FILE` and `SSL_CERT_DIR`, read by the certificate loader of the export's TLS stack when the client is
   constructed, for an `http` endpoint as for an `https` one. When either is set, the trust roots are the certificates of
   the file and of the directory named, and the operating system's own locations are not read; when neither is set, they
