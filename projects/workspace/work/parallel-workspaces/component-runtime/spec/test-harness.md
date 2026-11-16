@@ -271,7 +271,13 @@ pub struct ReceivedRequest {
     pub headers: Vec<(String, String)>,   // names lower-cased
     pub body: Vec<u8>,
 }
-pub enum Answer { Ok, Status(u16), Hang }  // Hang: accepts and reads, and answers nothing until dropped
+pub enum Answer {
+    Ok,             // status 200 with an empty body
+    Status(u16),    // this status with an empty body
+    Hang,           // accepts and reads, and answers nothing until dropped
+    Stall,          // answers the head of a 200 that announces a body, and sends none of the body until dropped
+    Drip,           // the same head, then one byte of the body every 20 ms until dropped
+}
 pub struct Collector { /* a listener thread */ }
 impl Collector {
     pub fn start(answer: Answer) -> std::io::Result<Self>;     // binds 127.0.0.1, port chosen by the system
@@ -322,7 +328,21 @@ Collector
                   bytes, which is how the standard exporter's blocking client sends a protobuf body. A request it
                   cannot read that way — a TLS handshake, a chunked body — counts as a connection and adds no
                   request.
-  bounded         each connection is read with a 5 s limit; `requests` joins the thread, and a drop does the same
+  what it answers the request is read and recorded first, whatever the answer
+                    Ok, Status    a head with `content-length: 0` and `connection: close`, and nothing after it
+                    Hang          nothing; the connection is held open and silent
+                    Stall         the head `HTTP/1.1 200 OK` with `content-length: 1048576` and nothing after it;
+                                  the connection is held open and silent, so a client that has the head waits for
+                                  a body that never starts
+                    Drip          the same head, then one zero byte every 20 ms, written by the listener thread
+                                  between its looks for a new connection; a write the client refuses ends the
+                                  dripping on that connection. The announced body would take over five hours, so
+                                  in a test it never ends. 20 ms is a fifth of the export cap of tracing.md: a
+                                  client whose timeout starts afresh with every read never sees it run out.
+                  a held connection of Hang, Stall, or Drip lasts until the collector is stopped or dropped, and no
+                  longer: there is no fixed length of a stall for a test to wait out
+  bounded         each connection is read with a 5 s limit; `requests` joins the thread, and a drop does the same;
+                  a held connection adds no wait to either: the thread closes it as it returns
 ```
 
 ```rust

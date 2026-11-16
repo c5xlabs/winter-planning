@@ -139,6 +139,21 @@ when the binary is built. The batching processor was rejected because one span p
 background worker, and a dependency of the library was rejected because `engineering:library-output-boundary` keeps
 sockets out of it.
 
+## Total bound on the trace export (decision:parallel-workspaces/component-runtime/trace-export-total-bound)
+
+**Decider:** engineering
+
+The binary holds the export cap itself: the span is ended and exported, and the provider shut down, on a thread the
+tracer starts for it, and the ending waits for that thread for at most the cap, 100 ms from the start of the wait. On
+expiry it abandons the thread without joining it and reports a failed export, and the thread ends with the process. The
+exporter's own timeout stays at the cap as an inner bound, and is not the bound: in the HTTP client the crates ship it
+starts afresh with every read of the response's body, and it does not cover the join of the client's helper thread
+behind a name lookup that hangs. An HTTP client of the binary's own with one deadline was rejected because it is a
+direct dependency of the binary, which using the crates as they ship rules out
+(`decision:parallel-workspaces/component-runtime/trace-export-trust-roots`); accepting the bound of each read was
+rejected because a collector that drips its response would then hold the command's exit without limit, which breaks the
+cap.
+
 ## Repeated options (decision:parallel-workspaces/component-runtime/repeated-options)
 
 **Decider:** product owner

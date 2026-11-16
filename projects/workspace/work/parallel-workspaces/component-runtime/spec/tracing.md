@@ -13,12 +13,13 @@ under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at
 # engineering:observability-isolation, decision:observability-shutdown
 # decision:parallel-workspaces/component-runtime/trace-export-transport
 # decision:parallel-workspaces/component-runtime/trace-exporter
+# decision:parallel-workspaces/component-runtime/trace-export-total-bound
 crates/core/src/trace.rs       pure: the settings read from the environment snapshot, the launch time, the export
                                headers, the resource, the span's name, the tracer port `run` calls, and the two log
                                records about tracing. It names no tracing crate.
 crates/core/src/termination.rs Termination::error_type
 crates/cli/src/trace.rs        the binary's tracer: the OpenTelemetry SDK's provider, the OTLP exporter, the open
-                               span, its end, and its one export
+                               span, its end, its one export, and the thread and the wait that bound both
 crates/test-support/src/otlp.rs    the decoder and the loopback collector of the tests; test-harness.md, Interfaces
 ```
 
@@ -59,6 +60,9 @@ no effect        OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_TRACES_ENDPOINT
                  OTEL_TRACES_SAMPLER_ARG and the SDK's span limits, OTEL_SPAN_ATTRIBUTE_COUNT_LIMIT,
                  OTEL_SPAN_EVENT_COUNT_LIMIT, and OTEL_SPAN_LINK_COUNT_LIMIT, likewise: the binary sets the sampler,
                  the limits, and the resource itself (The binary's part, construction).
+on               the stack is built when a command is announced, and never earlier. At the end of the invocation
+                 the span is ended and exported on a thread the tracer starts for that, and the ending waits for
+                 that thread for the cap at most (The binary's part: finish, the export thread, the cap).
 off              nothing of the tracing stack is constructed: no provider, no exporter, no HTTP client, no TLS
                  configuration, no thread. No span is recorded, no socket is opened, no request is sent, and no
                  record is written. The crates are linked into the binary and cost it size, not start-up work.
@@ -133,7 +137,8 @@ WINTER_LAUNCH_TIME   trimmed; "," read as "."; then digits, optionally "." and d
                      epoch seconds; the fraction is cut or padded to nine digits
                      zero, or later than the instant the settings are read: ignored
 start instant        the launch time when it is valid; otherwise the instant `run` announces the command
-end instant          the instant the boundary ends the span (Flows)
+end instant          the instant the boundary ends the span (Flows): `finish` reads it before it starts the export
+                     thread, so the span's duration holds nothing of the export
 ```
 
 ### What the span carries
@@ -234,8 +239,10 @@ impl Termination {
 
 ```text
 Records                                 # runtime.md, Diagnostics on the stderr handle
-  export_failed    Level::Error, origin "trace", only_when_switched: the exporter answered an error — the request
-                   was not delivered within the cap, or the answer was no success status
+  export_failed    Level::Error, origin "trace", only_when_switched: the span was not exported within the cap. The
+                   exporter answered an error — the request was not delivered within its timeout, or the answer
+                   was no success status — or the export thread did not complete in time, panicked, or could not
+                   be started (The binary's part, finish)
   unavailable      Level::Debug, origin "trace", only_when_switched
   both go through diagnostics::record, so neither is written without -v or a valid WINTER_LOG_LEVEL, and stderr of
   an invocation with no logging switch is the same with tracing on, off, failing, or unavailable
@@ -262,7 +269,10 @@ crates and features                     # repository-layout.md, The Cargo worksp
                              it `metrics` of the API and of the SDK: more than this contract uses, and not
                              avoidable. Nothing of metrics is constructed.
     reqwest-blocking-client  the blocking client of reqwest 0.13.5. reqwest depends on tokio unconditionally, and
-                             its blocking client runs a runtime on a helper thread of its own.
+                             its blocking client runs a runtime on a helper thread of its own. Dropping the last
+                             handle of the client joins that thread. The exporter builds the client with a timeout
+                             and nothing else, so it follows redirects, ten at most, which is the client's default.
+                             What the timeout covers is under the cap, below.
     reqwest-rustls           reqwest's `rustls` feature: rustls over aws-lc-rs, verifying through
                              rustls-platform-verifier, which reads the platform's trust store. It is the exporter's
                              one rustls feature for HTTP: it has none with bundled web roots, its `tls-*` features
@@ -280,7 +290,8 @@ why these choices                       # decision:parallel-workspaces/component
                        aws-lc-sys, compiles bundled C in its build script, so a C compiler is a build
                        prerequisite, which the change states in context/tooling/development.md.
                        decision:parallel-workspaces/component-runtime/trace-export-trust-roots
-  no batching          one span per process: the unbatched processor exports on the thread that ends the span
+  no batching          one span per process: the unbatched processor exports on the thread that ends the span,
+                       which is the export thread of `finish`
   no retry             the exporter retries by default in this release, three times and first after 100 ms. The
                        binary hands it the disabled retry policy, so that the one request is one by construction
                        and not because the cap leaves a second no room.
@@ -301,7 +312,8 @@ impl<E: opentelemetry_sdk::trace::SpanExporter + 'static> Tracer<E> {
         settings: TraceSettings,
         build: Box<dyn FnOnce(&TraceConfig) -> Result<E, String>>,
     ) -> Self;
-    // Ends the span when one is open, which exports it, and writes at most one record. Does nothing otherwise.
+    // Ends the span when one is open — on the export thread, which exports it and is waited for no longer than
+    // the cap — and writes at most one record. Does nothing otherwise.
     pub(crate) fn finish(&self, error_type: Option<&'static str>, stderr: &mut dyn std::io::Write);
 }
 impl<E: opentelemetry_sdk::trace::SpanExporter + 'static> CommandTracer for Tracer<E> { /* opens the span */ }
@@ -314,12 +326,16 @@ pub(crate) fn hide_generic_exporter_variables(env: &ProcessEnv);
 construction                            # nothing before a command is announced
   Tracer::new keeps the settings and builds nothing. At command_started with settings On, and never earlier:
     the exporter      built for TraceConfig.endpoint, with the protocol HTTP with protobuf named explicitly,
-                      TraceConfig.headers, a timeout of 100 ms, and the disabled retry policy
+                      TraceConfig.headers, a timeout of 100 ms, which is the inner bound of the cap below, and the
+                      disabled retry policy
                       the exporter percent-decodes every header value it is handed, and `settings` has decoded
                       each already. The binary therefore hands every value with each "%" written "%25", and the
                       name as it is, so that the value sent is the value of TraceConfig byte for byte. The escape
                       was taken over an HTTP client of the binary's own that carries the headers, which would
                       make that client a direct dependency of the binary.
+                      one name is respelled: `user-agent` is handed as `User-Agent`, the key the exporter keeps its
+                      own under, so that which of the two values is sent does not hang on the order of a map
+                      (Open questions)
     the provider      the explicit sampler; span limits given explicitly, 128 attributes, 128 events, and 128
                       links for a span, which are the SDK's defaults written out; a resource built from the empty
                       one, with no detector, that holds exactly TraceConfig.resource; and the unbatched processor
@@ -344,16 +360,90 @@ hide_generic_exporter_variables         # reference: core/internal/otel_command_
   With tracing off nothing is removed.
 finish
   no span open                      nothing, except: unavailable and a command announced -> log.unavailable
-  span open                         when error_type is Some: the attribute error.type and an error status with an
-                                    empty message. The span is ended at now. For a recorded span the processor
-                                    calls the exporter once, on this thread, and `finish` reads the kept result:
-                                    an error -> log.export_failed. The provider is then shut down.
-  a span the sampler did not record  ending it exports nothing; no result is kept and nothing is written
+  span open                         on the ending thread: when error_type is Some, the attribute error.type and an
+                                    error status with an empty message; then the end instant is read. The span,
+                                    the provider, and that instant go to the export thread, which `finish` starts
+                                    and waits for (the export thread, below). What the wait answers decides the
+                                    one record, and `finish` writes it on the ending thread:
+                                      exported, or nothing to export     nothing
+                                      the exporter answered an error     log.export_failed, the exporter's text
+                                      the thread panicked                log.export_failed, the panic's message
+                                      the cap expired                    log.export_failed, "the export exceeded
+                                                                         its time of 100 ms"
+                                      the thread could not be started    log.export_failed, the system's error
+  a span the sampler did not record  goes the same way: ending it exports nothing, the thread answers that there was
+                                    nothing to export, and nothing is written
+the export thread                       # decision:parallel-workspaces/component-runtime/trace-export-total-bound
+  the one thread the sources of the binary start, named `trace-export`, started by `finish` and only for an open
+  span: with tracing off, unavailable, or no command announced, none is started
+  what it owns      the span and the provider, outright. `finish` and `main` keep no handle of the provider, of
+                    the exporter, or of the HTTP client: each of those ends by being dropped on the export thread,
+                    so no drop on the ending thread or in `main` can join the client's helper thread.
+  what it runs      in this order, inside one unwind catch:
+                      1. ends the span at the instant it was handed; for a recorded span the processor calls the
+                         exporter once, on this thread
+                      2. reads the result the wrapper kept
+                      3. shuts the provider down; what a shutdown answers changes nothing
+                      4. drops the provider and with it the exporter and the client, which joins the helper thread
+                      5. sends its answer on a channel — exported or nothing to export, the exporter's error, or
+                         the panic — as the last thing it does
+  a panic there     never reaches stderr and never changes the ending. The thread arms the panic slot of its own
+                    id before step 1 and empties it before step 5 (runtime.md, The process boundary, panic hook),
+                    so the hook writes nothing for it, under the hook of `main` and under that of a unit test
+                    alike; the unwind is caught, and the answer is a failed export whose cause is the stored
+                    message. The rule of runtime.md that the thread joining a panicked thread turns the join error
+                    into InternalError::Panic does not apply: nothing joins this thread for its panic, and a
+                    panic of the export is a failed export, never an internal failure of the command. A thread
+                    abandoned at the cap stays armed, so a panic after the expiry writes nothing either.
+  the wait          a receive on that channel with a timeout of the cap, begun once the thread is started
+                      an answer arrives     `finish` joins the thread, which has nothing left to do, and reports
+                      the cap expires       `finish` abandons the thread: it drops the handle and does not join.
+                                            The thread runs on with everything it owns and ends with the process.
+                                            Whatever it answers later is read by no one.
+                      the channel closes with no answer   reported as a failed export; the thread is joined
+  a failed start    the span and the provider are not dropped on the ending thread, where dropping the span would
+                    end it and export it with no outer bound: they are handed through a slot the thread takes
+                    them from, and after a failed start `finish` forgets what the slot still holds
 the cap                                 # decision:observability-shutdown; core/internal/otel_command_tracer.py:35
-  the exporter's timeout is the one bound on the export: 100 ms from the start of the request, the value the
-  reference tool gives its exporter as "the exit cap: one request, never longer than this". One request: retry is
-  disabled. The executable tests hold the bound from outside: a collector that accepts and never answers does not
-  keep the process alive (Test seams).
+  100 ms, the value the reference tool gives its exporter as "the exit cap: one request, never longer than this".
+  One request: retry is disabled. The cap is held twice, and the outer bound is the one this contract promises.
+  outer, the binary's     the wait of `finish`: 100 ms from the start of that wait, whatever the export thread is
+                          doing by then — resolving the host name, connecting, the TLS handshake, sending the
+                          request, receiving the response's head or its body, following a redirect, shutting the
+                          provider down, or joining the client's helper thread. `finish` costs the invocation that
+                          wait and the start of one thread, and nothing a collector or a resolver does adds to it.
+  inner, the exporter's   the exporter's timeout, 100 ms, which reaches the blocking client's `timeout` and nothing
+                          else. Read in reqwest 0.13.5 and opentelemetry-http 0.33.1, it is no bound on the export:
+                            blocking/client.rs     one wait covers connecting, TLS, sending the body, and receiving
+                                                   the response's head
+                            blocking/response.rs   every read of the response's body then has a wait of its own, of
+                                                   the same length, started afresh
+                            opentelemetry-http     the body is read to its end, up to 4 MiB and one byte
+                            blocking/client.rs     a lookup that hangs is abandoned by the wait, and the drop of the
+                                                   client then joins the helper thread, which waits for the lookup
+                          so under it alone a collector that answers its head and stalls costs two caps, one that
+                          sends a byte of its body every 90 ms holds the exit for hours, and a resolver that hangs
+                          holds it for the resolver's own timeout. The exporter's builder has no switch for any of
+                          the three. The inner bound stays at the cap: it ends an ordinary slow export with the
+                          exporter's own cause, and it ends the export thread's work where it can.
+  which comes first       for a collector that never answers both run out together, and either may be reported: the
+                          record is the same record with one cause or the other, and no test asserts which
+  on expiry               the span is as it was ended: an expiry adds no attribute, no status, and no second span.
+                          The request may be out in full, in part, or not at all, so a collector may still receive
+                          the span the record calls not exported. stdout is complete and flushed before `finish`
+                          runs, and the exit code is the ending's: an expiry changes neither.
+at exit
+  `main` returns std::process::ExitCode (runtime.md, The process boundary); no source of the binary calls
+  std::process::exit. On that return the Rust runtime ends the process through the C library's `exit`, which waits
+  for no thread: a thread nobody joined ends with the process, at once. After an expiry the export thread is alive
+  at that point, and so may be the client's helper thread it is waiting for; both end there. After an export that
+  completed, the export thread was joined and had joined the helper thread, so no thread of tracing is left.
+  The binary therefore does not promise that no thread outlives `main`. It promises that `main` waits for none
+  after the cap, and nothing may be added that does: no scoped thread around the export, no handle of the provider,
+  the exporter, or the client held where its drop runs on the ending thread or in `main`, no join of the export
+  thread after an expiry, and no exit handler that waits.
+  an interrupt is unchanged: the handler ends the process with `_exit` on whichever thread the signal lands,
+  during the wait of `finish` as anywhere else (runtime.md, Interrupts and signals)
 ```
 
 ### Test seams
@@ -361,7 +451,8 @@ the cap                                 # decision:observability-shutdown; core/
 ```text
 unit, crates/core/src/trace.rs       `settings` over literal environments
 unit, crates/cli/src/trace.rs        `Tracer::with_exporter` and an exporter of the test's own that records the
-                                     span data it is handed, or answers an error; no socket
+                                     span data it is handed, answers an error, panics, or does not return before
+                                     the test releases it; no socket
 component                            the scaffold passes a recording CommandTracer and reports what `run` announced
                                      (runtime.md, Test seams)
 executable, crates/cli/tests/        the built binary with WINTER_OTEL_EXPORTER_OTLP_ENDPOINT naming the loopback
@@ -390,6 +481,29 @@ the collector                        test-harness.md, Interfaces: a listener on 
                                      no tracing crate: the decoder is an independent reading of the wire format, so
                                      a test compares what the crates sent with what the contract says, not the
                                      crates with themselves.
+the cap, unit                        an exporter that does not return: `finish` returns, with the export record
+                                     under a switched log, while the exporter is still inside its export; the test
+                                     releases it afterwards. An exporter that panics: the export record, and the
+                                     panic reaches no hook but the boundary's. Neither test waits a fixed time.
+the cap, executable                  three collectors hold the bound from outside: one that reads the request and
+                                     never answers (Answer::Hang), one that answers the head of a response and none
+                                     of its body (Answer::Stall), and one that sends the body a byte every 20 ms
+                                     (Answer::Drip). Each test asserts that the process ends within 2 s, with the
+                                     stdout and the exit code of the same command with tracing off.
+                                     no flake: the collector holds its connection until the test stops it, which
+                                     the test does after the process has ended, so no test waits out a stall of a
+                                     fixed length. A binary that waits for the collector never ends by itself and
+                                     fails at the 30 s deadline of the runner. 2 s is twenty caps, and what fills
+                                     it on a loaded machine is the start of the process and the reading of the
+                                     trust store, nothing the binary waits for. No test asserts a bound near the
+                                     cap: a loaded machine would fail it.
+                                     what each shows: Drip is the case the outer bound alone holds — under the
+                                     inner bound every read of the body succeeds, and the export lasts for hours.
+                                     Stall costs two caps under the inner bound alone, which 2 s does not tell
+                                     from one, so that test holds the outcome and the unit test above holds the
+                                     bound. On a machine so loaded that the bytes of a drip arrive more than
+                                     100 ms apart the inner bound ends a drip too, and the test then passes without
+                                     telling the two apart; it never fails for it.
 TLS                                  no automated test completes a TLS handshake: the collector of the support
                                      package speaks none. An executable test names the plain collector with an
                                      `https` URL and asserts that a connection arrives and the export fails within
@@ -398,7 +512,8 @@ TLS                                  no automated test completes a TLS handshake
 no scenario                          the pinned environment of a scenario turns tracing off, and a collector is no
                                      dimension a scenario compares
 no network                           every test addresses 127.0.0.1 alone; none resolves a name or reaches a real
-                                     collector
+                                     collector. A lookup that hangs is therefore under no test: the outer bound
+                                     covers it because the wait does not ask what the export thread is doing.
 ```
 
 ## Flows
@@ -413,42 +528,62 @@ conclude  runtime.md, The process boundary, in its order:
             the ending is final once the last flush is classified
             -> the diagnostic and the backtrace are written
             -> tracer.finish(termination.error_type(), stderr)
-                 span open         the span ends and is exported; on failure, log.export_failed
+                 span open         the export thread is started; it ends the span, exports it, and shuts the
+                                   provider down, and `finish` waits for its answer for the cap at most
+                                     an answer in time    the thread is joined; on a failure, log.export_failed
+                                     the cap expires      the thread is abandoned; log.export_failed
                  unavailable       log.unavailable, when a command was announced
                  otherwise         nothing
             -> the exit code, unchanged by anything `finish` did
+exit      `main` returns the exit code and the process ends, waiting for no thread: an export thread abandoned at
+          the cap, and the helper thread of its HTTP client, end with it
 panic     the span is ended with `Internal` and exported like any other ending
+          a panic on the export thread is a failed export: nothing on stderr without a logging switch, and the
+          exit code is the ending's
 SIGINT    undeferred: the handler exits the process; `finish` never runs and nothing is sent
+          during the wait of `finish`: the handler exits the process as anywhere else; the request may be out
           deferred: the command returns Termination::Interrupted and the span is exported with `Interrupted`
           decision:parallel-workspaces/component-runtime/interrupt-trace-export
 ```
 
 Export never changes the result: `finish` returns nothing, runs after the last byte of stdout and the diagnostic are
-written, and cannot panic past the boundary; a collector that refuses, hangs, or answers an error costs at most the cap
-and leaves stdout, the exit code, and an unswitched stderr as they were (reference:
+written, and cannot panic past the boundary; a collector that refuses, hangs, answers an error, answers the head of a
+response and stalls, or drips its body, and a resolver that hangs, cost at most the cap, counted from the start of the
+wait of `finish`, and leave stdout, the exit code, and an unswitched stderr as they were (reference:
 `core/internal/otel_command_tracer.py:35,383-409`; `tests/test_cli_otel_process.py`, the hanging and refused endpoint
 tests).
 
 ## Open questions
 
-- Whether the exporter's timeout covers the resolution of a host name is a property of the HTTP client that was not read
-  in its source; `decision:observability-shutdown` leaves resolution outside the cap. Engineering answers it when a
-  collector is first addressed by name in a deployment.
 - These points were read in the sources of the releases and not yet run: that a header value handed with each `%`
   written `%25` arrives as `TraceConfig` holds it, and that a name is not decoded; that the disabled retry policy can be
   handed to the exporter with the features this contract enables; that explicit span limits, an explicit sampler, and a
-  resource built from the empty one leave no SDK variable an effect; and that `SSL_CERT_FILE` naming a file with one
-  self-signed certificate lets the exporter be built while the host's store is not read. Two were not read: that each
-  crate builds with default features off, and that the unbatched processor exports on the ending thread. The change that
-  adds the crates confirms each against the release it takes; a point that does not hold goes back to engineering before
-  the change merges.
+  resource built from the empty one leave no SDK variable an effect; that `SSL_CERT_FILE` naming a file with one
+  self-signed certificate lets the exporter be built while the host's store is not read; and what the blocking client's
+  timeout covers, as the cap lists it. Four were not read: that each crate builds with default features off; that the
+  unbatched processor exports on the thread that ends the span; that the SDK's span and its provider can be moved to
+  another thread and ended there; and that the process ends at once when `main` returns while a thread it never joined
+  is still blocked. The change that adds the crates confirms each against the release it takes; a point that does not
+  hold goes back to engineering before the change merges.
 - What reading the trust store costs an invocation was not measured: the store of the machine the sources were read on
   holds 243 certificates in 180 kB, read and parsed before the one request. The change that adds the crates reports the
   start-up time of a traced command beside an untraced one; engineering weighs it then.
 - `SSL_CERT_FILE` and `SSL_CERT_DIR` were read for Linux. How the platform's verifier reads the store on another
   operating system, and whether the two variables apply there, was not read; engineering reads it when the binary is
   first built for one.
-- As read in release 0.33.1, the exporter drops without a word a configured header whose decoded value is no legal
-  header value, lets a configured `content-type` replace the protobuf one, and sends either a configured `user-agent` or
-  its own. What the reference tool does with each was not read, so none of the three is contract and no test asserts
-  one; the product owner says whether any is to be refused, sent, or registered as a deviation.
+- Three behaviours of the exporter toward a configured header, each as read in release 0.33.1 and each awaiting the
+  product owner, who says whether it is to be refused, sent, or registered as a deviation. What the reference tool does
+  with each was not read, so none of the three is contract.
+  - A configured header whose decoded value is no legal header value is dropped by the exporter without a word: the
+    request is sent without it, and no record says so.
+  - A configured `content-type` replaces the protobuf one: the exporter sets its own on the request and then the
+    configured headers over it. The protobuf content type is Function in this spec.
+  - A configured `user-agent` replaces the exporter's own. The exporter keeps its own under the key `User-Agent` in a
+    map keyed by spelling, and under another spelling the two would meet later, in an order nothing fixes; the binary
+    hands the configured one under the exporter's spelling so that the replacement is the same on every run.
+- The exporter's HTTP client follows redirects, ten at most, as read in reqwest 0.13.5: the exporter builds the client
+  with a timeout and nothing else, and its builder offers no switch for the redirect policy short of a client of the
+  binary's own. A collector that answers 307 or 308 therefore has the request sent again, with its body and its
+  configured headers, to the address the answer names, and the cap bounds the whole of it. "Whether a request is sent,
+  and that it is one" is Function in this spec, and what the reference tool's HTTP library does with a redirect was not
+  read. The product owner says whether following a redirect is accepted, registered as a deviation, or to be refused.
