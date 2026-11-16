@@ -86,7 +86,9 @@ tests fail intermittently for it. No source under `crates/*/src` of the library 
 - `grep -n 'released' context/standards/testing.md` prints nothing.
 - `grep -c 'RefusedEndpoint' crates/test-support/src/lib.rs` prints 1.
 - With the traces path of the binary changed to another text, a mutation the builder reverts, each test that calls
-  `Fixture::alone` fails on the first run of its invocation, and the failure prints the target the collector read.
+  `Fixture::alone` over `http://` fails on the first run of its invocation, and the failure prints the target the
+  collector read; the caller over `https://` is outside the check, since its collector receives a TLS handshake and
+  reads no request.
 - `cargo test -p winter-workspace-test-support --test otlp` and `cargo test -p winter-workspace --test trace` exit 0,
   and the second runs the 22 tests it ran before the change.
 - The repeat run below prints nothing: 30 rounds of two copies of the test file at once, 60 runs. It is not made
