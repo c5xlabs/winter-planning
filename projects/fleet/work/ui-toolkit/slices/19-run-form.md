@@ -1,5 +1,6 @@
 ---
 name: run-form
+external: github:paul-gross/blizzard#2273
 depends-on:
   - form-chrome
 code:

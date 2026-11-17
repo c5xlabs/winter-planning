@@ -1,5 +1,6 @@
 ---
 name: runner-host-domains
+external: github:paul-gross/blizzard#2290
 depends-on:
   - shared-chunk-domains
 code:

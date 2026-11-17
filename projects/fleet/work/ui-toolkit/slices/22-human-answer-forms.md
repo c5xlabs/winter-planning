@@ -1,5 +1,6 @@
 ---
 name: human-answer-forms
+external: github:paul-gross/blizzard#2276
 depends-on:
   - form-chrome
 code:

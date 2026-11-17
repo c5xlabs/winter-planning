@@ -1,5 +1,6 @@
 ---
 name: admin-history-domains
+external: github:paul-gross/blizzard#2292
 depends-on:
   - retire-config-legacy
 code:

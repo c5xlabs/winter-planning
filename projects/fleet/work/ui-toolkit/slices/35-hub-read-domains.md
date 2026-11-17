@@ -1,5 +1,6 @@
 ---
 name: hub-read-domains
+external: github:paul-gross/blizzard#2289
 depends-on:
   - shared-core-domains
   - proposal-pass-form

@@ -1,5 +1,6 @@
 ---
 name: scope-forms
+external: github:paul-gross/blizzard#2275
 depends-on:
   - form-chrome
 code:

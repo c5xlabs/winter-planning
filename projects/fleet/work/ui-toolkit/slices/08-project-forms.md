@@ -1,5 +1,6 @@
 ---
 name: project-forms
+external: github:paul-gross/blizzard#2262
 depends-on:
   - config-dialog-seam
 code:

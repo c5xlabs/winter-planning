@@ -2,6 +2,7 @@
 epic: ui-toolkit
 refinement: final
 status: ready
+external: github:paul-gross/blizzard#2254
 ---
 
 # UI toolkit

@@ -1,5 +1,6 @@
 ---
 name: angular-22
+external: github:paul-gross/blizzard#2255
 depends-on:
   - epic:storybook
 code:

@@ -1,5 +1,6 @@
 ---
 name: member-domains
+external: github:paul-gross/blizzard#2293
 depends-on:
   - domain-boundary-gate
 code:

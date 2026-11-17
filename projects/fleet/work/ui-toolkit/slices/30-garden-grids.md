@@ -1,5 +1,6 @@
 ---
 name: garden-grids
+external: github:paul-gross/blizzard#2284
 depends-on:
   - grid-bridge-members
 code:

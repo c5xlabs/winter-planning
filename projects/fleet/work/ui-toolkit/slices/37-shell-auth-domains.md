@@ -1,5 +1,6 @@
 ---
 name: shell-auth-domains
+external: github:paul-gross/blizzard#2291
 depends-on:
   - shared-core-domains
 code:

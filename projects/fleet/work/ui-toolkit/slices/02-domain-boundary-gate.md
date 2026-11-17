@@ -1,5 +1,6 @@
 ---
 name: domain-boundary-gate
+external: github:paul-gross/blizzard#2256
 depends-on:
   - angular-22
 code:

@@ -1,5 +1,6 @@
 ---
 name: shared-core-domains
+external: github:paul-gross/blizzard#2285
 depends-on:
   - domain-boundary-gate
 code:

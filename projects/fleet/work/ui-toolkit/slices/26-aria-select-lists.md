@@ -1,5 +1,6 @@
 ---
 name: aria-select-lists
+external: github:paul-gross/blizzard#2280
 depends-on:
   - domain-boundary-gate
 code:

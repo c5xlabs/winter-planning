@@ -1,5 +1,6 @@
 ---
 name: zone-combobox
+external: github:paul-gross/blizzard#2282
 depends-on:
   - cadence-form
   - form-control-bindings

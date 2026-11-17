@@ -1,5 +1,6 @@
 ---
 name: delivery-domains
+external: github:paul-gross/blizzard#2288
 depends-on:
   - shared-chunk-domains
 code:

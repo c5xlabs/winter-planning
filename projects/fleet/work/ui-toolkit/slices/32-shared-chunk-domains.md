@@ -1,5 +1,6 @@
 ---
 name: shared-chunk-domains
+external: github:paul-gross/blizzard#2286
 depends-on:
   - shared-core-domains
 code:

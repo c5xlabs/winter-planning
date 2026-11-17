@@ -1,5 +1,6 @@
 ---
 name: cadence-form
+external: github:paul-gross/blizzard#2260
 depends-on:
   - form-chrome
 code:

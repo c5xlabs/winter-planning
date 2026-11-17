@@ -1,5 +1,6 @@
 ---
 name: finding-triage-form
+external: github:paul-gross/blizzard#2271
 depends-on:
   - form-chrome
 code:

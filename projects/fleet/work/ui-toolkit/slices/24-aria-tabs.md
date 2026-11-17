@@ -1,5 +1,6 @@
 ---
 name: aria-tabs
+external: github:paul-gross/blizzard#2278
 depends-on:
   - domain-boundary-gate
 code:

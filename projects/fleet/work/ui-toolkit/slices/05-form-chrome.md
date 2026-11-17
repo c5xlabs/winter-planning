@@ -1,5 +1,6 @@
 ---
 name: form-chrome
+external: github:paul-gross/blizzard#2259
 depends-on:
   - form-save-contracts
   - form-control-bindings

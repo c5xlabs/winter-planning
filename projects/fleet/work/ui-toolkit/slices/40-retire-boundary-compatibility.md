@@ -1,5 +1,6 @@
 ---
 name: retire-boundary-compatibility
+external: github:paul-gross/blizzard#2294
 depends-on:
   - retire-config-legacy
   - chore-forms

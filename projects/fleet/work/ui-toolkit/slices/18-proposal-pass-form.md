@@ -1,5 +1,6 @@
 ---
 name: proposal-pass-form
+external: github:paul-gross/blizzard#2272
 depends-on:
   - form-chrome
 code:

@@ -1,5 +1,6 @@
 ---
 name: form-save-contracts
+external: github:paul-gross/blizzard#2257
 depends-on:
   - domain-boundary-gate
 code:

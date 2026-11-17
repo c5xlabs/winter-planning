@@ -1,5 +1,6 @@
 ---
 name: work-source-forms
+external: github:paul-gross/blizzard#2264
 depends-on:
   - config-dialog-seam
 code:

@@ -1,5 +1,6 @@
 ---
 name: config-dialog-seam
+external: github:paul-gross/blizzard#2261
 depends-on:
   - form-chrome
 code:

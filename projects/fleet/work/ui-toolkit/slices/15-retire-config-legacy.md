@@ -1,5 +1,6 @@
 ---
 name: retire-config-legacy
+external: github:paul-gross/blizzard#2269
 depends-on:
   - project-forms
   - repository-forms

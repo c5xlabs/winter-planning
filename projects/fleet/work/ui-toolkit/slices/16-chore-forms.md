@@ -1,5 +1,6 @@
 ---
 name: chore-forms
+external: github:paul-gross/blizzard#2270
 depends-on:
   - cadence-form
 code:

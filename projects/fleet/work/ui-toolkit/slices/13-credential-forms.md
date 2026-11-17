@@ -1,5 +1,6 @@
 ---
 name: credential-forms
+external: github:paul-gross/blizzard#2267
 depends-on:
   - config-dialog-seam
 code:

@@ -1,5 +1,6 @@
 ---
 name: repository-forms
+external: github:paul-gross/blizzard#2263
 depends-on:
   - config-dialog-seam
 code:

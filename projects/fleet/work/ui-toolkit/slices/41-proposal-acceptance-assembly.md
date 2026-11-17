@@ -1,5 +1,6 @@
 ---
 name: proposal-acceptance-assembly
+external: github:paul-gross/blizzard#2295
 depends-on:
   - retire-boundary-compatibility
   - aria-tabs

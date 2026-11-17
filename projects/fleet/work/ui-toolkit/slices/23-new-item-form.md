@@ -1,5 +1,6 @@
 ---
 name: new-item-form
+external: github:paul-gross/blizzard#2277
 depends-on:
   - form-chrome
 code:

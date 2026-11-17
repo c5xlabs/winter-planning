@@ -1,5 +1,6 @@
 ---
 name: secret-forms
+external: github:paul-gross/blizzard#2266
 depends-on:
   - config-dialog-seam
 code:

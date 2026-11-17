@@ -1,5 +1,6 @@
 ---
 name: forge-forms
+external: github:paul-gross/blizzard#2265
 depends-on:
   - config-dialog-seam
 code:

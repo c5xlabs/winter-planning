@@ -1,5 +1,6 @@
 ---
 name: grid-bridge-members
+external: github:paul-gross/blizzard#2283
 depends-on:
   - domain-boundary-gate
 code:

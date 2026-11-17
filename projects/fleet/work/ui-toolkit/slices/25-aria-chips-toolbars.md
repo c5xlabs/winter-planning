@@ -1,5 +1,6 @@
 ---
 name: aria-chips-toolbars
+external: github:paul-gross/blizzard#2279
 depends-on:
   - domain-boundary-gate
 code:

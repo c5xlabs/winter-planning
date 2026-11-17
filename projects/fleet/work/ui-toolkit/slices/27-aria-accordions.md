@@ -1,5 +1,6 @@
 ---
 name: aria-accordions
+external: github:paul-gross/blizzard#2281
 depends-on:
   - domain-boundary-gate
 code:

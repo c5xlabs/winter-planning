@@ -1,5 +1,6 @@
 ---
 name: urgency-forms
+external: github:paul-gross/blizzard#2268
 depends-on:
   - config-dialog-seam
 code:

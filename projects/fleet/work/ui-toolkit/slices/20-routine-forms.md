@@ -1,5 +1,6 @@
 ---
 name: routine-forms
+external: github:paul-gross/blizzard#2274
 depends-on:
   - form-chrome
 code:

@@ -1,5 +1,6 @@
 ---
 name: form-control-bindings
+external: github:paul-gross/blizzard#2258
 depends-on:
   - domain-boundary-gate
 code:
