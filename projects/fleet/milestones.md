@@ -36,7 +36,7 @@ takes work theirs to declare, and every upgrade taken when they choose and told 
 | `epic:cli-context`                       | ready       |
 | `epic:adopt-di`                          | planned     |
 | `epic:transactions`                      | in-progress |
-| `epic:advanced-forge-auth`               | in-progress |
+| `epic:advanced-forge-auth`               | delivered   |
 
 ## Autonomy (milestone:autonomy)
 
