@@ -32,7 +32,7 @@ takes work theirs to declare, and every upgrade taken when they choose and told 
 | `epic:config/model-resolution`           | planned     |
 | `epic:config/sweep`                      | planned     |
 | `epic:config/runtime`                    | in-progress |
-| `epic:ui-toolkit`                        | ready       |
+| `epic:ui-toolkit`                        | in-progress |
 | `epic:cli-context`                       | ready       |
 | `epic:adopt-di`                          | planned     |
 | `epic:transactions`                      | in-progress |
