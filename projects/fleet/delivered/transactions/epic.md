@@ -1,7 +1,7 @@
 ---
 epic: transactions
 refinement: final
-status: in-progress
+status: delivered
 external: github:paul-gross/blizzard#2147
 ---
 
