@@ -381,7 +381,8 @@ Outside a workspace, and with a malformed `.winter/config.toml`, every root-stag
 group, and every usage error ends as listed: none of them locates a workspace. A command that needs the workspace ends
 with a config error when it first asks for it (reference: `cli_context.py:13-31`,
 `config/internal/cwd_workspace_locator.py:26-33`). The value that holds the located root and the loaded configuration of
-one invocation is [configuration-model.md](../../workspace-configuration/spec/configuration-model.md)'s.
+one invocation is
+[configuration-model.md](../../../../work/parallel-workspaces/workspace-configuration/spec/configuration-model.md)'s.
 
 ## Open questions
 

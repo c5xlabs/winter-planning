@@ -27,17 +27,6 @@ Acceptance:
 - Local repository additions do not silently remove team declarations or create an unexplained duplicate identity.
 - Reading effective settings does not run commands embedded in those settings or materialize missing repositories.
 
-## Inspect settings without exposing secrets (product:configuration-explanation)
-
-The engineer can explain an operation's effective settings and their source without printing private values by default.
-
-Acceptance:
-
-- Inspection identifies the workspace and contributing configuration layers, including defaults where relevant.
-- Invalid or unsupported settings identify their source and subject rather than appearing as an unrelated command error.
-- Secret-bearing values and command-derived values are not resolved or printed by ordinary configuration inspection.
-- Inspection does not rewrite configuration, allocate an environment index, or create a local overlay.
-
 ## Correct invalid declarations before effects (product:configuration-validation)
 
 An engineer receives actionable diagnoses for invalid declarations without an unrelated malformed optional feature

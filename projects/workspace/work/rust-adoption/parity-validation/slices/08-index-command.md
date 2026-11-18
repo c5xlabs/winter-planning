@@ -17,11 +17,11 @@ nothing an earlier change of this epic adds.
 ## Change
 
 - `crates/core/src/commands/ws/index.rs` is the binary's first command file, in the shape of
-  [command-registration.md](../../../parallel-workspaces/component-runtime/spec/command-registration.md), Interfaces.
-  The `ws` group appears in help because it now has a command.
+  [command-registration.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-registration.md),
+  Interfaces. The `ws` group appears in help because it now has a command.
 - The file port arrives: `crates/core/src/files.rs` with `ReadFiles` and `OsFiles` as
-  [repository-layout.md](../../../parallel-workspaces/component-runtime/spec/repository-layout.md), What a command
-  receives, gives them, without `WriteFiles`; `Context` gains `files`, and `run` binds `OsFiles` to it.
+  [repository-layout.md](../../../../delivered/parallel-workspaces/component-runtime/spec/repository-layout.md), What a
+  command receives, gives them, without `WriteFiles`; `Context` gains `files`, and `run` binds `OsFiles` to it.
 - The test module of `crates/core/src/parse.rs` supplies `files` where it builds a `Context`, and
   `context/architecture/structure.md` lists the new modules.
 - `workspace_root.rs`, `config_raw.rs`, `state_registry.rs`, and `env_index.rs` exist, each implementing the sections of

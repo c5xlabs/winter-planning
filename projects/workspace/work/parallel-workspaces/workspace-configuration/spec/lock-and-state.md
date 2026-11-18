@@ -5,6 +5,10 @@ reference tool's file format (`decision:configuration-transition`). Reference lo
 `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`. The declared configuration is
 [configuration-model.md](./configuration-model.md), which also owns write integrity for these files.
 
+Each part is built with the first command that uses it: the lock file, read and written, by
+`epic:parallel-workspaces/reproducible-inputs`; the registry's write, allocation, and release by
+`epic:parallel-workspaces/environment-lifecycle`. Reading the registry and the lookup are built, with `ws index`.
+
 The file contents are contract, because the lock is committed and both files are read back by either tool. The wording
 of the errors below is the binary's own (`decision:functional-parity`).
 
@@ -138,7 +142,7 @@ target:   failed; nothing is recorded in the registry; the remaining targets sti
 ```
 
 The in-band internal-failure rule is in
-[results-and-exit-codes.md](../../component-runtime/spec/results-and-exit-codes.md).
+[results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md).
 
 ### Fixed points
 

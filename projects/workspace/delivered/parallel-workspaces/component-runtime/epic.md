@@ -1,7 +1,7 @@
 ---
 epic: parallel-workspaces/component-runtime
 refinement: outline
-status: planned
+status: delivered
 ---
 
 # Invoke Workspace as a product component

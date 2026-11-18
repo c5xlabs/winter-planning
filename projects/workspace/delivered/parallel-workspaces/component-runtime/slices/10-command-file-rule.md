@@ -16,8 +16,9 @@ Makes the two command files what [command-registration.md](../spec/command-regis
 holds, and adds the check that section lists, under `engineering:additive-registration` and
 `engineering:domain-io-boundaries`. The removal transaction and the index lookup move into domain modules that take the
 file port, and the workspace's file names get one owner. Behaviour does not change: the order of checks of
-[repository-removal.md](../../repository-catalog/spec/repository-removal.md), Interfaces, and the reads of
-[index-lookup.md](../../environment-lifecycle/spec/index-lookup.md), Interfaces, are the ones the code has today.
+[repository-removal.md](../../../../work/parallel-workspaces/repository-catalog/spec/repository-removal.md), Interfaces,
+and the reads of [index-lookup.md](../../../../work/parallel-workspaces/environment-lifecycle/spec/index-lookup.md),
+Interfaces, are the ones the code has today.
 
 ## Change
 
@@ -134,8 +135,8 @@ file port, and the workspace's file names get one owner. Behaviour does not chan
 ## Out of scope
 
 - A value that holds the located root and the loaded configuration of one invocation, reached through `Context`:
-  [configuration-model.md](../../workspace-configuration/spec/configuration-model.md), Root discovery and Load;
-  `epic:parallel-workspaces/workspace-configuration`.
+  [configuration-model.md](../../../../work/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
+  Root discovery and Load; `epic:parallel-workspaces/workspace-configuration`.
 - A write-failure variant of `ConfigError`, so that a failed update is no longer reported as `FileRead`: the same epic.
 - `CatalogError::Entangled` and the return type of `remove_repository_block`, which repository-removal.md, Domain, does
   not list: `epic:parallel-workspaces/repository-catalog`.

@@ -4,7 +4,7 @@ The workspace configuration files, their keys, layering, validation, and writers
 reference tool's files unchanged (`decision:configuration-transition`). Reference locations are paths under
 `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`. The lock and machine-state files
 are [lock-and-state.md](./lock-and-state.md); error rendering is
-[results-and-exit-codes.md](../../component-runtime/spec/results-and-exit-codes.md).
+[results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md).
 
 Under `decision:functional-parity` the contract is which values are accepted, coerced, defaulted, or refused, the error
 kind of each refusal with the values it carries, and the bytes written to the files. The wording of a configuration
@@ -157,11 +157,13 @@ then the typed configuration is built in this order, which decides the refusal r
   2. git identity, keybindings, then tui.dashboard.layout               # an invalid layout is refused here
   3. capabilities
   4. removed keys: service_orchestrator, then session_prefix            # Removed keys
+     then the top-level main_branch                                     # Value types; config/workspace.py:255
   5. adopt_extensions
   6. envs_per_workspace against env_aliases
   7. the workspace prefix against each standalone prefix
   8. core_checks, then the env bands, then space, model_tiers, agent_model_overrides
                                                                         # the removed [env.vars] is refused with the env bands
+  9. the top-level git_excludes                                         # Value types; config/workspace.py:327
 a refusal is a ConfigError unless the key's table says otherwise        # Keys
 [provision] and [[service]] stay raw; each is validated only when a command needs it
 ```
@@ -170,6 +172,10 @@ The first refusal met ends the load; one invocation reports one configuration er
 and writes nothing (`engineering:inert-configuration-read`). One invocation loads once and uses that value throughout
 (`engineering:configuration-snapshot`); the lint ignore rules re-read and merge the same two files themselves
 (`modules/lint/ignore_service.py:420-437`).
+
+A key's value is kept in the loaded configuration only once a command reads it, and that command's spec names the key.
+Until then the load applies the key's refusals and keeps nothing; a key whose rows hold no refusal is not read at all.
+Neither changes what any invocation observes.
 
 ### Layering
 
@@ -360,6 +366,10 @@ Conditions not stated in a key row, each a ConfigError (`config/workspace.py`):
 
 ### Derived values
 
+Each is built with the first command that reads it: `port_base` by `epic:running-environments/scope-environment`,
+`space_dir` by `epic:agent-ready-operation/artifact-space`, and `config_dir` by
+`epic:agent-ready-operation/executable-extensions`.
+
 ```text
 port_base(index)  = base_port + index * ports_per_env                          # config/models.py:910
 space_dir(kind)   = root' / (space.kinds[kind] or kind)                        # config/models.py:917
@@ -392,6 +402,11 @@ and `envs_per_workspace = envs + 1` when `envs` is set, plus the inherited outer
 two repository arrays) (`modules/workspace/nested_overlay.py:17-59`); its policy belongs to
 `epic:parallel-workspaces/nested-workspaces`.
 
+Each writer is built with the first command that calls it: appending a repository with `repo add`, by
+`epic:parallel-workspaces/repository-catalog`; setting a standalone `ref` with `ws update`, by
+`epic:parallel-workspaces/reproducible-inputs`; and the upsert with nested delegation, by
+`epic:parallel-workspaces/nested-workspaces`. Removing a repository is built, with `repo remove`.
+
 ### Write integrity
 
 ```text
@@ -411,6 +426,8 @@ readers:  take no lock; a reader sees the old file or the new file, never a part
 visible:  file content, file set, and exit codes are identical to an unlocked, non-atomic writer
           when there is no concurrent writer and no interruption
 ```
+
+Write integrity is built in the file port, with `repo remove`, and each writer of the four files uses it as it lands.
 
 ## Open questions
 

@@ -3,7 +3,7 @@
 The two operations over a scenario directory: the record step, which runs the reference tool once and stores what it
 did, and replay, which runs the binary against the same fixture and compares. The files both read and write are
 [scenario-format.md](./scenario-format.md); the gate that runs replay is
-[gates.md](../../../parallel-workspaces/component-runtime/spec/gates.md).
+[gates.md](../../../../delivered/parallel-workspaces/component-runtime/spec/gates.md).
 
 ## System
 
@@ -48,9 +48,9 @@ outside the word rule                   crates/core and crates/cli/src. The prod
 ```
 
 The harness side of the two substring rules is stated where the harness is specified:
-[test-harness.md](../../../parallel-workspaces/component-runtime/spec/test-harness.md), The pinned environment, "names
-the package never spells". The trees the rules cover therefore already satisfy both when the check arrives, and the
-change that adds the check repairs nothing.
+[test-harness.md](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md), The pinned
+environment, "names the package never spells". The trees the rules cover therefore already satisfy both when the check
+arrives, and the change that adds the check repairs nothing.
 
 ## Interfaces
 

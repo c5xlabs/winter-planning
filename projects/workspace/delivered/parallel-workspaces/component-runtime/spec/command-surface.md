@@ -384,18 +384,18 @@ Read by the reference tool and not by the binary:
 
 ### Deliberately absent
 
-| Reference behaviour                                                                | Why absent                                                                                                                                |
-| ---------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| `winter init` (create an empty `.winter/config.toml`, then `ws init`)              | Launcher-only; `decision:parallel-workspaces/component-runtime/launcher-only-surface`.                                                    |
-| `--winter=PATH` source selection                                                   | Launcher-only; same decision.                                                                                                             |
-| Virtual-environment freshness check, dependency sync, `VIRTUAL_ENV` / `PATH` setup | Launcher-only; same decision.                                                                                                             |
-| Launcher root rule requiring `tools/winter-cli/` beside `.winter/config.toml`      | Launcher-only; root discovery is [configuration-model.md](../../workspace-configuration/spec/configuration-model.md).                     |
-| Bytecode cache redirect (`XDG_CACHE_HOME`)                                         | Python-runtime behaviour with no observable equivalent.                                                                                   |
-| Shell completion answered when `_WINTER_COMPLETE` is set                           | An undocumented side effect of the reference parser (`click/core.py:1451-1478`), not a feature of the tool; `decision:functional-parity`. |
-| `doctor` python-version probe                                                      | Dropped; registered when the diagnostics spec is written.                                                                                 |
-| Commands contributed by in-process plugins                                         | Never reached the reference tree; plugin loading is dropped by `decision:agent-ready-operation/workspace-dashboard/contribution-scope`.   |
-| A `context` command                                                                | New capability, designed in `epic:agent-ready-operation/context-navigation`; not part of this surface.                                    |
-| `component.toml`, `.winterrc`, handoff metadata                                    | `decision:rust-replacement`: direct invocation is the only entry point.                                                                   |
+| Reference behaviour                                                                | Why absent                                                                                                                                           |
+| ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `winter init` (create an empty `.winter/config.toml`, then `ws init`)              | Launcher-only; `decision:parallel-workspaces/component-runtime/launcher-only-surface`.                                                               |
+| `--winter=PATH` source selection                                                   | Launcher-only; same decision.                                                                                                                        |
+| Virtual-environment freshness check, dependency sync, `VIRTUAL_ENV` / `PATH` setup | Launcher-only; same decision.                                                                                                                        |
+| Launcher root rule requiring `tools/winter-cli/` beside `.winter/config.toml`      | Launcher-only; root discovery is [configuration-model.md](../../../../work/parallel-workspaces/workspace-configuration/spec/configuration-model.md). |
+| Bytecode cache redirect (`XDG_CACHE_HOME`)                                         | Python-runtime behaviour with no observable equivalent.                                                                                              |
+| Shell completion answered when `_WINTER_COMPLETE` is set                           | An undocumented side effect of the reference parser (`click/core.py:1451-1478`), not a feature of the tool; `decision:functional-parity`.            |
+| `doctor` python-version probe                                                      | Dropped; registered when the diagnostics spec is written.                                                                                            |
+| Commands contributed by in-process plugins                                         | Never reached the reference tree; plugin loading is dropped by `decision:agent-ready-operation/workspace-dashboard/contribution-scope`.              |
+| A `context` command                                                                | New capability, designed in `epic:agent-ready-operation/context-navigation`; not part of this surface.                                               |
+| `component.toml`, `.winterrc`, handoff metadata                                    | `decision:rust-replacement`: direct invocation is the only entry point.                                                                              |
 
 ### Registered deviations
 

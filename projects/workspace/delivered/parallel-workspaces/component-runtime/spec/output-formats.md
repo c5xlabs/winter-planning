@@ -137,7 +137,7 @@ command.
 | `provision`, `clean`    | `started`, `subtarget_started`, `no_handlers`, `execution_started`, `execution_output_line`, `execution_completed`, `execution_error`, `handler_result`, `handler_warn`, `plan_handler`, `finished` |
 
 `cmd_output_line` and `execution_output_line` carry the child's stdout and stderr lines merged in arrival order
-([invocation contract](../../../agent-ready-operation/executable-extensions/spec/invocation-contract.md)).
+([invocation contract](../../../../work/agent-ready-operation/executable-extensions/spec/invocation-contract.md)).
 
 Documents held here until the spec of the epic that owns each command exists; the owner is named on the right, and the
 placement is temporary (Open questions):

@@ -57,7 +57,7 @@ Suite [engineering requirements](../../../../engineering.md) already own `engine
 `engineering:release-versions`. Suite [decisions](../../../../decisions.md) own shared context, release governance, and
 Homebrew policy. They are consumed, not redefined at Workspace project scope.
 
-The [component-runtime engineering requirements](../../work/parallel-workspaces/component-runtime/engineering.md)
+The [component-runtime engineering requirements](../../delivered/parallel-workspaces/component-runtime/engineering.md)
 already own reproducible builds, local/CI checks, test tiers, isolated executable fixtures, invocation fidelity, output
 discipline, and governed contributor guidance. Project invariants complement these records rather than duplicating their
 checklists. Parity validation, migration, context navigation, and release acceptance retain their own bounds.

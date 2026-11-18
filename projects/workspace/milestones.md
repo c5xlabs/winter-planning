@@ -4,22 +4,24 @@ Where Winter Workspace is headed, as destinations in the work of the people it s
 reached. Each milestone names the epics needed to reach it; each epic's own status is the truth, so this is a plan, not
 a status board. Once a milestone is reached, it moves to the [delivered ledger](./delivered.md).
 
-The milestones are useful destinations across the four initiatives. Intermediate milestones name their required epics;
-the final rough-parity milestone needs all four initiatives, rather than owning them as one large initiative.
+The milestones are useful destinations across the four initiatives, reached one after another. Each epic is listed once,
+under the first milestone that needs it: a milestone is reached when its own epics are delivered, and each later
+milestone builds on everything reached before it.
 
 ## Declare a workspace without forking Winter (milestone:declare-workspace)
 
 An engineer can create and inspect a workspace, declare its repositories and local settings, and give an agent guidance
 that matches the selected tool. They do not clone Winter's framework source to start configuring their own system.
 
-| Epic                                               | Status  |
-| -------------------------------------------------- | ------- |
-| `epic:parallel-workspaces/component-runtime`       | planned |
-| `epic:parallel-workspaces/workspace-configuration` | planned |
-| `epic:parallel-workspaces/repository-catalog`      | planned |
-| `epic:parallel-workspaces/reproducible-inputs`     | planned |
-| `epic:agent-ready-operation/context-navigation`    | planned |
-| `epic:parallel-workspaces/workspace-bootstrap`     | planned |
+| Epic                                               | Status      |
+| -------------------------------------------------- | ----------- |
+| `epic:parallel-workspaces/component-runtime`       | delivered   |
+| `epic:rust-adoption/parity-validation`             | in-progress |
+| `epic:parallel-workspaces/workspace-configuration` | planned     |
+| `epic:parallel-workspaces/repository-catalog`      | planned     |
+| `epic:parallel-workspaces/reproducible-inputs`     | planned     |
+| `epic:agent-ready-operation/context-navigation`    | planned     |
+| `epic:parallel-workspaces/workspace-bootstrap`     | planned     |
 
 ## Work across isolated branches (milestone:parallel-branches)
 
@@ -43,8 +45,6 @@ resources.
 
 | Epic                                                 | Status  |
 | ---------------------------------------------------- | ------- |
-| `epic:parallel-workspaces/environment-lifecycle`     | planned |
-| `epic:running-environments/scope-environment`        | planned |
 | `epic:running-environments/resource-provisioning`    | planned |
 | `epic:running-environments/service-orchestration`    | planned |
 | `epic:running-environments/provider-tmux`            | planned |
@@ -59,8 +59,6 @@ agents the same managed skills and instructions without overwriting personal wor
 
 | Epic                                                | Status  |
 | --------------------------------------------------- | ------- |
-| `epic:agent-ready-operation/context-navigation`     | planned |
-| `epic:agent-ready-operation/executable-extensions`  | planned |
 | `epic:agent-ready-operation/extension-management`   | planned |
 | `epic:agent-ready-operation/agent-model-resolution` | planned |
 | `epic:agent-ready-operation/harness-projection`     | planned |
@@ -84,9 +82,7 @@ An existing user can install and adopt the Rust Workspace component with the inv
 deliberate differences documented, and no supported first-party Python runtime path. Unresolved redesigns remain
 blockers rather than being treated as implicit permission to drop functionality.
 
-| Epic                               | Status  |
-| ---------------------------------- | ------- |
-| `initiative:parallel-workspaces`   | planned |
-| `initiative:running-environments`  | planned |
-| `initiative:agent-ready-operation` | planned |
-| `initiative:rust-adoption`         | planned |
+| Epic                                     | Status  |
+| ---------------------------------------- | ------- |
+| `epic:rust-adoption/workspace-migration` | planned |
+| `epic:rust-adoption/workspace-release`   | planned |

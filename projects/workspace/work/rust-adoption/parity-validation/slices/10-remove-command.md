@@ -15,8 +15,8 @@ of the state-changing proof of `engineering:method-proof`, under
 It builds on the file port and the `files` field of `Context` that `index-command` adds.
 
 The write port and its first caller arrive together: the library holds no code that nothing uses
-([repository-layout.md](../../../parallel-workspaces/component-runtime/spec/repository-layout.md), "warning-free while
-partly used"), so the port cannot land ahead of the command that calls it.
+([repository-layout.md](../../../../delivered/parallel-workspaces/component-runtime/spec/repository-layout.md),
+"warning-free while partly used"), so the port cannot land ahead of the command that calls it.
 
 ## Change
 

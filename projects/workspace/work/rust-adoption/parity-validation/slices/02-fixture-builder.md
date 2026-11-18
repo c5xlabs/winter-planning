@@ -8,8 +8,8 @@ depends-on:
 
 Builds `scenario::fixture`: the fixture section of [scenario-format.md](../spec/scenario-format.md) turned into an
 isolated tree through the helpers of the
-[test harness](../../../parallel-workspaces/component-runtime/spec/test-harness.md). Delivers the build half of
-`engineering:scenario-files` under `decision:rust-adoption/parity-validation/scenario-state-prerequisites`.
+[test harness](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md). Delivers the build
+half of `engineering:scenario-files` under `decision:rust-adoption/parity-validation/scenario-state-prerequisites`.
 
 ## Change
 

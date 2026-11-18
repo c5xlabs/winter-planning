@@ -4,7 +4,7 @@ What one recorded scenario is on disk: its directory, its description file, the 
 reference tool produced, and the expectation that replaces a record for a registered deviation. How the files are
 produced and compared is [record-and-replay.md](./record-and-replay.md). The isolated tree, the pinned environment, and
 the git helpers the fixture is built with are the
-[test harness](../../../parallel-workspaces/component-runtime/spec/test-harness.md).
+[test harness](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md).
 
 ## System
 

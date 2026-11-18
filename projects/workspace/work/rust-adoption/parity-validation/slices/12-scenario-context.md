@@ -7,8 +7,8 @@ depends-on:
 # Contributor document for recorded scenarios, and its matrix rows
 
 Adds the scenario document, the `workspace:scenario` row, and `tool:record` to the code repository's context tree, as
-[contributor-context](../../../parallel-workspaces/component-runtime/spec/contributor-context.md) reserves them. It
-restates [scenario-format.md](../spec/scenario-format.md) and the Flows of
+[contributor-context](../../../../delivered/parallel-workspaces/component-runtime/spec/contributor-context.md) reserves
+them. It restates [scenario-format.md](../spec/scenario-format.md) and the Flows of
 [record-and-replay.md](../spec/record-and-replay.md) for a contributor, under
 `engineering:parallel-workspaces/component-runtime/workspace-development-context`.
 

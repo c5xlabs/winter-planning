@@ -18,8 +18,8 @@ checkout the test creates under a temporary directory.
   `WINTER_REFERENCE_BIN`, apply every refusal of the spec before starting it, and call `scenario::record` with the
   reference-only environment additions, the one redaction of the spec, and the `reference_runtime` line.
 - The command reads `WINTER_REFERENCE_BIN` and `PATH` through the environment lookup `main_with` is given, as the spec's
-  Record block and [gates.md](../../../parallel-workspaces/component-runtime/spec/gates.md), Steps, say; the driver's
-  `main.rs` already passes that lookup and does not change.
+  Record block and [gates.md](../../../../delivered/parallel-workspaces/component-runtime/spec/gates.md), Steps, say;
+  the driver's `main.rs` already passes that lookup and does not change.
 - The refusals are one function of the driver's library over explicit inputs — the reference path, the caller's `PATH`
   value, the scenarios root — so a test passes each input and no test changes its own process environment.
 - The checkout is inspected with exactly the three git commands and the environment of the spec's "the reference
@@ -32,12 +32,13 @@ checkout the test creates under a temporary directory.
 - Exit codes are 0, 1, and 2 as specified.
 - The architecture test gains the two substring rules of the spec's System section, each over the files that section
   gives it. Those files already satisfy both, as
-  [test-harness.md](../../../parallel-workspaces/component-runtime/spec/test-harness.md), "names the package never
-  spells", required of every change that wrote them. A violation found there is reported with its file and line, and the
-  offending text is removed in this change by rewording a comment or renaming a test's own variable; no behaviour of
-  those packages changes.
+  [test-harness.md](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md), "names the
+  package never spells", required of every change that wrote them. A violation found there is reported with its file and
+  line, and the offending text is removed in this change by rewording a comment or renaming a test's own variable; no
+  behaviour of those packages changes.
 - `AGENTS.md` gains the standing rule about the reference tool from
-  [contributor-context](../../../parallel-workspaces/component-runtime/spec/contributor-context.md), Entry point.
+  [contributor-context](../../../../delivered/parallel-workspaces/component-runtime/spec/contributor-context.md), Entry
+  point.
 - Files touched: `crates/dev/src/{lib,record,architecture}.rs`, `crates/dev/tests/{record,architecture}.rs`,
   `crates/dev/Cargo.toml`, `Cargo.lock`, `AGENTS.md`; and, only for a violation as above, the one file that holds it.
 

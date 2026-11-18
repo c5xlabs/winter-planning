@@ -2,7 +2,7 @@
 
 The two verification gates of the code repository, the driver that runs them, the Cargo aliases, and the CI workflow.
 The package layout is [repository-layout.md](./repository-layout.md); the scenario target the full gate runs is defined
-by the [record and replay spec](../../../rust-adoption/parity-validation/spec/record-and-replay.md).
+by the [record and replay spec](../../../../work/rust-adoption/parity-validation/spec/record-and-replay.md).
 
 ## Interfaces
 

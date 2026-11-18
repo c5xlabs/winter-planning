@@ -298,7 +298,7 @@ no provision state is recorded or consulted; nothing gates `up` on an earlier `p
 
 `ext verify EXTENSIONS...` runs these against each operand's real entrypoint; an operand is an extension name or a path
 to an extension directory, and there is no slot operand
-([command surface](../../../parallel-workspaces/component-runtime/spec/command-surface.md)):
+([command surface](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md)):
 
 | Check                 | Passes when                                            |
 | --------------------- | ------------------------------------------------------ |

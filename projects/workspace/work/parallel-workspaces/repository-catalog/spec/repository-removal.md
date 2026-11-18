@@ -1,9 +1,10 @@
 # Repository removal
 
 The `repo remove` command: which block of which file it removes, and which lines of the user's configuration survive.
-Its arguments are the `repo remove` row of [command-surface.md](../../component-runtime/spec/command-surface.md),
-Commands. The grammar of `TARGET` and the three refusals are the `repo remove` row of the same file's Combination rules;
-this leaf adds what happens once `TARGET` is well formed.
+Its arguments are the `repo remove` row of
+[command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), Commands. The
+grammar of `TARGET` and the three refusals are the `repo remove` row of the same file's Combination rules; this leaf
+adds what happens once `TARGET` is well formed.
 
 ## Interfaces
 

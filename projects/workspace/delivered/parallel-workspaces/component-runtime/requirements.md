@@ -54,8 +54,8 @@ Acceptance:
 
 - A local build is evaluated by invoking its `winter-workspace` executable directly, not by replacing a release or
   selecting a feature environment through the installed launcher.
-- Agent/runtime guidance in the `winter-workspace` code repository explains how to build and invoke that executable
-  from a feature-environment worktree and is discoverable through the repository's agent entry point.
+- Agent/runtime guidance in the `winter-workspace` code repository explains how to build and invoke that executable from
+  a feature-environment worktree and is discoverable through the repository's agent entry point.
 - Choosing different code does not change or sandbox the target workspace; guidance states the actual mutation scope.
 - Evaluation leaves the installed component, other workspaces' pins, and immutable released cache entries unchanged.
 - Guidance states that Rust source changes require rebuilding before the next invocation and distinguishes direct Rust

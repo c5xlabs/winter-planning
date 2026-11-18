@@ -7,7 +7,7 @@ status: planned
 # Know which workspace and configuration will be used
 
 Part of `initiative:parallel-workspaces`; product requirements live in [requirements.md](./requirements.md). Supports
-the other parity epics through one identifiable workspace and explainable effective configuration.
+the other parity epics through one identifiable workspace and predictable effective configuration.
 
 ## The problem
 
