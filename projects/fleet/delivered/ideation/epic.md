@@ -120,9 +120,9 @@ offered only its own.
 Three classes, declared by the ideation graph and stored by the platform without ever being read.
 
 **`direction`** is a capability worth exploring, larger than any single work item. The operator accepts one without
-minting a work item — a choice accept already offers — and the accepted idea earns a row in `epics.md`, written by hand.
-This is the class the epic's promise rests on — the registry stays the operator's, and the fleet earns a voice in it
-rather than a key to it.
+minting a work item — a choice accept already offers — and the accepted idea earns a row in `milestones.md`, written by
+hand. This is the class the epic's promise rests on — the registry stays the operator's, and the fleet earns a voice in
+it rather than a key to it.
 
 **`tweak`** is a concrete change small enough to be work. Accepting mints an item carrying the proposal's own body.
 
@@ -135,9 +135,9 @@ Every run's output is read and closed out. The operator takes what a run propose
 and passing carries its reason.
 
 That habit is not administrative tidiness; it is what makes the whole shape work. A passed proposal is a decision the
-next run reads. An accepted one leaves for `epics.md`, where the next run reading the charter finds the idea already
-planned and says nothing about it. The open set stays small because it is worked rather than accumulated, and the ideas
-that survive pile up where ideas ought to — in the registry, human-owned, in priority order.
+next run reads. An accepted one leaves for `milestones.md`, where the next run reading the charter finds the idea
+already planned and says nothing about it. The open set stays small because it is worked rather than accumulated, and
+the ideas that survive pile up where ideas ought to — in the registry, human-owned, in priority order.
 
 ## What this epic is not
 
