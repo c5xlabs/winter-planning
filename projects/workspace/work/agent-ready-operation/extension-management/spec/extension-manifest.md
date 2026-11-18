@@ -88,7 +88,7 @@ pub enum ServiceEntryError {
 ```
 
 `FileCause`, `ConfigValue`, and `ValueType` are defined in the
-[configuration model](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md).
+[configuration model](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md).
 
 ## Data
 
@@ -219,8 +219,8 @@ Each reader of a manifest decides what a failed load does:
 | Any other reader                                                     | The repo error propagates to that reader's caller; the owning command's spec states the result.                                                                           |                                                         |
 
 A fault in the workspace configuration's own `[provision]` or `[[service]]` is not absorbed: it is a command error, exit
-1 ([configuration model](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md), Unknown
-keys).
+1 ([configuration model](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
+Unknown keys).
 
 ## Open questions
 

@@ -2,6 +2,7 @@
 name: repository-entries
 depends-on:
   - layered-load
+  - top-level-refusals
 code:
   - winter-workspace/crates/core/src/config.rs
   - winter-workspace/crates/core/src/termination.rs::ConfigError
@@ -18,11 +19,15 @@ step 7. Delivers the duplicate-identity bullet of `product:effective-configurati
 ## Change
 
 - `ConfigError` gains `Repository`, `DuplicateStandaloneName`, and `PrefixCollision`, with `RepoKind`, `EntryIdent`,
-  `RepoRef`, and `RepositoryFault` as the spec's Domain gives them; `ValueType` carries the repository in `owner` for a
-  repository field.
-- Project entries are checked, then standalone entries, each in declaration order. An element that is not a table, and
-  an entry with neither `name` nor `url`, is skipped with no message. The resolved name is `name`, else the URL's last
-  path segment without a trailing `.git`.
+  `RepoRef`, and `RepositoryFault` as the spec's Domain gives them; `ValueType` gains `owner`, carrying the repository
+  for a repository field.
+- The `project_repository` array and its entries are checked, then the `standalone_repository` array and its entries,
+  each in declaration order. An array value the reference fails on is `ValueType`; any other non-array reads as no
+  entries, as its Value types row says. An element that is not a table, and an entry whose `name` and `url` are both
+  empty, is skipped with no message. The resolved name follows the spec's Repository entries, using `config_edit`'s
+  existing URL derivation. Existing tests this contradicts are rewritten, not taken as evidence against the refusal:
+  `the_document_holds_the_name_as_the_target_gives_it_not_as_the_block_does` (`name = 7`). The second Open-questions
+  bullet of `repository-removal.md` is updated, since the load now refuses a non-string `name` before removal.
 - Each field rule of the table is applied, for the kind of entry that has the field: value types for `name`, `url`,
   `main_branch`, `git_excludes`, `cmd`, `ref`, `path`, `prefix`, and `config_dir`; `extension` and `nested` booleans;
   `load` and `entry`; `path` and `config_dir` relative without `..`; the nested-only and nested-excluded keys; a
@@ -39,15 +44,17 @@ step 7. Delivers the duplicate-identity bullet of `product:effective-configurati
   `entry = ["../x"]`; `envs = 0`; `envs = true`; `inherit_local = ["a.b"]`.
 - Unit tests of value types: `cmd = "make"` on a project and `ref = 1` on a standalone are `ValueType` with the
   repository as owner; `cmd = []` loads.
+- Unit tests of the arrays: `project_repository = true` and `standalone_repository = 1` are `ValueType`;
+  `project_repository = false`, `= ""`, `= "abc"`, and `= { a = 1 }` load with no entries.
 - Unit tests: two standalones named by URL `…/ctx.git` and `name = "ctx"` are `DuplicateStandaloneName`; two projects
   named `web` load; `prefix = "ws"` on a standalone, with the default workspace prefix, is `PrefixCollision`; a string
-  element of `project_repository` and a table with neither `name` nor `url` are skipped.
+  element of `project_repository` and a table with neither `name` nor `url`, and `{ name = "" }`, are skipped;
+  standalones with `url = "host:ctx.git"` and `name = "ctx"` are `DuplicateStandaloneName`.
 - A unit test with a faulty project entry and a faulty standalone entry reports the project entry.
 - A component test of `ws index` with an absolute standalone `path` exits 1 with a diagnostic naming the standalone.
 - `cargo dev gate full` exits 0.
 
 ## Out of scope
 
-- `repo add`, `repo list`, and what `repo remove` does with an entry the load would refuse:
-  `epic:parallel-workspaces/repository-catalog`.
+- `repo add` and `repo list`: `epic:parallel-workspaces/repository-catalog`.
 - `config_dir(ext)`: built with its first reader, under the spec's Derived values.

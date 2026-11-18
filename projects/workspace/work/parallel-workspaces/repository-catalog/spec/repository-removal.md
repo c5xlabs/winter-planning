@@ -13,7 +13,8 @@ repo remove TARGET [--local] [--json]
 order of checks
   1. TARGET has no "/"                      refused before the workspace root is looked for: the refusal is the same
                                             inside and outside a workspace
-  2. workspace root                         ../../workspace-configuration/spec/configuration-model.md, Root discovery
+  2. workspace root, then the load          ../../workspace-configuration/spec/configuration-model.md, Root discovery,
+                                            then Load: its first refusal ends the command and nothing is written
   3. type is neither project nor standalone refused
   4. the removal below                      not found is refused
 file edited   without --local   .winter/config.toml
@@ -123,7 +124,8 @@ The `#[error]` texts show which values a message carries; the wording is the bin
 three ends as `Termination::Command` holding `CommandError::Catalog`, exit 1.
 
 A file that is not valid TOML ends as `ConfigError::FileRead` with the `Toml` cause of
-[configuration-model.md](../../workspace-configuration/spec/configuration-model.md), Domain, and is not written.
+[configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
+Domain, and is not written.
 
 ## Open questions
 
@@ -131,8 +133,11 @@ A file that is not valid TOML ends as `ConfigError::FileRead` with the `Toml` ca
   that removes a middle block with comments on both sides confirms or corrects it. Whether a sub-table header inside a
   block (`[project_repository.<key>]`) ends the block in the reference tool has no recorded scenario; engineering
   records one when the rest of this epic's commands are specified.
-- The effective name of a block whose `name` is a boolean, a float, a date, an array, or a table, or whose `url` is not
-  a string, is the reference tool's text form of that value, which is not confirmed from source and has no recorded
-  scenario. [configuration-model.md](../../workspace-configuration/spec/configuration-model.md), Repository entries,
-  makes such a value a configuration error once the whole configuration is loaded and validated. Until this epic's
-  remaining commands are specified with that load, the binary gives such a block no effective name.
+- The effective name of a block whose `name` or `url` is not a string is the reference tool's text form of that value,
+  which is not confirmed from source and has no recorded scenario.
+  [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
+  Repository entries, makes such a value a configuration error, and the load refuses it before this command looks for a
+  block, so a block with a `name` or `url` that is not a string never reaches the removal, except one the load skips
+  because its `name` and `url` both read as empty (`false`, zero, `""`, an empty array or table). For such a skipped
+  block the binary applies the rule above: an integer `name` is its decimal digits, and any other non-string `name`, or
+  a `url` that is not a string, gives it no effective name.

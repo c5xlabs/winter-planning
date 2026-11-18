@@ -10,6 +10,32 @@ their own, such as `env_aliases` and `capabilities.<slot>`, keep that rule. The 
 `git_excludes` or `cmd` as one entry per character and a table as its keys, and fails unhandled only on a non-iterable
 value or a non-string element, so refusing all of them is a registered deviation.
 
+## Refusal order within a step (decision:parallel-workspaces/workspace-configuration/within-step-order)
+
+**Decider:** product owner
+
+Parity covers which numbered Load step refuses a configuration, and that refusal's error kind. When one step meets
+several faults, which of them the error names follows the slices' stated order and may differ from the reference tool's;
+every such refusal exits 1 with the tree unchanged, as in the reference.
+
+## Pair keys of a shared array (decision:parallel-workspaces/workspace-configuration/pair-keys)
+
+**Decider:** product owner
+
+When the merge reads a shared array of pairs as a table, a pair whose first item is not a string becomes a string key in
+the binary, its text. The reference tool keeps it as a non-string key, so the two tools group the pairs differently: the
+reference folds keys Python holds equal, such as `1` and `true`, into one, which the binary keeps apart; the binary
+folds a non-string key into a string key of the same text, such as `1` and `"1"`, which the reference keeps apart, and
+then checks only the later value. Either way the checks that read the table can accept or refuse differently from the
+reference. This is a registered deviation.
+
+## A configuration path that is a directory (decision:parallel-workspaces/workspace-configuration/directory-config-path)
+
+**Decider:** product owner
+
+A `.winter/config.toml` or `.winter/config.local.toml` that exists and is not a regular file is `ConfigError::FileRead`
+with the `Io` cause, exit 1. The reference tool reads such a path as missing; refusing it is a registered deviation.
+
 ## State file compatibility (decision:parallel-workspaces/workspace-configuration/state-file-compatibility)
 
 **Decider:** engineering

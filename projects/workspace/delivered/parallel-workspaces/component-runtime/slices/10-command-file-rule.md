@@ -135,8 +135,8 @@ Interfaces, are the ones the code has today.
 ## Out of scope
 
 - A value that holds the located root and the loaded configuration of one invocation, reached through `Context`:
-  [configuration-model.md](../../../../work/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
-  Root discovery and Load; `epic:parallel-workspaces/workspace-configuration`.
+  [configuration-model.md](../../workspace-configuration/spec/configuration-model.md), Root discovery and Load;
+  `epic:parallel-workspaces/workspace-configuration`.
 - A write-failure variant of `ConfigError`, so that a failed update is no longer reported as `FileRead`: the same epic.
 - `CatalogError::Entangled` and the return type of `remove_repository_block`, which repository-removal.md, Domain, does
   not list: `epic:parallel-workspaces/repository-catalog`.

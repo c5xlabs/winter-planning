@@ -23,7 +23,6 @@ rules are settled by `decision:parallel-workspaces/workspace-configuration/layer
 Acceptance:
 
 - Supported shared and local declarations have documented precedence, including lists, nested tables, and repo entries.
-- The caller can distinguish an inherited value, a local replacement, a default, and machine-generated state.
 - Local repository additions do not silently remove team declarations or create an unexplained duplicate identity.
 - Reading effective settings does not run commands embedded in those settings or materialize missing repositories.
 

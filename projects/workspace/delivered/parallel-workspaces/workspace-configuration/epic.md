@@ -1,7 +1,7 @@
 ---
 epic: parallel-workspaces/workspace-configuration
 refinement: outline
-status: planned
+status: delivered
 ---
 
 # Know which workspace and configuration will be used
@@ -27,4 +27,6 @@ invalid or incompatible input before it causes effects. Workspace discovery does
 
 Repository declarations belong to `epic:parallel-workspaces/repository-catalog`; environment allocations belong to
 `epic:parallel-workspaces/environment-lifecycle`. Existing-workspace conversion belongs to
-`epic:rust-adoption/workspace-migration` under `decision:configuration-transition`.
+`epic:rust-adoption/workspace-migration` under `decision:configuration-transition`. Letting the caller distinguish an
+inherited value, a local replacement, a default, and machine-generated state is left to
+`initiative:parallel-workspaces`.

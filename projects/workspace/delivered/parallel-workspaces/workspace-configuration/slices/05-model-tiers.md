@@ -2,6 +2,7 @@
 name: model-tiers
 depends-on:
   - layered-load
+  - top-level-refusals
 code:
   - winter-workspace/crates/core/src/config.rs
   - winter-workspace/crates/core/src/termination.rs::ConfigError
@@ -35,6 +36,8 @@ tables. Resolving an agent's model stays with `epic:agent-ready-operation/agent-
   `a = ""`; `a = 1`; `a = { gemini = "g" }`; `a = {}`; `a = { claude = "" }`; `a = { claude = 1 }`;
   `a = { claude = { size = 1 } }`; `a = { claude = { model = 1 } }`; `a = { claude = { effort = 1 } }`;
   `a = { claude = {} }`.
+- Unit tests of document order: two faulty labels declared `zz` then `aa` report `zz`; two faulty agents declared `z`
+  then `a` report `z`.
 - Unit tests: `a = "opus"` loads; with `[model_tiers] fast = { claude = "c" }`, `a = "fast"` loads; a label defined only
   in the local file is known to an override in the shared file.
 - `cargo dev gate full` exits 0.

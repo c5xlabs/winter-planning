@@ -9,7 +9,7 @@ code:
 
 # Refusals of the top-level keys and the dashboard layout
 
-Adds to the load the refusals of Top-level keys, Value types for the top-level keys, Removed keys for
+Adds to the load the refusals of Top-level keys, Value types for the top-level keys and `[git]`, Removed keys for
 `service_orchestrator` and `session_prefix`, and the `tui.dashboard.layout` row of Tables in
 [configuration-model.md](../spec/configuration-model.md), each at its place in the Load order. Delivers the
 operation-relevant, unknown-key, and removed-key bullets of `product:configuration-validation`, under
@@ -18,13 +18,14 @@ operation-relevant, unknown-key, and removed-key bullets of `product:configurati
 
 ## Change
 
-- `ConfigError` gains `RemovedKey`, `InvalidChoice`, and `ValueType`, with `RemovedKey`, `ChoiceKey`, `TypedKey`,
-  `ConfigValue`, and `ValueType` as the spec's Domain gives them. Each message names the key, and a removed key's
+- `ConfigError` gains `RemovedKey` and `InvalidChoice`, with `RemovedKey`, `ChoiceKey`, and `ConfigValue` as the spec's
+  Domain gives them, and `TypedKey` gains the keys this slice refuses. Each message names the key, and a removed key's
   message names its replacement from the Removed keys table.
-- The load refuses, in Load order: an invalid `tui.dashboard.layout` (step 2); `service_orchestrator`, then
-  `session_prefix`, present in the merged document (step 4); an `adopt_extensions` that is not `none`, `winter`, or
-  `all` (step 5). The top-level `main_branch` is checked after the removed keys of step 4, and the top-level
-  `git_excludes` at step 9.
+- The load refuses, in Load order: `[git]`, then `git.user`, that is not a table, unless an empty form, then a
+  `git.user` whose `name` and `email` are both non-empty with either not a string, then an invalid
+  `tui.dashboard.layout` (step 2); `service_orchestrator`, then `session_prefix`, present in the merged document (step
+  4); an `adopt_extensions` that is not `none`, `winter`, or `all` (step 5); the top-level `main_branch` (step 9); the
+  top-level `git_excludes` (step 10).
 - Top-level `main_branch`: a non-string is `ValueType` unless it is one of the empty forms the key row lists, which read
   as the default. Top-level `git_excludes`: anything but an array of strings is `ValueType`; an absent key and an empty
   array are accepted.
@@ -37,10 +38,12 @@ operation-relevant, unknown-key, and removed-key bullets of `product:configurati
   and each in the local file only, is `RemovedKey` naming the replacement; `adopt_extensions = "some"` is
   `InvalidChoice`; `[tui.dashboard] layout = "grid"` is `InvalidChoice`; `main_branch = 3` is `ValueType`, while
   `main_branch = ""`, `false`, `0`, `[]`, and `{}` load; `git_excludes = "abc"`, `git_excludes = {}`, and
-  `git_excludes = ["a", 1]` are `ValueType`, while an absent key and `git_excludes = []` load.
-- Unit tests of order: `session_prefix` with an invalid `adopt_extensions` reports `RemovedKey`; `main_branch = 3` with
-  an invalid `adopt_extensions` reports `ValueType`; an invalid `adopt_extensions` with `git_excludes = "abc"` reports
-  `InvalidChoice`.
+  `git_excludes = ["a", 1]` are `ValueType`, while an absent key and `git_excludes = []` load; `git = "x"`,
+  `[git] user = 1`, and `[git] user = { name = 1, email = "e" }` are `ValueType`, while `git = false`,
+  `[git] user = ""`, and `[git] user = { name = 1, email = "" }` load with no identity.
+- Unit tests of order: `git = "x"` with an invalid layout reports `ValueType`; `session_prefix` with an invalid
+  `adopt_extensions` reports `RemovedKey`; `main_branch = 3` with an invalid `adopt_extensions` reports `InvalidChoice`;
+  `main_branch = 3` with `git_excludes = "abc"` reports `ValueType` naming `main_branch`.
 - A unit test with an unknown top-level key and an unknown key under `[git]` loads with no message.
 - A component test of `ws index` with `session_prefix` set exits 1 with a diagnostic naming `service_prefix`, and writes
   nothing to stdout.

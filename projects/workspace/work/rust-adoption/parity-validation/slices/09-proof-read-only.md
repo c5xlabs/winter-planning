@@ -20,7 +20,7 @@ the task; no committed file holds it.
   `scenario.toml` (a `summary`, one `[[step]]` with the table's arguments and `stdout = "json"`, no `[fixture]` table,
   no `needs`), the `files/` the table describes, and the `record/` that `cargo dev record <id> --reference <path>`
   wrote. The `.winter/state.toml` of `registry-recorded` and of `suggested-slot-taken` has the form of
-  [lock-and-state.md](../../../parallel-workspaces/workspace-configuration/spec/lock-and-state.md),
+  [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md),
   `.winter/state.toml`; the latter's content is given whole in the method-proof spec.
 - `crates/test-support/tests/proof.rs` copies `scenarios/ws-index/hashed-suggested` and
   `scenarios/ws-index/suggested-slot-taken` into a temporary scenarios root and replays them with stand-in scripts,

@@ -3,7 +3,8 @@
 The `ws index` command: what it reads, what it answers, and that it changes nothing. Its arguments are the `ws index`
 row of [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md),
 Commands. The rule it reports is the `lookup` line of
-[lock-and-state.md](../../workspace-configuration/spec/lock-and-state.md), Env index allocation.
+[lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Env index
+allocation.
 
 ## Interfaces
 

@@ -27,7 +27,7 @@ crates/core/src/                what the proof adds; each module's contract is i
   files.rs                      the file port: ReadFiles with ws index, WriteFiles with repo remove
                                 ../../../parallel-workspaces/component-runtime/spec/repository-layout.md,
                                 What a command receives
-configuration-model.md and lock-and-state.md are those of ../../../parallel-workspaces/workspace-configuration/spec/
+configuration-model.md and lock-and-state.md are those of ../../../../delivered/parallel-workspaces/workspace-configuration/spec/
 ```
 
 ### How far the proof implements an owner's contract

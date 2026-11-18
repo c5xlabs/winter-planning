@@ -158,7 +158,7 @@ Under the default configuration (ten aliases, `envs_per_workspace = 48`, band `1
 | `a`          | 42    |
 
 The index feeds `port_base(index)` in [configuration-model.md](./configuration-model.md) and `WINTER_ENV_INDEX` in the
-[invocation contract](../../../agent-ready-operation/executable-extensions/spec/invocation-contract.md).
+[invocation contract](../../../../work/agent-ready-operation/executable-extensions/spec/invocation-contract.md).
 
 ## Open questions
 

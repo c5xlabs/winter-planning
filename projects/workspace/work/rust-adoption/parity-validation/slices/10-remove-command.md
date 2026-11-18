@@ -27,9 +27,9 @@ The write port and its first caller arrive together: the library holds no code t
   numbered cases exactly.
 - The write side of the file port arrives: `WriteFiles` and its `OsFiles` implementation in `files.rs`, as
   repository-layout.md, What a command receives, and
-  [configuration-model.md](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md), Write
-  integrity, give them — the lock, the temporary file and rename, the kept permission bits, and the symlink rule, all
-  four; `Context` gains `file_writer`, and `run` binds `OsFiles` to it.
+  [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
+  Write integrity, give them — the lock, the temporary file and rename, the kept permission bits, and the symlink rule,
+  all four; `Context` gains `file_writer`, and `run` binds `OsFiles` to it.
 - The test module of `crates/core/src/parse.rs` supplies `file_writer` where it builds a `Context`, and
   `context/architecture/structure.md` lists the new modules.
 - `CommandError` gains `Catalog`; `lib.rs` re-exports `CatalogError` and `RepositoryKind` beside `CommandError`.

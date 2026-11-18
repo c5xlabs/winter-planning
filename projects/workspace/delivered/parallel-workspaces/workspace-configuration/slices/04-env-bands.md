@@ -2,6 +2,7 @@
 name: env-bands
 depends-on:
   - layered-load
+  - top-level-refusals
 code:
   - winter-workspace/crates/core/src/config.rs
   - winter-workspace/crates/core/src/termination.rs::ConfigError
@@ -36,8 +37,10 @@ stay with `epic:running-environments/scope-environment`.
 - Unit tests: `X = "a"`, `X = 3`, `X = 1.5`, and `X = { command = "c" }` load under `workspace`, `feature`, and a band
   named `alpha`; `WINTER_X = "a"` loads.
 - A unit test: `[env.vars] A = "1"` and `B = "2"` is `RemovedKey::EnvVars` listing `A` and `B`.
+- Unit tests of document order: two faulty bands declared `zeta` then `alpha` report `zeta`; two faulty keys declared
+  `Z` then `A` in one band report `Z`; `[env.vars] B` then `A` lists `B` before `A`.
 - A unit test with an invalid env band and an invalid model tier reports the env band, the earlier part of step 8.
-- A test that a command entry's `command` is never run: a load over `X = { command = "touch <marker>" }` leaves no
+- A component test of `ws index` in a `WorkspaceBuilder` workspace over `X = { command = "touch <marker>" }` leaves no
   marker file.
 - `cargo dev gate full` exits 0.
 

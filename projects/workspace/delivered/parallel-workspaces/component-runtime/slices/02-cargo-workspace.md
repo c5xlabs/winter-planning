@@ -21,11 +21,11 @@ and `engineering:composition-root`.
   Steps, which returns 2 for every argument vector, and the thin `src/main.rs`.
 - `termination.rs` defines exactly the types and variants of the spec's Errors the foundation defines, each spelled as
   [results-and-exit-codes.md](../spec/results-and-exit-codes.md), Domain, and
-  [configuration-model.md](../../../../work/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
-  Domain, spell it, with `Termination::exit_code` and `Termination::diagnostic`. `Termination::BareGroup { help }` is
-  among them: exit code 2, and its diagnostic is its `help` text. `InternalError` derives `Debug` only and implements
-  `Display` and `std::error::Error` by hand, as the same section of the layout spec gives them; every other error type
-  derives `thiserror::Error`. `crates/core` depends on `thiserror` and `toml` and on no other third-party crate.
+  [configuration-model.md](../../workspace-configuration/spec/configuration-model.md), Domain, spell it, with
+  `Termination::exit_code` and `Termination::diagnostic`. `Termination::BareGroup { help }` is among them: exit code 2,
+  and its diagnostic is its `help` text. `InternalError` derives `Debug` only and implements `Display` and
+  `std::error::Error` by hand, as the same section of the layout spec gives them; every other error type derives
+  `thiserror::Error`. `crates/core` depends on `thiserror` and `toml` and on no other third-party crate.
 - `context.rs` defines `Context` with the spec's `allow` attribute and every field of the spec except `files`, which
   arrives with the first command that reads a file. `run` builds a `Context` from the `Invocation`.
 - `process.rs` defines `ProcessEnv` with the spec's constructor `from_vars` and `get`.

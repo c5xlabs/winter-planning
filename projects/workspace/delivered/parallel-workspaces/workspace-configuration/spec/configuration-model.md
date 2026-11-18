@@ -2,13 +2,14 @@
 
 The workspace configuration files, their keys, layering, validation, and writers. The binary reads and writes the
 reference tool's files unchanged (`decision:configuration-transition`). Reference locations are paths under
-`tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`. The lock and machine-state files
-are [lock-and-state.md](./lock-and-state.md); error rendering is
+`tools/winter-cli/src/winter_cli/` of the `legacy-winter` repository at `b57b020`. The lock and machine-state files are
+[lock-and-state.md](./lock-and-state.md); error rendering is
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md).
 
 Under `decision:functional-parity` the contract is which values are accepted, coerced, defaulted, or refused, the error
-kind of each refusal with the values it carries, and the bytes written to the files. The wording of a configuration
-error is the binary's own; the reference texts are in `config/workspace.py`.
+kind of each refusal with the values it carries, and the bytes written to the files. Which fault a step names when it
+meets several is outside the contract, under `decision:parallel-workspaces/workspace-configuration/within-step-order`.
+The wording of a configuration error is the binary's own; the reference texts are in `config/workspace.py`.
 
 ## System
 
@@ -47,10 +48,10 @@ pub enum ConfigError {
     DuplicateStandaloneName { name: String, first: EntryIdent, second: EntryIdent },
     PrefixCollision { prefix: String, standalone: String },
     Repository { kind: RepoKind, label: String, fault: RepositoryFault },
-    ValueType { key: TypedKey, owner: Option<RepoRef>, found: ValueType },   // see Value types
+    ValueType { key: TypedKey, owner: Option<RepoRef>, path: Option<PathBuf>, found: ValueType },  // see Value types
     EnvVar { band: String, key: String, fault: EnvVarFault },
     ModelTier { label: String, fault: ModelTierFault },
-    AgentOverridesNotTable { file: ConfigFileName, found: ValueType },
+    AgentOverridesNotTable { path: PathBuf, found: ValueType },
     AgentOverride { agent: String, fault: AgentOverrideFault },
     ProvisionEntry(ProvisionEntryError),    // variants: extension-manifest.md, Provision entry
     ServiceEntry(ServiceEntryError),        // variants: extension-manifest.md, Service entry
@@ -73,7 +74,9 @@ pub enum ChoiceKey  { AdoptExtensions, DashboardLayout }
 pub enum RepoKind   { Project, Standalone }
 pub enum EntryIdent { Name(String), Url(String) }
 pub struct RepoRef  { pub kind: RepoKind, pub label: String }
-pub enum TypedKey   { GitExcludes, Cmd, MainBranch, Ref, Name, Url, Prefix, Path, ConfigDir }
+pub enum TypedKey   { GitExcludes, Cmd, MainBranch, Ref, Name, Url, Prefix, Path, ConfigDir,
+                      ProjectRepository, StandaloneRepository, Git, GitUser, GitUserName, GitUserEmail,
+                      Keybindings, Tui, Capabilities, Env, ModelTiers }
 
 pub enum RepositoryFault {
     Path { field: PathField, value: String },                     // path, config_dir: absolute or with a `..` segment
@@ -145,7 +148,7 @@ root option and no root environment variable. Discovery runs once per invocation
 ### Load
 
 ```text
-# reference: config/workspace.py:125-321,380-400,438-452; core/internal/tomllib_config_file_reader.py:18-23
+# reference: config/workspace.py:125-330,380-400,438-452; core/internal/tomllib_config_file_reader.py:18-23
 shared = parse(.winter/config.toml)          missing -> {}
 local  = parse(.winter/config.local.toml)    missing -> {}
 a file that exists and cannot be read  -> ConfigError::FileRead { cause: Io }
@@ -153,17 +156,19 @@ a file that is not valid TOML          -> ConfigError::FileRead { cause: Toml }
 [agent_model_overrides] present and not a table, in either file -> ConfigError::AgentOverridesNotTable, naming the file
 merged = merge(shared, local)                # Layering
 then the typed configuration is built in this order, which decides the refusal reported when several apply:
-  1. project repository entries, then standalone repository entries     # Repository entries
-  2. git identity, keybindings, then tui.dashboard.layout               # an invalid layout is refused here
+  1. project_repository, its entries, then standalone_repository, its entries
+                                                                        # Repository entries; config/workspace.py:146,170
+  2. [git], git.user, git identity, keybindings, then tui.dashboard.layout
+                                                                        # config/workspace.py:209-215; config/models.py:184-185
   3. capabilities
   4. removed keys: service_orchestrator, then session_prefix            # Removed keys
-     then the top-level main_branch                                     # Value types; config/workspace.py:255
   5. adopt_extensions
   6. envs_per_workspace against env_aliases
   7. the workspace prefix against each standalone prefix
   8. core_checks, then the env bands, then space, model_tiers, agent_model_overrides
                                                                         # the removed [env.vars] is refused with the env bands
-  9. the top-level git_excludes                                         # Value types; config/workspace.py:327
+  9. the top-level main_branch                                          # Value types; config/workspace.py:323-330
+ 10. the top-level git_excludes                                         # Value types; config/workspace.py:327
 a refusal is a ConfigError unless the key's table says otherwise        # Keys
 [provision] and [[service]] stay raw; each is validated only when a command needs it
 ```
@@ -198,6 +203,18 @@ An empty local file returns the shared document unchanged. One level means a nes
 | `[space]`                      | Drops the shared `[space.kinds]`.                                                  |
 | `lint = …`, `git_excludes = …` | Replace the shared value.                                                          |
 
+```text
+# config/overlay.py:170-183: the local file's keys are merged in its document order, and the first that fails is
+# reported. For an array-append or table-merge key the local file holds, whatever the local value's type, the shared
+# value is first read as that rule's kind; an empty shared value (false, zero, "", [], {}) reads empty.
+# agent_model_overrides never fails here: a non-table in either file is refused before the merge (Load).
+array-append key   shared true, a non-zero number, or a datetime -> ConfigError::ValueType naming the key and the
+                   shared file; a shared string or table reads as its characters or keys, which step 1 skips
+table-merge key    shared non-table -> ConfigError::ValueType naming the key and the shared file, except an array
+                   whose every element is a pair: a two-character string, a two-key table, or a two-element array
+                   whose first item is not an array or table; it reads as the table of those pairs, first item as key
+```
+
 ## Data
 
 ### Top-level keys
@@ -223,7 +240,7 @@ An empty local file returns the shared document unchanged. One level means a nes
 
 | Key path                                   | Type                                                      | Default     | Validation and on-invalid                                                                                                                                                     |
 | ------------------------------------------ | --------------------------------------------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `git.user.name`, `git.user.email`          | string                                                    | unset       | An identity exists only when both are non-empty; otherwise none, silently.                                                                                                    |
+| `git.user.name`, `git.user.email`          | string                                                    | unset       | Not a table at `[git]` or `git.user`, unless an empty form, or both non-empty and one not a string → ConfigError; see Value types. Else an identity when both are non-empty.  |
 | `capabilities.<slot>`                      | string or array of string                                 | `{}`        | Normalised to an ordered, de-duplicated list; an empty result drops the slot; slot names unchecked at load. Known slot: `service`.                                            |
 | `keybindings.leader`                       | string                                                    | `"\\"`      | Falls back.                                                                                                                                                                   |
 | `keybindings.timeoutlen`                   | integer, not boolean                                      | `1000`      | Falls back.                                                                                                                                                                   |
@@ -269,8 +286,11 @@ Built-in model tiers, overlaid per vendor cell by `[model_tiers]`:
 
 ### Repository entries
 
-An element of either repository array that is not a table is skipped silently, as is an entry with neither `name` nor
-`url`. `name` defaults to the URL's last path segment without a trailing `.git`.
+An element of either repository array that is not a table is skipped silently, as is an entry whose `name` and `url` are
+both empty (a form Python reads as false; config/workspace.py:151,175). The resolved name is `name` when not empty, else
+derived from `url` by step 2 of the effective-name rule of
+[repository-removal.md](../../../../work/parallel-workspaces/repository-catalog/spec/repository-removal.md)
+(config/workspace.py:177,773-781).
 
 | Field           | `[[project_repository]]` | `[[standalone_repository]]` | Type, default                      | Rule                                                                                                                |
 | --------------- | ------------------------ | --------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
@@ -298,7 +318,9 @@ A value of the wrong TOML type for `name`, `url`, `main_branch`, `git_excludes`,
 ### Value types
 
 ```text
-# ConfigError::ValueType { key, owner, found }: names the key and, for a repository field, the repository. Exit 1.
+# ConfigError::ValueType { key, owner, path, found }: names the key, the repository for a repository field, and the
+# shared file for a refusal at the merge (Layering). Exit 1.
+# "empty" below is a value Python reads as false: `false`, zero, "", or an empty array or table
 key                                            accepted                 reference tool, for anything else
 top-level git_excludes                         an array of strings      a string is read as one entry per character and
 <repo>.git_excludes                            an array of strings        a table as its keys; `false`, `0`, "" read as
@@ -309,6 +331,16 @@ top-level main_branch                          a string                 fails un
                                                                           one of the empty forms the key table lists
 <repo>.name, .url, <standalone>.prefix,        a string                 fails unhandled, exit 1
   .path, .config_dir
+project_repository, standalone_repository      an array, or a value     `true`, a non-zero number, or a datetime fails
+                                                 the reference reads      unhandled, exit 1; any other value is iterated,
+                                                 as no entries            and its items, never tables, are all skipped
+                                                                          (config/workspace.py:146,170)
+[git], git.user                                a table                  fails unhandled, exit 1, unless the value is
+                                                                          empty, which reads as no identity
+                                                                          (config/workspace.py:209-211)
+git.user.name, git.user.email                  a string, or any value   fails unhandled, exit 1, when both are non-empty
+                                                 while either is empty    and either is not a string; with either empty
+                                                                          there is no identity (config/models.py:184-185)
 ```
 
 ```text
@@ -334,7 +366,7 @@ closed sets, unknown key -> lint finding, not an error:     [lint], [lint.ignore
 A provision or service entry fault is a `ConfigError` value. In workspace configuration, a malformed `[provision]` entry
 and a malformed `[[service]]` entry each reach the caller as a command error, exit 1, that carries the fault
 (`modules/provision/provision_service.py:494-497`); in an extension manifest they are a manifest failure
-([extension manifest](../../../agent-ready-operation/extension-management/spec/extension-manifest.md), Failure
+([extension manifest](../../../../work/agent-ready-operation/extension-management/spec/extension-manifest.md), Failure
 handling).
 
 ### Removed keys

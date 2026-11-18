@@ -4,8 +4,9 @@ What the binary gives every external program it runs — argument vector, workin
 and what it reads back. One row per seam; an extension author relies on nothing outside its row. Reference locations are
 paths under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`. The declarations that
 name these programs are the [extension manifest](../../extension-management/spec/extension-manifest.md) and the
-[configuration model](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md); the `service`
-provider seam is the [provider contract](../../../running-environments/service-orchestration/spec/provider-contract.md).
+[configuration model](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md);
+the `service` provider seam is the
+[provider contract](../../../running-environments/service-orchestration/spec/provider-contract.md).
 
 This is a contract toward other programs, so argument vectors, working directories, environment variable names and
 values, and the two line protocols are fixed exactly. Texts the binary writes about a child — a failure message, a

@@ -42,8 +42,8 @@ Acceptance:
   the gate consumes acceptance evidence and does not depend on completion of the release epic.
 - Installation and adoption explain the existing Python `winter` command's PATH/linking conflicts rather than replacing
   or invoking it silently.
-- Installing the successor singleton with explicit legacy routing does not adopt or convert a Python workspace and
-  does not require Rust Workspace parity; the adoption gate above still applies before Rust operates on a live target.
+- Installing the successor singleton with explicit legacy routing does not adopt or convert a Python workspace and does
+  not require Rust Workspace parity; the adoption gate above still applies before Rust operates on a live target.
 - Legacy-enabled workspaces retain their Python command path until deliberate consumer migration; explicit
   `winter workspace` remains the Rust path and is never an automatic fallback from a legacy command.
 - Recovery guidance identifies which changes can be reversed and which state changes require a backup or forward repair;

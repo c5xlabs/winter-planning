@@ -25,9 +25,9 @@ nothing an earlier change of this epic adds.
 - The test module of `crates/core/src/parse.rs` supplies `files` where it builds a `Context`, and
   `context/architecture/structure.md` lists the new modules.
 - `workspace_root.rs`, `config_raw.rs`, `state_registry.rs`, and `env_index.rs` exist, each implementing the sections of
-  [configuration-model.md](../../../parallel-workspaces/workspace-configuration/spec/configuration-model.md) and
-  [lock-and-state.md](../../../parallel-workspaces/workspace-configuration/spec/lock-and-state.md) that the method-proof
-  System block names beside it. They take `&dyn ReadFiles` and never name `std::fs`.
+  [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md)
+  and [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md) that
+  the method-proof System block names beside it. They take `&dyn ReadFiles` and never name `std::fs`.
 - `env_index::lookup` is the `lookup` line of lock-and-state.md, Env index allocation, and returns an `IndexAnswer`, not
   a `Result`: registry first, else the alias position, else the hash slot. It has no probe loop, and `EnvIndexError` is
   not defined in this change: `allocate` and its band-exhaustion failure belong to
