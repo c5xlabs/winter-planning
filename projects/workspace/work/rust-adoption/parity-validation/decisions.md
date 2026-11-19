@@ -18,14 +18,14 @@ command lists that command as a compared step of the same scenario. Preparing st
 record time and the binary at replay time was rejected, because a fault in the preparing command would then surface as a
 failure of the command under test.
 
-## State is compared by bytes unless a scenario says otherwise (decision:rust-adoption/parity-validation/state-comparison)
+## TOML files compare as TOML, other files as bytes (decision:rust-adoption/parity-validation/state-comparison)
 
 **Decider:** engineering
 
-Files a scenario changes or creates are compared byte for byte, and git state as normalized text, because committed
-configuration files are edited in place and their comments and layout are user data. A scenario relaxes one path to
-parsed TOML, to presence, or to ignored, with the reason beside the rule, for bytes that `decision:functional-parity`
-does not class as function.
+A file a scenario changes or creates is compared as parsed TOML when its name ends in `.toml` and byte for byte
+otherwise, and git state as normalized text, because `decision:toml-parity` makes a TOML file's values its function and
+other files are user data. A scenario compares a TOML path by bytes only where a made decision fixes its lines, naming
+that decision as the rule's reason, and may relax any path to presence or to ignored, with the reason beside the rule.
 
 ## The two proof behaviours (decision:rust-adoption/parity-validation/proof-behaviours)
 

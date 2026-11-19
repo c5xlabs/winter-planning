@@ -9,6 +9,21 @@ baseline governed by `engineering:cli-runtime-baseline`; this blocks provider co
 `epic:rust-adoption/workspace-release`, not portable local development. Minimum OS/libc versions are settled once by
 `decision:platform/release-automation/release-build-baseline`, not separately for Workspace.
 
+## TOML parity is parity of meaning (decision:toml-parity)
+
+**Decider:** product owner
+
+Parity for every TOML file the binary reads or writes is at the deserialized model: file content both libraries accept
+means the same configuration, lock, or state in both tools. How a file is parsed and serialised is the Rust TOML
+library's — which text it accepts or refuses, its error texts, escapes, and the key, table, and blank-line layout an
+edit leaves — so a difference of that kind is no change of function and never a registered deviation, and an edit keeps
+what the user wrote only as far as the library does. A made decision may fix lines beyond the library, as
+`decision:parallel-workspaces/repository-catalog/removal-comment-extent` does; it is a registered deviation wherever the
+reference's lines differ, and no other layout difference is one. This overtakes the clause of
+`decision:parallel-workspaces/workspace-configuration/write-conflicts` that edits preserve comments, order, and
+unrelated content as in the reference tool. The owner cares about the format of the data, not about the faults of
+Python's TOML libraries.
+
 ## Development component selection (decision:development-component-selection)
 
 **Decider:** product owner and Platform and Workspace engineering
@@ -71,8 +86,10 @@ intact while the folders and references follow these ownership boundaries.
 ## Parity boundary (decision:rough-parity)
 
 Parity is functional, as `decision:functional-parity` defines it, and is kept under `decision:visible-gap-policy`.
-Python's internal structure and its in-process plugin API are not reproduced; the only other differences of function are
-the registered deviations, each a made decision listed in the component runtime's command surface spec.
+Python's internal structure and its in-process plugin API are not reproduced, and TOML files match in meaning only,
+under `decision:toml-parity`; the only other differences of function are the registered deviations, each a made decision
+of the epic that owns the behaviour and marked as one in that epic's spec. The component runtime's command surface spec
+lists those made before it was delivered.
 
 ## Rust replacement without Python delegation (decision:rust-replacement)
 

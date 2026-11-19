@@ -120,8 +120,9 @@ and call capture is built before the first epic whose behaviour does.
 Acceptance:
 
 - The full gate replays the proof scenarios and passes.
-- For each proof behaviour, a test alters one observable — an exit code, a JSON value, or a byte of resulting state —
-  and asserts that replay reports the scenario failed in that dimension.
+- For each proof behaviour, a test alters one observable — an exit code, a JSON value, a byte of a resulting file the
+  scenario compares by bytes, or a value of one it compares as TOML — and asserts that replay reports the scenario
+  failed in that dimension.
 - The state-changing proof includes a scenario that removes a block lying between two others with comment lines on both
   sides. Its record fixes which of those lines the reference tool removes, and its expectation, written under
   `decision:parallel-workspaces/repository-catalog/removal-comment-extent`, which of them the binary keeps.
@@ -146,5 +147,13 @@ failure retains diagnostics and cannot target a live development environment. Se
   delivered by no slice yet. Engineering states, when the epic is next sliced, which of them a slice of this epic
   delivers and which is met by the scenarios each command epic adds.
 - The two proof commands are built by this epic's slices, though their contracts are spec leaves of
-  `epic:parallel-workspaces/environment-lifecycle` and `epic:parallel-workspaces/repository-catalog`. Engineering
-  confirms, when either of those epics is sliced, that its slices extend what the proof built and do not build it again.
+  `epic:parallel-workspaces/environment-lifecycle` and `epic:parallel-workspaces/repository-catalog`. The catalog's
+  slices change the built `repo remove` in place and build no second one. Engineering confirms the same for
+  environment-lifecycle when that epic is sliced.
+- Built code predates `decision:toml-parity`: `crates/test-support/src/scenario/compare.rs` compares a path no rule
+  names by bytes, `toml` files included; `removes-last-block` and `removes-middle-block` carry no file rule; and
+  `context/verification/scenarios.md` of `winter-workspace` lists "the bytes of the files" as compared. Engineering
+  carries the follow-up in the next slice of this epic: the `.toml` default of state-comparison, a
+  `[[compare.file]] path = "ws/.winter/config.toml" mode = "bytes"` rule with the reason
+  `decision:parallel-workspaces/repository-catalog/removal-comment-extent` in those two scenarios, and the sentence of
+  scenarios.md.

@@ -25,7 +25,7 @@ crates/core/src/                what the proof adds; each module's contract is i
   env_index.rs                  lookup and the suggested index                      lock-and-state.md, Env index allocation
   config_edit.rs                removal of one repository block from TOML text      repository-removal.md
   files.rs                      the file port: ReadFiles with ws index, WriteFiles with repo remove
-                                ../../../parallel-workspaces/component-runtime/spec/repository-layout.md,
+                                ../../../../delivered/parallel-workspaces/component-runtime/spec/repository-layout.md,
                                 What a command receives
 configuration-model.md and lock-and-state.md are those of ../../../../delivered/parallel-workspaces/workspace-configuration/spec/
 ```
@@ -114,6 +114,14 @@ why two configurations
   repository header: removing its last block is the same in both tools — the docs header to the end of the file
   goes, and the file then ends with the api url line and one blank line — so removes-last-block replays against
   its record alone and proves the byte comparison without an expectation.
+the file rule
+  removes-last-block and removes-middle-block compare ws/.winter/config.toml by bytes, under
+  decision:rust-adoption/parity-validation/state-comparison, with this rule in scenario.toml:
+    [[compare.file]]
+    path = "ws/.winter/config.toml"
+    mode = "bytes"
+    reason = "decision:parallel-workspaces/repository-catalog/removal-comment-extent fixes the removed lines"
+  not-found and local-file-absent need none: their file is unchanged, which the toml default shows as well
 ```
 
 ### The deviation scenario

@@ -18,7 +18,7 @@ abbreviates `tools/winter-cli/tests/`, and `D/` abbreviates `context/winter/`.
 | `ws update`, `--freeze`, ref/lock, `ws fingerprint`               | `epic:parallel-workspaces/reproducible-inputs`                 |
 | `ws init ENV`, `ws destroy`, `ws list`, `ws index`                | `epic:parallel-workspaces/environment-lifecycle`               |
 | `ws init --all`                                                   | Bootstrap scope; environment-lifecycle mechanics               |
-| `ws worktrees`                                                    | Catalog paths; lifecycle env identity; coordinated-git status  |
+| `ws worktrees`                                                    | `epic:parallel-workspaces/repository-catalog`                  |
 | `ws connect`, `ws disconnect`, `ws diff`                          | `epic:parallel-workspaces/coordinated-git`                     |
 | `ws fetch`, `ws pull`, `ws merge`, `ws push`                      | `epic:parallel-workspaces/coordinated-git`                     |
 | `ws status`, `ws status --fetch`                                  | Coordinated-git snapshot/freshness; diagnostics broader health |

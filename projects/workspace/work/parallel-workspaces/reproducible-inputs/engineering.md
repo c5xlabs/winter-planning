@@ -2,6 +2,12 @@
 
 For `epic:parallel-workspaces/reproducible-inputs`.
 
+## What already holds
+
+- `ws update` writes the drift warning of [drift-warning.md](../repository-catalog/spec/drift-warning.md), which this
+  epic wires with that command; `epic:parallel-workspaces/repository-catalog` builds `drift::detect` and
+  `drift::notice_line`.
+
 ## Resolution record integrity across writers (engineering:resolution-write-integrity)
 
 Concurrent processes updating different inputs cannot lose each other's records, and interrupted checkout/record changes

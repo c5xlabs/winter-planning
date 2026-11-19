@@ -2,6 +2,17 @@
 
 For `epic:parallel-workspaces/environment-lifecycle`.
 
+## What already holds
+
+- The rule that finds the environments present is specified in
+  [location-listing.md](../repository-catalog/spec/location-listing.md), Environments present, as the reference's, and
+  is built with `ws worktrees` by `epic:parallel-workspaces/repository-catalog`. It stays there until
+  `decision:parallel-workspaces/environment-lifecycle/discovery-authority` is made; `ws list` links it rather than
+  copying it.
+- `ws list` writes the drift warning of [drift-warning.md](../repository-catalog/spec/drift-warning.md), which this epic
+  wires with that command: the catalog builds `drift::detect` and `drift::notice_line`, and this epic's spec says where
+  in the run the notice is written.
+
 ## Cross-process allocation integrity (engineering:allocation-integrity)
 
 Assignment, collision resolution, and release remain consistent across processes and interruption; independent readers

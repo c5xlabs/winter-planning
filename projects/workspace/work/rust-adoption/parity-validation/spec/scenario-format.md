@@ -88,7 +88,8 @@ git_config_ignore = ["core.fsmonitor"]
 types = ["progress", "result"]
 key = "/repo"
 
-[[compare.file]]                 # a path rule; first match wins; unmatched paths compare as bytes
+[[compare.file]]                 # a path rule; first match wins; an unmatched path compares as toml when its name
+                                 # ends in .toml, else as bytes (decision:rust-adoption/parity-validation/state-comparison)
 path = "ws/.winter/state.toml"   # glob over ROOT-relative paths, "*" within a segment, "**" across segments
 mode = "toml"                    # "bytes" | "toml" | "presence" | "ignore"
 reason = "the writer's key order is not function"

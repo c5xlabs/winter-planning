@@ -33,8 +33,8 @@ Acceptance:
 - Nested workspaces remain outside the outer workspace's extension activation, consistent with
   `epic:parallel-workspaces/nested-workspaces`.
 - The effective policy applies consistently to every consumer; inspection explains disabled or ineligible contributions.
-- Installation or revision changes do not implicitly authorize lifecycle execution; acquisition/ref safety remains with
-  `epic:parallel-workspaces/repository-catalog` and `epic:parallel-workspaces/reproducible-inputs`.
+- Installation or revision changes do not implicitly authorize lifecycle execution; acquisition safety remains with
+  `epic:parallel-workspaces/workspace-bootstrap` and ref safety with `epic:parallel-workspaces/reproducible-inputs`.
 
 ## Reconcile a changed extension set (product:extension-reconciliation)
 

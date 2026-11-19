@@ -19,3 +19,10 @@ deletion time. Unreadable evidence cannot authorize removal or ownership-record 
 Repository-local sequences retain order while independent effects use bounded concurrency; cross-process conflicts,
 interruption, and external-command failures retain target attribution without claiming global rollback. Serves
 `product:reconcile-repositories` and `product:bootstrap-recovery`.
+
+## Open questions
+
+- Whether materialization refuses overlapping, reserved, or symlinked repository locations at the point of cloning,
+  beyond the relative, `..`-free paths and the standalone location check of
+  `epic:parallel-workspaces/repository-catalog`, which follow the reference tool. The product owner answers when this
+  epic is refined.

@@ -2,6 +2,15 @@
 
 For `epic:parallel-workspaces/coordinated-git`.
 
+## What already holds
+
+- `ws connect`, `ws disconnect`, `ws diff`, `ws fetch`, `ws pull`, `ws merge`, and `ws push` write the drift warning of
+  [drift-warning.md](../repository-catalog/spec/drift-warning.md), which this epic wires with each command; `ws status`
+  reads `drift::detect` and writes no notice. The catalog builds both functions.
+- `ws status` runs the worktree probe of [location-listing.md](../repository-catalog/spec/location-listing.md), The
+  worktree probe, built by `epic:parallel-workspaces/repository-catalog` with `ws worktrees --status`; this epic's spec
+  links it and adds its own pieces.
+
 ## Shared Git-store coordination (engineering:shared-git-effects)
 
 Operations account for linked worktrees sharing refs and configuration, including conflicting invocations from separate

@@ -25,7 +25,10 @@ with visible safety checks and recovery information. Structural creation remains
 
 ## Left for later
 
-Whole-workspace bootstrap remains `epic:parallel-workspaces/workspace-bootstrap`. Runtime variable rendering belongs to
-`epic:running-environments/scope-environment`; provision and service teardown integration belongs to
-`epic:running-environments/resource-provisioning` and `epic:running-environments/service-orchestration`. Those
-integrations can land after structural lifecycle without making the capabilities depend on one another in a cycle.
+Whole-workspace bootstrap remains `epic:parallel-workspaces/workspace-bootstrap`. Listing every existing checkout
+location — feature worktrees, standalones, and the workspace — belongs to `epic:parallel-workspaces/repository-catalog`,
+which finds the environments present by the reference's rule until this epic decides how environments are discovered.
+Runtime variable rendering belongs to `epic:running-environments/scope-environment`; provision and service teardown
+integration belongs to `epic:running-environments/resource-provisioning` and
+`epic:running-environments/service-orchestration`. Those integrations can land after structural lifecycle without making
+the capabilities depend on one another in a cycle.

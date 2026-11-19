@@ -2,6 +2,12 @@
 
 For `epic:parallel-workspaces/safe-history`.
 
+## What already holds
+
+- `ws checkout`, `ws reset`, and `ws clean` write the drift warning of
+  [drift-warning.md](../repository-catalog/spec/drift-warning.md), which this epic wires with each command;
+  `epic:parallel-workspaces/repository-catalog` builds `drift::detect` and `drift::notice_line`.
+
 ## Abandonment evidence follows every moved ref (engineering:moved-ref-preservation)
 
 Safety evidence covers both current HEAD and any separate env branch the operation will overwrite, with configured

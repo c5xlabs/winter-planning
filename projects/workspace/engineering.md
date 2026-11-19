@@ -80,6 +80,21 @@ Acceptance:
   recorded rather than presented as a transaction that never happened.
 - Concurrent different-scope operations do not replace each other's state or claim each other's managed resources.
 
+## TOML through the Rust library (engineering:toml-library)
+
+TOML files are parsed with the `toml` crate and edited with `toml_edit`, or with a line edit where a made decision fixes
+lines, such as `decision:parallel-workspaces/repository-catalog/removal-comment-extent`, whose result is checked to
+parse to the intended values before it is written; no code reproduces a Python TOML library's acceptance, error text, or
+layout, and a parse or serialise failure reaches the user as that library's error inside the spec's error type. A spec
+states a TOML file's contract as the values it holds, plus only the lines a made decision fixes, under
+`decision:toml-parity`.
+
+Acceptance:
+
+- Every TOML file the binary writes is accepted by the next load and deserializes to the values its spec states.
+- No spec or test requires the bytes of a written TOML file to equal the reference tool's, beyond lines a made decision
+  fixes.
+
 ## Bounded, non-interfering observability (engineering:observability-isolation)
 
 Observability preserves operation context across parallel work and nested invocations without leaking secrets, raw

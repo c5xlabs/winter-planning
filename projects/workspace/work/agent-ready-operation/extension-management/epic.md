@@ -29,9 +29,9 @@ contributions are enabled and why. Disabling an extension does not delete its re
 
 ## Left for later
 
-`epic:parallel-workspaces/repository-catalog` owns acquiring and locating repositories;
-`epic:parallel-workspaces/reproducible-inputs` owns selected refs and locks.
-`epic:agent-ready-operation/context-navigation` owns context sources and addressing.
+`epic:parallel-workspaces/repository-catalog` owns declaring and locating repositories and
+`epic:parallel-workspaces/workspace-bootstrap` acquiring them; `epic:parallel-workspaces/reproducible-inputs` owns
+selected refs and locks. `epic:agent-ready-operation/context-navigation` owns context sources and addressing.
 `epic:agent-ready-operation/dependency-graph` owns graph inspection and `epic:agent-ready-operation/context-quality`
 owns reference/dependency lint rules.
 
