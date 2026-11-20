@@ -1,5 +1,6 @@
 ---
 name: standalone-location
+external: github:paul-gross/winter#200
 depends-on:
   - list-command
   - add-command

@@ -1,5 +1,6 @@
 ---
 name: remove-refusals
+external: github:paul-gross/winter#197
 depends-on:
   - epic:rust-adoption/parity-validation
 code:

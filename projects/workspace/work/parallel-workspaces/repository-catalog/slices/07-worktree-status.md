@@ -1,5 +1,6 @@
 ---
 name: worktree-status
+external: github:paul-gross/winter#203
 depends-on:
   - worktrees-command
 code:

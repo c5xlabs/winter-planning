@@ -1,5 +1,6 @@
 ---
 name: probe-spans
+external: github:paul-gross/winter#204
 depends-on:
   - worktree-status
 code:

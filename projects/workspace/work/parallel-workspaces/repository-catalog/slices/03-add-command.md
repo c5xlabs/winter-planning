@@ -1,5 +1,6 @@
 ---
 name: add-command
+external: github:paul-gross/winter#199
 depends-on:
   - remove-refusals
 code:

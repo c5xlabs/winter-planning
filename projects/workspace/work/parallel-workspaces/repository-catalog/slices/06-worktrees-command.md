@@ -1,5 +1,6 @@
 ---
 name: worktrees-command
+external: github:paul-gross/winter#202
 depends-on:
   - list-command
 code:

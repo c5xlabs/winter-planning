@@ -2,6 +2,7 @@
 epic: parallel-workspaces/repository-catalog
 refinement: final
 status: ready
+external: github:paul-gross/winter#196
 ---
 
 # Maintain the workspace's repository inventory

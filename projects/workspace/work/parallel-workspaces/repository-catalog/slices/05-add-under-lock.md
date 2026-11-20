@@ -1,5 +1,6 @@
 ---
 name: add-under-lock
+external: github:paul-gross/winter#201
 depends-on:
   - standalone-location
 code:

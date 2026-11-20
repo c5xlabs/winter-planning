@@ -1,5 +1,6 @@
 ---
 name: list-command
+external: github:paul-gross/winter#198
 depends-on:
   - epic:parallel-workspaces/workspace-configuration
 code:
