@@ -1,6 +1,6 @@
 ---
 epic: parallel-workspaces/repository-catalog
-refinement: outline
+refinement: final
 status: ready
 ---
 
