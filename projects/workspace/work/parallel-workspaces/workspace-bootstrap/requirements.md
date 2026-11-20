@@ -33,6 +33,21 @@ Acceptance:
 - Missing clone sources and failed bootstrap commands are actionable; unaffected targets remain reported.
 - Dependency installation, resource provisioning, and service startup are not implicit structural reconciliation.
 
+## Materialize recorded resolutions (product:recorded-input-materialization)
+
+The engineer can materialize a recorded workspace input without silently re-resolving a held reference. Lock meaning is
+settled by `decision:parallel-workspaces/reproducible-inputs/resolution-and-locks`.
+
+Acceptance:
+
+- A fresh tag or commit record is checked out at its recorded commit regardless of where the remote reference moved; a
+  fresh branch record lands on the branch's last-fetched `origin` tip.
+- A missing record, or one whose `ref` no longer matches the declaration, is re-resolved and rewritten; a checkout with
+  uncommitted changes, untracked files included, is refused instead.
+- An unreadable, malformed, or unsupported lock is a configuration error; an unavailable recorded commit is that
+  checkout's failure.
+- A failed input does not remove other inputs' records.
+
 ## Preserve workspace-owned and generated content (product:managed-content-ownership)
 
 An engineer can reconcile generated support files and excludes without replacing their instructions or leaking ignore

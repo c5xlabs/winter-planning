@@ -27,6 +27,7 @@ checkout without changing it, and compare workspace definitions without altering
 ## Left for later
 
 `ws init` applies pins through `epic:parallel-workspaces/workspace-bootstrap`, and `ws pull` and `ws status` advance and
-report them through `epic:parallel-workspaces/coordinated-git`; each calls what this epic builds. Project main-branch
-pinning remains catalog policy. Installed Workspace component version selection belongs to Platform;
-legacy-lock conversion belongs to `epic:rust-adoption/workspace-migration` under `decision:configuration-transition`.
+report them through `epic:parallel-workspaces/coordinated-git`; each calls what this epic builds, and their requirements
+carry the user-visible materialize, hold-on-pull, and inspect promises. Project main-branch pinning remains catalog
+policy. Installed Workspace component version selection belongs to Platform; legacy-lock conversion belongs to
+`epic:rust-adoption/workspace-migration` under `decision:configuration-transition`.

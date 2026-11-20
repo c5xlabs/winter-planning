@@ -4,9 +4,10 @@ For `epic:parallel-workspaces/reproducible-inputs`.
 
 ## What already holds
 
-- `ws update` writes the drift warning of [drift-warning.md](../repository-catalog/spec/drift-warning.md), which this
-  epic wires with that command; `epic:parallel-workspaces/repository-catalog` builds `drift::detect` and
-  `drift::notice_line`.
+Nothing yet. `epic:parallel-workspaces/repository-catalog`, in progress, builds what this epic stands on: the program
+port and its child environment ([child-processes.md](../repository-catalog/spec/child-processes.md)), operation spans
+through `cx.tracer`, `Diagnostics`, `RepoError` and `Termination::Repo`, `ReadFiles::is_dir`, and `drift::detect` and
+`drift::notice_line` ([drift-warning.md](../repository-catalog/spec/drift-warning.md)).
 
 ## Resolution record integrity across writers (engineering:resolution-write-integrity)
 
@@ -19,8 +20,8 @@ snapshot alone reads them as an empty lock, as the reference does. Serves `produ
 
 ## Restore temporary work on every exit path (engineering:repin-preservation-lifetime)
 
-Temporary preservation created for an update is restored after the checkout whether the resolution or checkout
-succeeded or failed; a failed restoration leaves the preserved work in place and names it. Serves
+Temporary preservation created for an update is restored after the checkout whether the resolution or checkout succeeded
+or failed; a failed restoration leaves the preserved work in place and names it. Serves
 `product:update-standalone-inputs`.
 
 ## Content identity cannot depend on stat freshness (engineering:fingerprint-observation)

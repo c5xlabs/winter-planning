@@ -2,7 +2,11 @@
 
 The digest `ws fingerprint` prints for a workspace definition. The digest is contract: both tools give one digest for
 one definition (`decision:parallel-workspaces/reproducible-inputs/fingerprint-boundary`). Reference locations are paths
-under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`.
+under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`. `RepoMessage` and
+`Termination` are those of
+[results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
+Domain; shape A is that of
+[output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md), JSON shapes.
 
 ## Domain
 
@@ -33,7 +37,7 @@ MissingCheckout { name: String, path: PathBuf }   // "cannot fingerprint <name>:
 
 ```text
 # the program port's Call gains `env: &[(&OsStr, &OsStr)]`, names set over the child environment of child-processes.md
-# for that call alone; empty for every other call
+# for that call alone; every other call, the catalog's included, passes an empty slice
 # engineering:fingerprint-observation; through the program port of child-processes.md, with the operation spans of
 # standalone-pins.md, Operation spans; no network; reference: modules/workspace/internal/gitpython_repository.py:274-349
 head(path)          rev-parse HEAD                                         span "git rev-parse"
@@ -53,15 +57,17 @@ dirty(path)         span "git status"; with GIT_OPTIONAL_LOCKS=0: status --porce
 ```rust
 // crates/core/src/files.rs — the file port gains the scratch copy tree() needs, so no other module names std::fs
 pub trait ScratchFiles {
-    // A copy of `source` in a new temporary directory outside any repository, bytes and modification time kept;
-    // the directory and the copy are removed when the handle drops.
-    fn scratch_copy(&self, source: &Path) -> io::Result<ScratchFile>;
-    // A path in a new temporary directory, nothing written; removed the same way.
-    fn scratch_path(&self, name: &str) -> io::Result<ScratchFile>;
+    // A copy of `source` in a new directory under `temp`, bytes and modification time kept; the directory and the
+    // copy are removed when the handle drops.
+    fn scratch_copy(&self, temp: &Path, source: &Path) -> io::Result<ScratchFile>;
+    // A path in a new directory under `temp`, nothing written; removed the same way.
+    fn scratch_path(&self, temp: &Path, name: &str) -> io::Result<ScratchFile>;
 }
 pub struct ScratchFile { /* the path, and the directory removed on drop */ }
-// OsFiles makes each directory with a unique name under TMPDIR of the invocation's snapshot, else /tmp, through the
-// tempfile crate, which the library gains; MemoryFiles holds them in memory
+// OsFiles alone implements it, naming each directory uniquely as files.rs names its own temporary files; no crate is
+// added. `temp` is TMPDIR of the invocation's snapshot, else /tmp, which the fingerprint entry reads from cx.env.
+// The Process inputs table of command-surface.md is completed by this row:
+//   TMPDIR    The directory ws fingerprint makes its scratch index under; also passed to the child.
 ```
 
 ### `ws fingerprint`
@@ -79,6 +85,11 @@ errors    a checkout path that is not a directory -> RepoError MissingCheckout, 
 ```
 
 The workspace repository is the workspace root, named by its directory's base name.
+
+Inside the identity is the tracked content as `add -u` stages it, so checkout filters apply as Git's staging applies
+them and a submodule contributes only its recorded commit. Outside it are untracked files, untracked local
+configuration, and the installed component's version. No consistency is claimed for content edited during the
+computation.
 
 ## Flows
 

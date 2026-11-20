@@ -2,6 +2,8 @@
 name: freeze
 depends-on:
   - update-command
+code:
+  - winter-workspace/crates/core/src/config_edit.rs::effective_name
 ---
 
 # `ws update --freeze` pins checkouts as they are
@@ -9,19 +11,25 @@ depends-on:
 Adds `--freeze` and `--force` to `ws update`, running the Freeze flow of
 [standalone-pins.md](../spec/standalone-pins.md), and builds the `Set a standalone ref` writer of
 [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md)
-beside the delivered removal, through its write integrity. Delivers `product:freeze-standalone-inputs`.
+beside the delivered removal, through its write integrity. Its usage errors are those of
+[command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md). Delivers
+`product:freeze-standalone-inputs`.
 
 ## Change
 
-- `--force` without `--freeze`, and `--freeze` with `--autostash`, are the usage errors the command surface gives.
-- Selection takes any standalone a pattern matches, pinned or not, with the update's glob rule, and refuses an unknown
-  literal name as `RepoMessage::NoStandaloneNamed`.
-- A lock error after the `ref` is written ends the run as `PinError::Config`, the config file already changed, with
-  no `pull_completed`, as the reference does.
-- Each selected standalone reports `already_pinned`, `refused` with the reference's reasons, or `pinned`, after `ref`
-  is inserted after the last key of the first block whose effective name matches, in the file that declares it, and
-  the commit entry is upserted.
+- `--force` without `--freeze`, and `--freeze` with `--autostash`, are the usage errors command-surface.md gives.
+- `pins/freeze.rs` selects any standalone a pattern matches, pinned or not, with the update's glob rule, and refuses an
+  unknown literal name as `RepoMessage::NoStandaloneNamed`.
+- Each selected standalone reports `already_pinned`, `refused` with the reference's reasons, or `pinned`, after `ref` is
+  inserted after the last key of the first block whose effective name matches, in the file that declares it, and the
+  commit entry is upserted. The writer sits in `config_edit.rs` beside `remove_repository_block` and matches blocks
+  through its `effective_name`.
+- A lock error after the `ref` is written ends the run as `PinError::Config`, the config file already changed, with no
+  `pull_completed`, as the reference does.
 - Nothing fetches and nothing checks out.
+- The README's paragraph on where the binary may run, and the matching rationale in `AGENTS.md`, name `ws update` beside
+  `repo remove`: it fetches, resets branches, stashes, and writes the lock and, with `--freeze`, the configuration of
+  the workspace it finds.
 
 ## Acceptance
 

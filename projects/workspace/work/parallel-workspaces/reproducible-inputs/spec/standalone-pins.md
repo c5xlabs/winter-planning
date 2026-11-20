@@ -5,9 +5,16 @@ commands report. The lock file format, its errors, the `Set a standalone ref` wr
 [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md) and
 [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md);
 this leaf builds them. Every git call goes through the program port of
-[child-processes.md](../../repository-catalog/spec/child-processes.md), with the child environment it states. Reference
-locations are paths under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at `b57b020`. Message
-wording is the binary's own unless a line below quotes it (`decision:functional-parity`).
+[child-processes.md](../../repository-catalog/spec/child-processes.md), with the child environment it states. The
+`ws update` arguments, the bare-name refusal, and the usage errors are those of
+[command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md); shape C is
+that of [output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md), JSON
+shapes; `RepoMessage` and `Termination` are those of
+[results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
+Domain; `StandaloneRepository` is that of
+[discovery-and-loading.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/discovery-and-loading.md),
+Domain. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of the `winter-workspace` repository at
+`b57b020`. Message wording is the binary's own unless a line below quotes it (`decision:functional-parity`).
 
 ## Domain
 
@@ -21,10 +28,12 @@ pub struct Resolution { pub kind: RefKind, pub commit: Sha }   // Sha: 40 lowerc
 
 pub struct LockEntry { pub name: String, pub r#ref: String, pub kind: RefKind, pub commit: Sha }
 
-// crates/core/src/config.rs — the StandaloneEntry of repository-addition.md, Domain, gains its declared ref:
-pub struct StandaloneEntry { pub name: String, pub url: Option<String>, pub path: Option<String>,
-                                    pub r#ref: Option<String> }   // None when absent; the load's refusals are unchanged
-// A standalone's checkout location is the catalog's: location-listing.md, Interfaces, standalone.
+// A standalone is the loaded StandaloneRepository of discovery-and-loading.md, Domain, unchanged: below, repo.name is
+// its common.name, repo.ref its reference, and its checkout the catalog's location (location-listing.md, Interfaces,
+// standalone). It is pinned when reference is Some, Some("") included, as the reference tests `is None`.
+
+// crates/core/src/config_lock.rs — the lock's reader and upsert, LockError beside them; the file's path is LOCK_FILE,
+// ".winter/config.lock", beside CONFIG_FILE in crates/core/src/workspace_files.rs
 
 pub enum PinResult {                                   // the `result` value of a repo_synced event
     UpToDate,                                          // "up_to_date"
@@ -66,16 +75,22 @@ pub trait IntegrateCheckout {
 pub enum Advanced { Pin(PinOutcome), Integrated(Integration) }
 ```
 
-`RepoError` is that of [location-listing.md](../../repository-catalog/spec/location-listing.md): a git call's
-failure, carrying its exit. A run succeeds unless an outcome is `refused` or `pin_error`, or a pull's integration is
-`Diverged` (`modules/workspace/models/service_model.py:514-522`). A `pin_ref` written `<rendered>` below is the
-`RepoError` as Python's `str()` renders it (`modules/workspace/models/domain_model.py:322-337`): the message, then
-`  $ <program> <subcommand> <args>`, `  cwd: <cwd>`, `  exit <n>` (with ` (killed by signal <s>)` for a negative
-exit), and `  stderr: <stderr, trimmed>`, each on its own line and only when present.
+`RepoError` is that of [location-listing.md](../../repository-catalog/spec/location-listing.md): a git call's failure,
+carrying its exit. A run succeeds unless an outcome is `refused` or `pin_error`, or a pull's integration is `Diverged`
+(`modules/workspace/models/service_model.py:514-522`). A `pin_ref` written `<rendered>` below is the `RepoError` as
+Python's `str()` renders it (`modules/workspace/models/domain_model.py:322-337`): the message, then
+`$ <program> <subcommand> <args>`, `cwd: <cwd>`, `exit <n>` (with `(killed by signal <s>)` for a negative exit), and
+`stderr: <stderr, trimmed>`, each on its own line and only when present.
 
 Every type and entry the slices re-export for tests is `pub` inside its private module, and so is every type their
-signatures name, the program port's `Call`, `Finished`, `Exit`, `Program`, and `RunPrograms` included; `lib.rs`
-re-exports them by name (changes.md, A domain module).
+signatures name: the file port's `ReadFiles`, `WriteFiles`, and `OsFiles`, the program port's `Call`, `Finished`,
+`Exit`, `Program`, and `RunPrograms`, `CommandTracer`, and `Diagnostics` included; `lib.rs` re-exports them by name
+(changes.md, A domain module).
+
+Every warning, notice, and log record below is written by the domain entry through the `Diagnostics` of
+[repository-list.md](../../repository-catalog/spec/repository-list.md), Domain, which each entry takes beside its ports;
+a command file writes none (`decision:parallel-workspaces/workspace-configuration/domain-reporting`). A warning or debug
+record is `diagnostics::record` at that level; a line quoted with its `warning:` prefix is written as quoted.
 
 ```rust
 // engineering:typed-outcomes; the RepoMessage of results-and-exit-codes.md, Domain, gains the causes the reference
@@ -90,7 +105,8 @@ NoPinnedNamed { name: String }      // "no pinned standalone repo named <name>"
 NoStandaloneNamed { name: String }  // "no standalone repo named <name>"
 // the last four carry no detail field: the reference passes no cwd or an empty one
 
-// crates/core/src/pins.rs — the module's own error sum, which materialize, advance, the re-pin run, and the freeze
+// crates/core/src/pins.rs, whose flows are its submodules pins/{resolve,materialize,advance,repin,freeze,snapshot}.rs
+// — the module's own error sum, which materialize, advance, the re-pin run, and the freeze
 // run answer; the command maps it: Repo -> Termination::Repo, Config -> Termination::Config, exit 1 either way
 pub enum PinError { Repo(RepoError), Config(ConfigError) }   // Config holds the lock's ConfigError::Lock and
                                                                     // the Set a standalone ref writer's errors
@@ -101,8 +117,9 @@ pub enum PinError { Repo(RepoError), Config(ConfigError) }   // Config holds the
 ### Git operations
 
 ```text
-# crates/core/src/git.rs; engineering:domain-io-boundaries; every call through the program port, `git` run in the
-# checkout as its cwd
+# crates/core/src/git.rs; engineering:domain-io-boundaries; functions over &dyn RunPrograms and &dyn CommandTracer,
+# which a command file hands its domain entry as cx.programs and cx.tracer; Context gains nothing; every call through
+# the program port, `git` run in the checkout as its cwd
 read
   head(path)            rev-parse HEAD                                      fails: not a repository, no HEAD
   clean(path)           status --porcelain                                  clean iff empty output; any failure reads dirty;
@@ -127,7 +144,8 @@ Reference: `modules/workspace/internal/gitpython_repository.py:205-375`,
 
 ```text
 # reference: modules/workspace/internal/git_ops_service.py:24-81,113-149,165-247
-# the bound child-processes.md leaves to the epics that fetch; the program port's Call gains `timeout: Option<Duration>`
+# the bound child-processes.md leaves to the epics that fetch; the program port's Call gains `timeout: Option<Duration>`,
+# None on every call but fetch's; fetch takes the invocation's ProcessEnv and the entry's Diagnostics
 timeout     WINTER_GIT_TIMEOUT_S of the snapshot, float seconds; unset -> 40
             unparseable, inf, or nan -> warning "ignoring invalid WINTER_GIT_TIMEOUT_S=<raw> (expected float seconds);
             using default 40s", 40; <= 0 -> warning "ignoring non-positive timeout <value> (would kill every git
@@ -150,7 +168,7 @@ transient   a signal exit, or stderr matching, case-insensitively, any of:
 delay       base = min(1 * 2^(attempt-1), 8); delay = base + base * 0.5 * u, u uniform in [-1, 1], clamped to [0, 8]
             seconds; slept before the next attempt; u is drawn through the fastrand crate, which the library gains
 clock       programs.rs is the one library file that reads the monotonic clock, sleeps, and draws a random number:
-            standards/rust.md, Output and environment access, names it as the exception to "reads no clock"; the retry
+            context/standards/rust.md, Output and environment access, names it as the exception to "reads no clock"; the retry
             loop takes the sleep and the draw from it, so a test fixes both
 notice      warning per retry: "transient git error (attempt <n>/3): <stderr, trimmed> — retrying in <delay, 2
             decimals>s"
@@ -240,7 +258,7 @@ materialize(repo, path) -> Result<Option<(RefKind, Sha)>, PinError>
 ### Advance a pin on pull
 
 ```text
-# product:standalone-reference-policy; called by the standalone integration of epic:parallel-workspaces/coordinated-git
+# product:integrate-selected-repositories; called by the standalone integration of epic:parallel-workspaces/coordinated-git
 # after its fetch, for a standalone that declares a ref; reference: modules/workspace/workspace_sync_service.py:426-504
 advance(repo, mode, autostash, integration: &dyn IntegrateCheckout) -> Result<Advanced, PinError>
   r := resolve(path, repo.ref)          # an error propagates, as PinError::Repo, to the pull's per-repository handling
@@ -307,7 +325,7 @@ per selected standalone, in order:
   not force and not clean(path)        -> Refused "<name> has uncommitted changes, so its commit does not describe it;
                                           commit/stash or pass --force"
   set `ref = "<c>"` in config.toml, else config.local.toml, on the first block whose effective name (`name`, else
-  derived from `url`) is the standalone's
+  derived from `url`) is the standalone's, matched by the effective_name of config_edit.rs that the removal uses
                                        # the Set a standalone ref writer, through write integrity; neither file
                                        # declares it -> Refused "<name> is not declared in config.toml or config.local.toml"
   upsert {name, ref: c, kind: Commit, commit: c} -> Pinned, pin_ref c[..8]
@@ -321,7 +339,7 @@ emit repo_synced per outcome, then pull_completed
 ### Pin snapshot
 
 ```text
-# product:standalone-reference-policy; read by the workspace status of epic:parallel-workspaces/coordinated-git
+# product:inspect-workspace-git; read by the workspace status of epic:parallel-workspaces/coordinated-git
 # reference: modules/workspace/workspace_snapshot_service.py:557-601,
 #            modules/workspace/handlers/workspace_handler.py:1512-1523
 snapshot(standalones) -> Vec<PinSnapshot>

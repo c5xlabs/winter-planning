@@ -43,6 +43,9 @@ Acceptance:
 - Missing refs, divergence, dirty blockers, authentication failure, and unavailable remotes are not conflated.
 - Failure to refresh cannot be disguised as verified current remote state; any stale-ref continuation is disclosed.
 - Conflict outcomes identify whether Git was restored or remains paused, and where preserved dirty work remains.
+- A standalone's held tag or commit reference does not move during fetch or pull; a branch pin follows the pull's
+  integration, and its record advances only when the pull fast-forwards it, under
+  `decision:parallel-workspaces/reproducible-inputs/resolution-and-locks`.
 
 ## Push only the intended work (product:push-worktree-destinations)
 
@@ -71,3 +74,5 @@ Acceptance:
 - Explicit refresh is distinguishable from read-only inspection and reports its additional effects.
 - Structured output and success categories follow `decision:command-vocabulary`; scoped cleanliness is distinguishable
   from unrelated global drift shown for context.
+- Each pinned standalone's declared reference, recorded revision, resolution kind, and checkout drift are inspectable,
+  under `decision:parallel-workspaces/reproducible-inputs/resolution-and-locks`.

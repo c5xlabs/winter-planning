@@ -9,26 +9,10 @@ lock meaning are settled by `decision:parallel-workspaces/reproducible-inputs/re
 
 Acceptance:
 
-- Declared reference, resolved revision, resolution kind, and checkout drift are inspectable for each standalone.
 - A reference resolves as an `origin` branch, then a tag, then a commit; an unresolvable reference is an error naming
   it, never a silent substitution of the default branch.
-- Held references do not move during ordinary fetch or pull. A branch pin follows the pull's integration, and its
-  record advances only when the pull fast-forwards it.
+- A held reference does not move during the fetch of an update: a tag moved on its remote keeps its local tag.
 - Reproducibility records are shareable separately from machine-local allocations and private configuration.
-
-## Materialize recorded resolutions (product:recorded-input-materialization)
-
-The engineer can materialize a recorded workspace input without silently re-resolving a held reference.
-
-Acceptance:
-
-- A fresh tag or commit record is checked out at its recorded commit regardless of where the remote reference moved;
-  a fresh branch record lands on the branch's last-fetched `origin` tip.
-- A missing record, or one whose `ref` no longer matches the declaration, is re-resolved and rewritten; a checkout with
-  uncommitted changes, untracked files included, is refused instead.
-- An unreadable, malformed, or unsupported lock is a configuration error; an unavailable recorded commit is that
-  checkout's failure.
-- A failed input does not remove other inputs' records.
 
 ## Review intentional input updates (product:update-standalone-inputs)
 
