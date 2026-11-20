@@ -1,6 +1,6 @@
 ---
 epic: parallel-workspaces/reproducible-inputs
-refinement: outline
+refinement: final
 status: ready
 ---
 
