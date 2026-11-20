@@ -11,8 +11,8 @@ code:
 # Stub programs and the calls dimension
 
 Builds `scenario::stub` and the `Calls` comparison: the `[[stub]]` table and Program calls of
-[scenario-format.md](../../../rust-adoption/parity-validation/spec/scenario-format.md) and the `Calls` row of
-[record-and-replay.md](../../../rust-adoption/parity-validation/spec/record-and-replay.md). Delivers
+[scenario-format.md](../../../../delivered/rust-adoption/parity-validation/spec/scenario-format.md) and the `Calls` row
+of [record-and-replay.md](../../../../delivered/rust-adoption/parity-validation/spec/record-and-replay.md). Delivers
 `engineering:program-call-capture` under `decision:rust-adoption/parity-validation/program-capture-placement`. Lands
 before the first command of this epic that starts a program, so that command's recorded scenarios can stub it.
 

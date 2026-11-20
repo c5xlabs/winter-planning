@@ -7,9 +7,9 @@ depends-on:
 # The first writing command: repo remove, tested in process
 
 Builds `repo remove` as
-[repository-removal.md](../../../parallel-workspaces/repository-catalog/spec/repository-removal.md) specifies it, with
-the write side of the file port, unit tests, and component tests, and no recorded scenario yet. It is the command half
-of the state-changing proof of `engineering:method-proof`, under
+[repository-removal.md](../../../../work/parallel-workspaces/repository-catalog/spec/repository-removal.md) specifies
+it, with the write side of the file port, unit tests, and component tests, and no recorded scenario yet. It is the
+command half of the state-changing proof of `engineering:method-proof`, under
 `decision:rust-adoption/parity-validation/proof-behaviours`. The block-removal rule is the binary's, under
 `decision:parallel-workspaces/repository-catalog/removal-comment-extent`. The reference tool is not run in this change.
 It builds on the file port and the `files` field of `Context` that `index-command` adds.

@@ -3,9 +3,9 @@
 The `winter-workspace-test-support` package: the isolated tree every process-level test runs in, the pinned environment,
 the bounded process runner, the git fixture helpers, the workspace builder, and the loopback trace collector. The
 scenario format and its record and replay machinery live in the same package and are specified by
-[scenario-format.md](../../../../work/rust-adoption/parity-validation/spec/scenario-format.md) and
-[record-and-replay.md](../../../../work/rust-adoption/parity-validation/spec/record-and-replay.md). The package's place
-in the workspace is [repository-layout.md](./repository-layout.md).
+[scenario-format.md](../../../rust-adoption/parity-validation/spec/scenario-format.md) and
+[record-and-replay.md](../../../rust-adoption/parity-validation/spec/record-and-replay.md). The package's place in the
+workspace is [repository-layout.md](./repository-layout.md).
 
 The package depends on no other workspace package. It is written fresh in this repository from the interfaces below; no
 source of the platform repository's harness is copied or adapted, under

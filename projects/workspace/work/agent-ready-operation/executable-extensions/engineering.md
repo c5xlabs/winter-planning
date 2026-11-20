@@ -48,10 +48,10 @@ authorization separate from ordinary inspection. Serves `product:safe-conformanc
 
 A recorded scenario whose command starts another program replaces that program with a recording stub, and replay
 compares the calls the stub received with the reference tool's. The harness is built to the `[[stub]]` table and Program
-calls of [scenario-format.md](../../rust-adoption/parity-validation/spec/scenario-format.md) and the `Calls` row of
-[record-and-replay.md](../../rust-adoption/parity-validation/spec/record-and-replay.md), under
-`decision:rust-adoption/parity-validation/program-capture-placement`, before the first command of this epic that starts
-a program. Serves `product:controlled-execution`.
+calls of [scenario-format.md](../../../delivered/rust-adoption/parity-validation/spec/scenario-format.md) and the
+`Calls` row of [record-and-replay.md](../../../delivered/rust-adoption/parity-validation/spec/record-and-replay.md),
+under `decision:rust-adoption/parity-validation/program-capture-placement`, before the first command of this epic that
+starts a program. Serves `product:controlled-execution`.
 
 Acceptance:
 

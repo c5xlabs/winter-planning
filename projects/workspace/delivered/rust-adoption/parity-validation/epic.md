@@ -1,7 +1,7 @@
 ---
 epic: rust-adoption/parity-validation
 refinement: outline
-status: in-progress
+status: delivered
 ---
 
 # Judge the replacement against real work

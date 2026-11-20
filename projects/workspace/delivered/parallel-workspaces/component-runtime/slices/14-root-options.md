@@ -57,8 +57,8 @@ beside no other change.
   - with `stdout = "json"`: `ws-index/double-dash-name`, `ws-index/json-before-name`,
     `ws-index/with-orchestrator-override`;
   - deviation scenarios, each made by the flow of
-    [record-and-replay.md](../../../../work/rust-adoption/parity-validation/spec/record-and-replay.md), "register a
-    deviation": the scenario is written and recorded once, the `exit-code` file of `record/steps/01/` is copied to
+    [record-and-replay.md](../../../rust-adoption/parity-validation/spec/record-and-replay.md), "register a deviation":
+    the scenario is written and recorded once, the `exit-code` file of `record/steps/01/` is copied to
     `expected/steps/01/` and edited to the decided value, and `[deviation]` names the decision:
     - `ws-index/repeated-flag`, whose one step is `-v -v ws index NAME` with text stdout: expected exit code 2,
       `decision:parallel-workspaces/component-runtime/repeated-options`;

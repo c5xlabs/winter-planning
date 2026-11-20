@@ -6,7 +6,7 @@ depends-on:
 
 # The first command: ws index, tested in process
 
-Builds `ws index` as [index-lookup.md](../../../parallel-workspaces/environment-lifecycle/spec/index-lookup.md)
+Builds `ws index` as [index-lookup.md](../../../../work/parallel-workspaces/environment-lifecycle/spec/index-lookup.md)
 specifies it, to the extent the table "How far the proof implements an owner's contract" of
 [method-proof.md](../spec/method-proof.md) gives, with unit and component tests and no recorded scenario yet. It is the
 command half of the read-only proof of `engineering:method-proof`, under
