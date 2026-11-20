@@ -2,6 +2,12 @@
 
 For `epic:parallel-workspaces/workspace-bootstrap`.
 
+## What already holds
+
+- The standalone reconciliation of `ws init` applies each standalone's pin after its clone or fetch through
+  `materialize`, Materialize a pin in [standalone-pins.md](../reproducible-inputs/spec/standalone-pins.md), built by
+  `epic:parallel-workspaces/reproducible-inputs`; this epic calls it and reports its result.
+
 ## Worktree-local Git configuration integrity (engineering:workspace-exclude-isolation)
 
 Generated workspace excludes remain isolated when the workspace is a linked worktree, including a bare common Git

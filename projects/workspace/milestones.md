@@ -19,7 +19,7 @@ that matches the selected tool. They do not clone Winter's framework source to s
 | `epic:rust-adoption/parity-validation`             | in-progress |
 | `epic:parallel-workspaces/workspace-configuration` | delivered   |
 | `epic:parallel-workspaces/repository-catalog`      | ready       |
-| `epic:parallel-workspaces/reproducible-inputs`     | planned     |
+| `epic:parallel-workspaces/reproducible-inputs`     | ready       |
 | `epic:agent-ready-operation/context-navigation`    | planned     |
 | `epic:parallel-workspaces/workspace-bootstrap`     | planned     |
 

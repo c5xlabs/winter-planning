@@ -90,6 +90,7 @@ The write port and its first caller arrive together: the library holds no code t
 
 - Recording and replaying the command against the reference tool, and the expectation for the deviation:
   `proof-state-changing`.
-- `repo add`, `repo list`, cloning, and lock-file updates: `epic:parallel-workspaces/repository-catalog`.
+- `repo add` and `repo list`: `epic:parallel-workspaces/repository-catalog`; cloning:
+  `epic:parallel-workspaces/workspace-bootstrap`; lock-file updates: `epic:parallel-workspaces/reproducible-inputs`.
 - Every other configuration writer: `epic:parallel-workspaces/workspace-configuration`.
 - The effective name of a block whose `name` or `url` has a type the spec's Open questions leaves unpinned.

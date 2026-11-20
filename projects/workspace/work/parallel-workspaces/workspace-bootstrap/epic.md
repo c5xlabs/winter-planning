@@ -22,6 +22,7 @@ identifies and removes obsolete managed material without adopting a source fork 
 ## Depends on
 
 - `epic:parallel-workspaces/repository-catalog`
+- `epic:parallel-workspaces/reproducible-inputs`
 - `epic:agent-ready-operation/context-navigation`
 
 ## Left for later

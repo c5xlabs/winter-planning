@@ -10,6 +10,11 @@ For `epic:parallel-workspaces/coordinated-git`.
 - `ws status` runs the worktree probe of [location-listing.md](../repository-catalog/spec/location-listing.md), The
   worktree probe, built by `epic:parallel-workspaces/repository-catalog` with `ws worktrees --status`; this epic's spec
   links it and adds its own pieces.
+- The standalone integration of `ws pull` hands each standalone that declares a `ref` to `advance`, and `ws status`
+  reports the pins of `snapshot`, Advance a pin on pull and Pin snapshot in
+  [standalone-pins.md](../reproducible-inputs/spec/standalone-pins.md), built by
+  `epic:parallel-workspaces/reproducible-inputs`; this epic implements `IntegrateCheckout` for `advance` and renders
+  both.
 
 ## Shared Git-store coordination (engineering:shared-git-effects)
 

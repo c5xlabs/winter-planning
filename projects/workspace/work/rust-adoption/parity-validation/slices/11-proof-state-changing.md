@@ -71,5 +71,6 @@ completes the groundwork every command epic builds on.
 
 ## Out of scope
 
-- `repo add`, `repo list`, cloning, and lock-file updates: `epic:parallel-workspaces/repository-catalog`.
+- `repo add` and `repo list`: `epic:parallel-workspaces/repository-catalog`; cloning:
+  `epic:parallel-workspaces/workspace-bootstrap`; lock-file updates: `epic:parallel-workspaces/reproducible-inputs`.
 - Capture of program calls: `program-capture`, which is not part of this groundwork.

@@ -22,6 +22,7 @@ tracking. Network and partial failures remain visible rather than obscured by a 
 ## Depends on
 
 - `epic:parallel-workspaces/environment-lifecycle`
+- `epic:parallel-workspaces/reproducible-inputs`
 
 ## Left for later
 
