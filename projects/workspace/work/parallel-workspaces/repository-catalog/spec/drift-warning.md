@@ -20,6 +20,8 @@ drift        one notice on stderr (../../../../delivered/parallel-workspaces/com
              Diagnostics on the stderr handle, notice): it names each missing name in order when there is any, then
              each undeclared name in order when there is any; wording and separators are the binary's own
 when         after the load and before the command writes its result; under --json as well, never inside the document
+             the command's domain entry writes it through Diagnostics; a command file writes no notice
+             (decision:parallel-workspaces/workspace-configuration/domain-reporting)
 listing      a <root>/projects that is a directory and cannot be listed ends the command as InternalError::Unexpected,
              exit 1, as the reference's unhandled OSError; nothing has been written to stdout
 writes       nothing to the filesystem; starts no program
@@ -53,23 +55,40 @@ touches another epic's command. `repo add`, `repo remove`, and `ws worktrees` do
 ```rust
 // crates/core/src/drift.rs — pure but for the listing, which goes through the file port
 pub(crate) struct Drift { pub missing: Vec<String>, pub undeclared: Vec<String> }
-pub(crate) fn detect(files: &dyn ReadFiles, root: &Path, projects: &[ProjectEntry]) -> Result<Drift, InternalError>;
+pub(crate) fn detect(files: &dyn ReadFiles, root: &Path, projects: &[ProjectRepository])
+    -> Result<Drift, InternalError>;
 // The notice line of a drift, or None when both lists are empty.
 pub(crate) fn notice_line(drift: &Drift) -> Option<String>;
 // crates/core/src/files.rs — ReadFiles gains, with this leaf and its siblings, each implemented on OsFiles and on the
 // in-memory MemoryFiles: whether a path exists and whether it is a directory, symbolic links followed; the names of
-// the entries of a directory, in no fixed order; and resolve, the rule of repository-addition.md, Duplicates.
+// the entries of a directory, in no fixed order; resolve, the rule of repository-addition.md, Duplicates; and the
+// target of a symbolic link as written, for the repository rule of location-listing.md.
 fn exists(&self, path: &Path) -> bool;
 fn is_dir(&self, path: &Path) -> bool;
 fn entries(&self, path: &Path) -> io::Result<Vec<OsString>>;
 fn resolve(&self, path: &Path) -> PathBuf;
-// MemoryFiles holds, per path, a regular file with its bytes, a directory, a symbolic link with its target, or an
-// entry that fails every read with an error kind. A parent of an added path is a directory. exists, is_dir, entries,
-// and resolve follow links as OsFiles does; entries of an entry that fails reads is that error.
+// The target text of the link at `path`, not followed: Ok(None) when `path` is no symbolic link or does not exist.
+fn read_link(&self, path: &Path) -> io::Result<Option<PathBuf>>;
+```
+
+```text
+MemoryFiles, per path, one of:
+  File(bytes)            a regular file                                 kept as it is
+  FailingFile(kind)      a regular file whose every read fails          kept as it is: is_file true
+  NotAFile(kind)         an entry, no regular file, every read fails    kept as it is: is_file false, is_dir false
+  Dir                    a directory                                    added
+  FailingDir(kind)       a directory whose listing fails                added: is_dir true, entries Err(kind)
+  Link(target)           a symbolic link with its target text           added
+a parent of an added path is a Dir; exists, is_file, is_dir, entries, and resolve follow links as OsFiles does;
+read_link answers the target of a Link and None for every other entry
+the config_file and state_registry tests that use FailingFile and NotAFile keep their meaning
 ```
 
 A directory name under `projects/` is compared as its bytes, so one that is not valid UTF-8 never equals a declared name
 and is undeclared, as in the reference; the notice writes it lossily. The reference compares and sorts Python's
 surrogate-escaped text of such a name, an artifact of Python under `decision:functional-parity`.
 
-`ProjectEntry` is [repository-addition.md](./repository-addition.md), Domain.
+`ProjectRepository` is
+[discovery-and-loading.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/discovery-and-loading.md),
+Domain; the declared name of an entry is its `common.name`. `Diagnostics` is [repository-list.md](./repository-list.md),
+Domain.

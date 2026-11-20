@@ -88,22 +88,29 @@ resolve        os.path.realpath with strict=False, as Python's Path.resolve(): c
 # product:edit-repository-inventory, engineering:add-under-lock
 file           without --local   .winter/config.toml
                with --local      .winter/config.local.toml, created when it does not exist
-under the lock of configuration-model.md, Write integrity, the edited file is read once and:
+through WriteFiles::update (write-path.md), the edited file is read once, under the lock, and:
   a. the edited file does not exist and it is the shared one         InternalError::Unexpected, exit 1, as the
                                                                        reference's missing-file failure
-  b. the edited file is not valid TOML                               ConfigError::FileRead, Toml cause
-  c. the load is run again on the edited file as read and the other file as read now; its first refusal is the
-     ending. Rules 5 and 6 are checked again on that configuration.   the same errors as rules 5 and 6
-  d. the array key of kind is present and holds anything but an array of tables
-                                                                       CatalogError::NotArrayOfTables, exit 1
+  b. the edited file is not UTF-8 or not valid TOML                  ConfigError::FileRead naming it, Toml cause
+  c. config_load::reload: the load run again on the edited file's bytes as read and the other file as read now
+     through the read port; its first refusal is the ending, a value that is not an array included
+     (RepositoriesNotArray). Rules 5 and 6 are checked again on the Workspace it returns.
+                                                                       the load's ConfigError; the errors of 5 and 6
+  d. the array key of kind is present and is no array of tables      CatalogError::NotArrayOfTables, exit 1
+                                                                       after c, only an array written inline,
+                                                                       empty or not, reaches d
   e. the block is placed (Where the block goes) and the file is replaced once
+  f. the replacement fails                                           ConfigError::FileWrite naming the file
 a to d write nothing. Without a concurrent writer, c finds what rules 1, 5, and 6 found, and the command is the
 reference's; with one, of two adds that conflict exactly one appends (decision:visible-gap-policy: hardening).
+f is decision:parallel-workspaces/workspace-configuration/write-failure-kind.
+write-path.md = ../../../../delivered/parallel-workspaces/workspace-configuration/spec/write-path.md
 ```
 
 `d` is `decision:parallel-workspaces/repository-catalog/refused-edits`. It is no registered deviation: the reference
-tool fails `assert isinstance(existing, AoT)` (`config/internal/write_winter_configuration_repository.py:78-81`) for the
-same files, also with exit 1 and nothing written.
+tool fails `assert isinstance(existing, AoT)` (`config/internal/write_winter_configuration_repository.py:78-81`) for an
+inline array, also with exit 1 and nothing written. A value that is not an array never reaches `d`: the load refuses it
+at rule 1, which is `decision:parallel-workspaces/workspace-configuration/repository-array-type`.
 
 ### Block written
 
@@ -201,20 +208,26 @@ pub enum CatalogError {
 pub enum StandaloneOption { Path, Prefix, Ref }   // Display: "--path" | "--prefix" | "--ref"
 ```
 
-The load keeps what these commands read once they land
-([configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
-Load: a key's value is kept once a command reads it):
+The catalog reads the repositories from the loaded `Workspace` of
+[discovery-and-loading.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/discovery-and-loading.md),
+Domain, and adds no field to it:
+
+```text
+existing projects      workspace.config.project_repositories      merged order; an entry the load skips is absent
+existing standalones   workspace.config.standalone_repositories   the same; duplicate standalone names are already
+                                                                  refused by the load (DuplicateStandaloneName)
+resolved name          entry.common.name                          `name` when not empty, else derived from `url`
+url                    entry.common.url                           None when absent or empty
+standalone location    <root>/<entry.path>                        path is already the resolved name when absent or ""
+```
 
 ```rust
-// crates/core/src/config.rs — added to Config
-pub main_branch: String,                 // top-level main_branch, defaulted: configuration-model.md, Top-level keys
-pub projects: Vec<ProjectEntry>,               // merged order: the shared file's entries, then the local file's
-pub standalones: Vec<StandaloneEntry>,         // the same; an entry the load skips is in neither
-pub(crate) struct ProjectEntry {
-    pub name: String,                          // resolved: `name` when not empty, else derived from `url`
-    pub url: Option<String>, pub main_branch: Option<String>, pub pinned: bool,
-}
-pub(crate) struct StandaloneEntry { pub name: String, pub url: Option<String>, pub path: Option<String> }
+// crates/core/src/config_load.rs — added beside load, for Writing step c; the same checks and order as load, over
+// the edited file's bytes in place of its read. The bytes are read as config_file::read reads a file: not UTF-8 or
+// not valid TOML -> FileRead naming `edited`, Toml cause. `edited` is root/.winter/config.toml or
+// root/.winter/config.local.toml; the other of the two is read through `files`.
+pub(crate) fn reload(files: &dyn ReadFiles, root: &Path, edited: &Path, bytes: &[u8])
+    -> Result<Workspace, ConfigError>;
 ```
 
 ## Open questions

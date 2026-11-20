@@ -24,7 +24,10 @@ extension of [child-processes.md](../spec/child-processes.md), Domain: with trac
   `NoTrace` and the scaffold's `Recording` keep the default, and the binary's `Tracer` overrides it: a child of the
   command span, recorded only when the command span is, ended when the handle drops, and sent in the command span's one
   export.
-- `Context` gains `tracer`, which `run_with` fills from the `Invocation`, and `locations::list` takes it.
+- `Context` gains `tracer`, which `run_with` fills from the `Invocation`, and `locations::list` takes it; `changes.md`,
+  A command file, states that the one call is also handed `cx.tracer` when it opens an operation span.
+- `crates/core/src/lib.rs` re-exports `OperationSpan` beside `CommandTracer`, which the binary's `Tracer` needs to
+  implement `operation`.
 - Each worktree probe opens `git status` with `winter.repo` and `winter.env`, and the workspace probe `git status` with
   `winter.repo` alone, whether or not the probe makes a git call, for every probe that runs; a probe ending in a
   `RepoError` marks its span failed with `error.type` `"RepoError"` and no description. No span is opened without

@@ -69,6 +69,9 @@ pub(crate) trait RunPrograms {
 // The programs of the operating system; built by `run` beside OsFiles, from the snapshot.
 pub(crate) struct OsPrograms { /* the child environment above, and the PATH entries */ }
 impl OsPrograms { pub(crate) fn new(snapshot: &ProcessEnv) -> Self; }
+// crates/core/src/process.rs — ProcessEnv gains, for OsPrograms::new: every name and value of the snapshot, bytes as
+// given, a name that is not UTF-8 included; get and names stay as they are
+impl ProcessEnv { pub fn pairs(&self) -> impl Iterator<Item = (&OsStr, &OsStr)>; }
 // The lookup of a program on a PATH value, pure: the first entry where `executable` holds; None when none does.
 pub(crate) fn find_program(name: &str, path: Option<&OsStr>, cwd: &Path, executable: &dyn Fn(&Path) -> bool)
     -> Option<PathBuf>;
@@ -83,6 +86,7 @@ pub tracer: &'a dyn CommandTracer,             // the invocation's tracer, which
 // NoTrace and the test scaffold's tracer need no change; the binary's Tracer overrides it.
 fn operation(&self, name: &'static str, attributes: &[(&'static str, &str)]) -> Box<dyn OperationSpan + '_> { … }
 pub trait OperationSpan { fn failed(&mut self, error_type: &'static str); }
+// crates/core/src/lib.rs re-exports OperationSpan beside CommandTracer, so the binary's Tracer can implement operation
 ```
 
 A component test runs the real port inside the isolated tree, whose `PATH` puts its stub programs first; a unit test of

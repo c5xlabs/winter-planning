@@ -15,8 +15,8 @@ Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winte
 repo list [--json]
 order      1. workspace root, then the load       configuration-model.md, Root discovery, then Load
            2. the implicit repositories, probed
-           3. the drift warning                   drift-warning.md
-           4. the result on stdout
+           3. the drift warning                   drift-warning.md; written by the domain entry, before it returns
+           4. the result on stdout                written by the command file through output
 entries, in this order
   1. singletons    product  when <root>/product is a directory, symbolic links followed
                    harness  when <root>/context/harness/.git exists, symbolic links followed, file or directory
@@ -79,9 +79,22 @@ pub(crate) enum Listed {
     Standalone { name: String, url: Option<String>, path: PathBuf },
     Project { name: String, url: Option<String>, main_path: PathBuf, pinned: bool },
 }
-// The entries in the order of Interfaces, with the drift found while listing them.
-pub(crate) fn list(files: &dyn ReadFiles, start: &Path) -> Result<(Vec<Listed>, Drift), ListError>;
+// The entries in the order of Interfaces. The drift notice, when there is drift, is written through `diagnostics`
+// before the entries are returned, so it precedes the result on every path.
+pub(crate) fn list(files: &dyn ReadFiles, start: &Path, diagnostics: &mut Diagnostics<'_>)
+    -> Result<Vec<Listed>, ListError>;
 pub(crate) enum ListError { Config(ConfigError), Internal(InternalError) }
+
+// crates/core/src/diagnostics.rs — decision:parallel-workspaces/workspace-configuration/domain-reporting.
+// Built with repo list, its first domain entry. The command file makes it from cx.err and cx.log and hands it to the
+// entry; it is no port, and no Invocation or Context carries it.
+pub(crate) struct Diagnostics<'a> { pub err: &'a mut dyn std::io::Write, pub log: Log }
 ```
 
-`Drift` is [drift-warning.md](./drift-warning.md), Domain; the command writes its notice before the result.
+The entries come from `workspace.config.standalone_repositories` and `workspace.config.project_repositories` of the
+loaded `Workspace`
+([discovery-and-loading.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/discovery-and-loading.md),
+Domain): the resolved name is `common.name`, the URL `common.url`, a standalone location `<root>/<path>`, and `pinned`
+as loaded. `Drift` is [drift-warning.md](./drift-warning.md), Domain. The entry writes the notice with
+`diagnostics::notice` of [runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md),
+Diagnostics on the stderr handle, which is built with this, its first caller.

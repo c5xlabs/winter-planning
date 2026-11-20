@@ -1,6 +1,7 @@
 ---
 name: standalone-location
 depends-on:
+  - list-command
   - add-command
 code:
   - winter-workspace/crates/core/src/files.rs::ReadFiles
@@ -22,11 +23,12 @@ the location of a declared standalone" part of `product:repository-addresses` un
   states it: components left to right, `.` dropped, `..` removing the last component reached, a symbolic link replaced
   by its target read relative to its directory, the rest taken as text from the first component that does not exist.
 - After check 5, for kind standalone only, `add` compares `resolve(<root>/(--path when not empty, else the new name))`
-  with `resolve(<root>/(its path when not empty, else its resolved name))` of each declared standalone, in merged order;
-  the first equal one ends the command as `DuplicatePath` naming `--path` or the new name as given. No other location is
-  compared.
+  with `resolve(<root>/<path>)` of each entry of `workspace.config.standalone_repositories`, in merged order, `path`
+  being the loaded value, which is already the resolved name when the entry's `path` is absent or empty; the first equal
+  one ends the command as `DuplicatePath` naming `--path` or the new name as given. No other location is compared.
 - The open question of repository-addition.md on a symbolic-link loop is answered by the scenario recorded here, and the
-  answer is folded into the spec's `resolve` row in the same change.
+  answer is reported with the change; the spec's `resolve` row is corrected from the record in a change to the planning
+  repository.
 - Recorded scenarios under `scenarios/repo-add/`, recorded with `cargo dev record` from the reference tool, the
   executable path given with the task, the one that writes a file with
   `[[compare.file]] path = "ws/.winter/*.toml" mode = "toml"` and the reason `decision:toml-parity`: a standalone whose

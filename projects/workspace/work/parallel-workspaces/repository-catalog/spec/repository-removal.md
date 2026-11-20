@@ -27,8 +27,9 @@ configuration-model.md = ../../../../delivered/parallel-workspaces/workspace-con
 ```
 
 The edited file is read once, under the lock of
-[configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
-Write integrity, and its rows are checked in this order; the first that holds decides.
+[write-path.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/write-path.md), and its rows are
+checked in this order; the first that holds decides. The edit works on those bytes, never on the loaded value, so an
+entry another writer added since the load is kept.
 
 | State of the edited file, as read under the lock                                     | Outcome                                                                 |
 | ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------- |
@@ -39,15 +40,24 @@ Write integrity, and its rows are checked in this order; the first that holds de
 | no block's effective name equals the name                                            | `NotFound`                                                              |
 | the text with the lines below removed does not parse to the document less that block | `Entangled`                                                             |
 | otherwise                                                                            | the first matching block in file order is removed; the file is replaced |
+| the replacement fails                                                                | `ConfigError::FileWrite` naming the file; the file is as it was         |
 
-Every row but the last writes nothing and exits 1. Two of the refusals are
+Every row but `otherwise` writes nothing and exits 1. A failed replacement is
+`decision:parallel-workspaces/workspace-configuration/write-failure-kind`. Two of the refusals are
 `decision:parallel-workspaces/repository-catalog/refused-edits` (registered deviations): `NotArrayOfTables` for an
 inline array of tables holding a matching element, which the reference tool removes
 (`config/internal/write_winter_configuration_repository.py:93-100`), and `Entangled`, where the reference removes the
-block. For the other forms the reference also ends with exit 1, or reports not found, and writes nothing. "Anything but
-an array of tables" is any value the load lets through for the key: an inline array, written
-`project_repository = [{ url = "…" }]` or empty; a string, `false`, zero, or a table, which the load reads as no
-entries.
+block. For an empty inline array the reference also reports not found and writes nothing.
+
+```text
+which values reach the NotArrayOfTables row
+  an array written inline          project_repository = [{ url = "…" }], = [], = [1]   the load accepts an array and
+                                                                                        skips its non-table elements
+  any value that is not an array   a string, a boolean, a number, a table               refused at check 2 as
+                                   ConfigError::RepositoriesNotArray naming the key and the file, exit 1
+                                   (decision:parallel-workspaces/workspace-configuration/repository-array-type);
+                                   it reaches this row only when another writer wrote it between the load and the lock
+```
 
 ```text
 effective name of a block
@@ -130,7 +140,7 @@ result
            "kind" and "name" are TARGET's two parts as given, not values read from the block
            reference: modules/workspace/handlers/repo_handler.py:192-203
   human    one line naming the type and the name                         reference: repo_handler.py:205
-write      one replacement of the one file under configuration-model.md, Write integrity; no other file changes:
+write      one replacement of the one file through WriteFiles::update (write-path.md); no other file changes:
            not config.lock, not state.toml, no checkout, no worktree, no branch; no git is run; no drift warning
 exit       0
 ```

@@ -41,8 +41,11 @@ the implicit product and harness repositories are not listed
 # decision:parallel-workspaces/environment-lifecycle/discovery-authority owns any change to this rule
 candidates   the loaded env_aliases in their order, then the names the env index registry records
              (../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md, the state
-             file; a missing or unparsable file records none) in the state file's order; a name already a candidate
-             is not repeated
+             file) in the state file's order; a name already a candidate is not repeated
+state file   read after the load, as ws index reads it: a missing file records none; one that cannot be read, is
+             not UTF-8, or does not parse ends the command as ConfigError::FileRead naming it, exit 1, nothing on
+             stdout (decision:parallel-workspaces/workspace-configuration/state-read-failures, a registered
+             deviation where the reference reads the text as empty)
 present      <root>/<name> is a directory, symbolic links followed, and one of its entries is a directory, symbolic
              links followed, named as the resolved name of a loaded project entry
 order        by index, ascending: the index ../../environment-lifecycle/spec/index-lookup.md's `lookup` answers for
@@ -66,18 +69,26 @@ worktree     for each environment present, in order, the worktree probe below ru
   counts     a worktree location takes the counts of the probe of its entry's resolved name; two entries with one
              resolved name both show the counts of the later entry's probe, as the reference keys them by name
 standalone   ahead, behind, dirty are null; no git call
-workspace    cwd = <root>; ahead, behind, dirty are all null when <root> is no repository (below), when the branch
-             below is null, and when any git call below exits not 0; otherwise they are the values below, and the
-             command goes on either way
-  branch             HEAD is a symbolic ref -> its branch name; detached -> null
-  dirty              the distinct paths with staged changes against HEAD (none when HEAD has no commit yet), with
-                     those with unstaged changes, plus the number of untracked files, each file of an untracked
-                     directory counted
-  ahead, behind      the upstream, read as GitPython's tracking_branch() does (git/refs/head.py:190-206): with
-                     branch.<branch>.remote = R and branch.<branch>.merge = M both set, the operand is the text
-                     "R/" followed by M without a leading "refs/heads/"; else there is none -> 0, 0.
-                     ahead = git rev-list --count <operand>..HEAD; behind = git rev-list --count HEAD..<operand>.
-                     A local upstream, R = ".", gives the operand "./<branch>", whose rev-list fails -> null
+workspace    cwd = <root>; ahead, behind, dirty are all null when <root> is no repository (below), when HEAD is
+             detached, and when a call below exits otherwise than its row allows; otherwise they are the values
+             below, and the command goes on either way. The calls run in this order and stop at the first null:
+  1. branch      git symbolic-ref --quiet --short HEAD
+                   exit 0 -> the branch name, stdout less its final newline; exit 1 -> detached: null
+  2. commit      git rev-parse --verify --quiet HEAD
+                   exit 0 -> HEAD has a commit; exit 1 -> none yet: step 3 is skipped and no path is staged
+  3. staged      git diff --cached --name-only -z -M HEAD                         the paths, NUL-separated
+  4. unstaged    git diff --name-only -z                                          the paths, NUL-separated
+  5. untracked   git ls-files --others --exclude-standard -z                      the files, NUL-separated; each
+                                                                                  file of an untracked directory
+  dirty          the number of distinct paths of 3 and 4, plus the number of files of 5
+  6. upstream    git config --get branch.<branch>.remote, then git config --get branch.<branch>.merge
+                   both exit 0 -> R and M, stdout less its final newline; either exits 1 -> no upstream: ahead 0,
+                   behind 0, and step 7 is skipped
+                 the operand is read as GitPython's tracking_branch() does (git/refs/head.py:190-206): the text
+                 "R/" followed by M without a leading "refs/heads/"
+  7. ahead       git rev-list --count <operand>..HEAD
+     behind      git rev-list --count HEAD..<operand>
+                 a local upstream, R = ".", gives the operand "./<branch>", whose rev-list fails -> null
 ```
 
 ### The worktree probe
@@ -88,8 +99,8 @@ copying it.
 
 ```text
 # reference: modules/workspace/internal/read_repo_repository.py:56-154,505-620,668-673
-input        a location L, a repository name, and its main branch: the entry's main_branch when not empty, else the
-             workspace main_branch
+input        a location L, a repository name, and its main branch: the entry's common.main_branch, which the load
+             already gives as the entry's main_branch when not empty, else the workspace main_branch
   not a repository   L does not exist, or is no repository (below) -> ahead 0, behind 0, dirty 0, and no git call
   1. git status --porcelain=v2 --branch --untracked-files=all -z
        exit not 0 -> RepoError "status probe failed for <name>"
@@ -165,9 +176,19 @@ ctx          standalone  /home/u/ws/.winter/ext/context      =
 Failures: a missing root and every configuration fault end as the `ConfigError` of the section that defines it; a failed
 worktree probe as `Termination::Repo` holding the `RepoError` of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
-Domain, with the program, subcommand, arguments, cwd, exit, and stderr of the failed call, written once
-(`decision:parallel-workspaces/component-runtime/git-failure-rendering`); a git that cannot be started as
-[child-processes.md](./child-processes.md) says.
+Domain, with the program, subcommand, arguments, cwd, exit, and stderr of the failed call; a git that cannot be started
+as [child-processes.md](./child-processes.md) says.
+
+```text
+# decision:parallel-workspaces/component-runtime/git-failure-rendering
+a failed git call of a worktree probe, as it is met
+  record     diagnostics::record through the Diagnostics list is handed:
+               level Error, origin "locations", message the RepoError's text, only_when_switched true
+             so it reaches stderr only with -v or WINTER_LOG_LEVEL set (runtime.md, Diagnostics on the stderr handle)
+  ending     the first failure in project order is the RepoError of the ending, which the runtime writes once
+a failed call of the workspace probe writes no record: it is no failure, only nulls
+runtime.md = ../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md
+```
 
 ## Domain
 
@@ -181,24 +202,30 @@ pub(crate) struct Location {
     pub status: Option<Counts>,                    // Some exactly when --status was given
 }
 pub(crate) struct Counts { pub ahead: Option<u64>, pub behind: Option<u64>, pub dirty: Option<u64> }
-pub(crate) fn list(files: &dyn ReadFiles, programs: &dyn RunPrograms, tracer: &dyn CommandTracer, start: &Path,
-    with_status: bool)
+pub(crate) fn list(files: &dyn ReadFiles, programs: &dyn RunPrograms, tracer: &dyn CommandTracer,
+    diagnostics: &mut Diagnostics<'_>, start: &Path, with_status: bool)
     -> Result<Vec<Location>, ListError>;
 pub(crate) enum ListError { Config(ConfigError), Repo(RepoError), Internal(InternalError) }
 
 // crates/core/src/environments.rs — the environments present; reused by the commands that list environments
-pub(crate) fn present(files: &dyn ReadFiles, root: &Path, config: &Config, registry: &[(String, i64)])
+pub(crate) fn present(files: &dyn ReadFiles, root: &Path, config: &WorkspaceConfig, registry: &[(String, i64)])
     -> Result<Vec<String>, InternalError>;
 ```
 
-`registry` is the env index registry in the state file's order; reading it keeps that order.
+`registry` is the env index registry in the state file's order; reading it keeps that order, with the refusals of
+`state_registry::read`. `WorkspaceConfig` is
+[discovery-and-loading.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/discovery-and-loading.md),
+Domain: the aliases are `ports.env_aliases`, the projects `project_repositories`, the standalones
+`standalone_repositories`, each location from `common.name` and, for a standalone, `path`. `Diagnostics` is
+[repository-list.md](./repository-list.md), Domain.
 
 ## Open questions
 
-- The workspace probe is GitPython's `index.diff("HEAD")`, `index.diff(None)`, `untracked_files`, and
-  `tracking_branch()` (3.1.46), not a git command line of the reference's own; how a staged rename and a path with both
-  staged and unstaged changes count is read from GitPython, not run. The slice that builds the probe records a scenario
-  with each, and the dirty rule above follows the record.
+- The workspace probe of the reference is GitPython's `index.diff("HEAD")`, `index.diff(None)`, `untracked_files`, and
+  `tracking_branch()` (3.1.46); the calls above are the binary's. How the reference counts a staged rename and a path
+  with both staged and unstaged changes is read from GitPython, not run. The slice that builds the probe records a
+  scenario with each; where the record differs from the calls above, the calls change and this leaf is corrected from
+  the record.
 - If `decision:parallel-workspaces/environment-lifecycle/discovery-authority` is made with a rule other than the one
   under Environments present, environment-lifecycle engineering moves that rule into its own spec and this leaf links
   it.
