@@ -76,9 +76,12 @@ rule 6         kind standalone only. location = resolve(<root> / (--path when gi
                location nested inside another standalone
 resolve        os.path.realpath with strict=False, as Python's Path.resolve(): components left to right; "." is
                dropped; ".." removes the last component reached so far; a component that is a symbolic link is
-               replaced by its target, read relative to its directory and resolved the same way; from the first
-               component that does not exist the rest is taken as text. So `--name ..` resolves to the parent
-               of the root.
+               replaced by its target, read relative to its directory and resolved the same way; a component that
+               does not exist is kept as text, and `..` after it still removes the last component lexically.
+               A link met again while it is still being resolved is a loop: the path reached at that link is
+               kept and nothing after it is resolved (scenarios repo-add/standalone-link-loop: with ext/a -> b,
+               ext/b -> a, ext/c -> a, a declared ext/a refuses ext/c and accepts ext/b). So `--name ..`
+               resolves to the parent of the root.
 <root>         the root that Root discovery found
 ```
 
@@ -229,8 +232,3 @@ standalone location    <root>/<entry.path>                        path is alread
 pub(crate) fn reload(files: &dyn ReadFiles, root: &Path, edited: &Path, bytes: &[u8])
     -> Result<Workspace, ConfigError>;
 ```
-
-## Open questions
-
-- `resolve` on a symbolic-link loop follows Python's non-strict `realpath`, which leaves the loop unresolved; no
-  recorded scenario covers it. Engineering records one with the slice that builds rule 6.
