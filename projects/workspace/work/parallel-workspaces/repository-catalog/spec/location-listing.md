@@ -81,6 +81,10 @@ workspace    cwd = <root>; ahead, behind, dirty are all null when <root> is no r
   5. untracked   git ls-files --others --exclude-standard -z                      the files, NUL-separated; each
                                                                                   file of an untracked directory
   dirty          the number of distinct paths of 3 and 4, plus the number of files of 5
+                 a staged rename is one path, its new name, so a change to the renamed file adds none; a path
+                 both staged and changed is one. These calls stand in for GitPython's index.diff("HEAD"),
+                 index.diff(None), and untracked_files (3.1.46), and give the reference's counts in the
+                 recorded scenarios ws-worktrees/status-root-*
   6. upstream    git config --get branch.<branch>.remote, then git config --get branch.<branch>.merge
                    both exit 0 -> R and M, stdout less its final newline; either exits 1 -> no upstream: ahead 0,
                    behind 0, and step 7 is skipped
@@ -164,7 +168,8 @@ exit       0
 Reference human form, an example under `decision:functional-parity`: a borderless table whose header row names `LABEL`,
 `KIND`, and `PATH`, and `STATUS` with `--status`, with columns two spaces apart. A status cell is `+<ahead> -<behind>`
 and `[+<dirty>]` when dirty is above zero, a null part left out, and `=` when nothing is left (WH:1549-1563): a clean
-worktree shows `+0 -0`, a standalone `=`.
+worktree shows `+0 -0`, a standalone `=`. The binary writes the same rows and cells and no header row, with or without
+`--status`, as every table of its own layout.
 
 ```text
 LABEL        KIND        PATH                                STATUS
@@ -221,11 +226,6 @@ Domain: the aliases are `ports.env_aliases`, the projects `project_repositories`
 
 ## Open questions
 
-- The workspace probe of the reference is GitPython's `index.diff("HEAD")`, `index.diff(None)`, `untracked_files`, and
-  `tracking_branch()` (3.1.46); the calls above are the binary's. How the reference counts a staged rename and a path
-  with both staged and unstaged changes is read from GitPython, not run. The slice that builds the probe records a
-  scenario with each; where the record differs from the calls above, the calls change and this leaf is corrected from
-  the record.
 - If `decision:parallel-workspaces/environment-lifecycle/discovery-authority` is made with a rule other than the one
   under Environments present, environment-lifecycle engineering moves that rule into its own spec and this leaf links
   it.
