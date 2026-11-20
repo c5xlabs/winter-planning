@@ -28,3 +28,9 @@ Release acceptance checks the capability inventory against approved outcomes, pr
 and migration/handoff evidence; unresolved required outcomes fail replacement qualification. Artifact generation can
 precede this gate, but generated artifacts alone cannot qualify a replacement release. Serves
 `product:replacement-release-readiness`.
+
+## Failure and concurrency evidence (engineering:adversarial-scenarios)
+
+The validation suite injects Git failures, missing prerequisites, malformed extension output, occupied resources,
+interruption, and competing operations on the same and different scopes. It verifies authoritative state and filesystem
+effects as well as stdout, stderr, and exit status. Serves `product:isolated-adoption-proof`.

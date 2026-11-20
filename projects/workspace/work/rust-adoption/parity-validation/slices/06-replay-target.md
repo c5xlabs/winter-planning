@@ -43,4 +43,4 @@ Builds `runner::replay_all` and replaces the stand-in scenario test target with 
 ## Out of scope
 
 - Recording against the reference tool: `record-command`.
-- Stub programs and the `Calls` dimension: `program-capture`.
+- Stub programs and the `Calls` dimension: `epic:agent-ready-operation/executable-extensions`.

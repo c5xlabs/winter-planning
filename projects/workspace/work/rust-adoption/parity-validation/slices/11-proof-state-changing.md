@@ -73,4 +73,4 @@ completes the groundwork every command epic builds on.
 
 - `repo add` and `repo list`: `epic:parallel-workspaces/repository-catalog`; cloning:
   `epic:parallel-workspaces/workspace-bootstrap`; lock-file updates: `epic:parallel-workspaces/reproducible-inputs`.
-- Capture of program calls: `program-capture`, which is not part of this groundwork.
+- Capture of program calls: `epic:agent-ready-operation/executable-extensions`, which is not part of this groundwork.

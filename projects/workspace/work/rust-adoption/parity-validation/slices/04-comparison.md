@@ -45,5 +45,5 @@ in-memory values. Delivers the replay-failure, message-text, human-text, and dev
 
 ## Out of scope
 
-- The `Calls` dimension: `program-capture`.
+- The `Calls` dimension: `epic:agent-ready-operation/executable-extensions`.
 - Running anything: `step-runner`.

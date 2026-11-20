@@ -37,3 +37,9 @@ recoverable after process failure. Serves `product:environment-worktrees` and `p
 Destructive preflight distinguishes absent data from failed inspection and retains evidence for every store being
 removed. Read-only preview cannot run teardown commands or repair registration implicitly. Serves
 `product:destroy-environments` and `product:environment-state-recovery`.
+
+## Open questions
+
+- `ws index` is built, with its recorded scenarios, by `epic:rust-adoption/parity-validation`, though its contract is
+  [index-lookup.md](./spec/index-lookup.md) of this epic. Engineering confirms, when this epic is sliced, that its
+  slices change the built `ws index` in place and build no second one.

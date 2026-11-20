@@ -35,3 +35,28 @@ The method is proven on `ws index` and `repo remove`, each under `--json`, as th
 first reads two configuration keys and the state registry with three distinct outcomes, the second edits one committed
 file in place and has failure paths. Every smaller candidate either changes no state or already needs the whole
 configuration model, the lock file, or a remote.
+
+## Program capture is built with the first non-git program (decision:rust-adoption/parity-validation/program-capture-placement)
+
+**Decider:** product owner
+
+Stub programs, their call records, and the `Calls` comparison are specified in this epic, in the `[[stub]]` table and
+Program calls of [scenario-format.md](./spec/scenario-format.md) and the `Calls` row and `stub.rs` of
+[record-and-replay.md](./spec/record-and-replay.md), and are built by
+`epic:agent-ready-operation/executable-extensions`, the first epic whose commands start a program other than git. Until
+then the harness refuses a scenario with a `[[stub]]`. No command built before that epic starts such a program, and the
+git calls of earlier commands are verified by their effect on fixture repositories, not by their command lines.
+
+## Parity evidence is qualified at release (decision:rust-adoption/parity-validation/evidence-ownership)
+
+**Decider:** product owner
+
+This epic delivers the scenario method and its proof, which every command epic uses to record its own behaviour against
+the reference tool. The account of the whole replacement's coverage, its trial on representative disposable work, and
+its failure and concurrency evidence need commands no epic has built yet, so they belong to
+`epic:rust-adoption/workspace-release`, where a rough-parity release claim is qualified:
+`product:rust-adoption/workspace-release/capability-accounting`,
+`product:rust-adoption/workspace-release/isolated-adoption-proof`, and
+`engineering:rust-adoption/workspace-release/adversarial-scenarios`. `engineering:disposable-runtime-proof` stays here:
+the test harness of `epic:parallel-workspaces/component-runtime` and the scenario format are built on it, and later
+runtime scenarios apply it.

@@ -48,5 +48,5 @@ half of `engineering:scenario-files` under `decision:rust-adoption/parity-valida
 
 ## Out of scope
 
-- Stub programs in `<ROOT>/bin`: `program-capture`.
+- Stub programs in `<ROOT>/bin`: `epic:agent-ready-operation/executable-extensions`.
 - The runner's own check before each step: `step-runner`.

@@ -7,6 +7,7 @@ code:
   - winter-workspace/crates/core/src/config_edit.rs::CatalogError
   - winter-workspace/crates/core/src/repository_catalog.rs::remove_block_with
   - winter-workspace/crates/core/src/repository_catalog.rs::remove
+  - winter-workspace/crates/test-support/src/scenario/compare.rs::differences
 ---
 
 # `repo remove` refuses a repository array written inline
@@ -19,10 +20,17 @@ reaches the row without a concurrent writer is an array written inline; any othe
 `ConfigError::RepositoriesNotArray` at the load. Delivers the `repo remove` half of the refused-edits bullet of
 `product:edit-repository-inventory` under `decision:parallel-workspaces/repository-catalog/refused-edits`, and the
 removal bullet of the same requirement on a fixture with checkouts. Lands in one slice under
-`decision:parallel-workspaces/repository-catalog/direct-landing`.
+`decision:parallel-workspaces/repository-catalog/direct-landing`. First it brings the scenario comparison in line with
+`decision:rust-adoption/parity-validation/state-comparison`, which the recorded scenarios it adds rely on: a `.toml`
+file no rule names compares as parsed TOML, not as bytes.
 
 ## Change
 
+- The comparison of the scenario harness gives a path no `[[compare.file]]` rule names the mode `toml` when its name
+  ends in `.toml`, and `bytes` otherwise. `removes-last-block` and `removes-middle-block` under `scenarios/repo-remove/`
+  gain `[[compare.file]] path = "ws/.winter/config.toml" mode = "bytes"` with the reason
+  `decision:parallel-workspaces/repository-catalog/removal-comment-extent`, which fixes the lines those two compare.
+  `context/verification/scenarios.md` of `winter-workspace` states the two defaults where it lists what is compared.
 - `CatalogError::NotArrayOfTables { kind, path }` is added beside the four existing variants, with the spec's message
   fields.
 - The edit closure of `remove_block_with` checks the rows of the outcome table in their order: a file that does not
@@ -42,6 +50,9 @@ removal bullet of the same requirement on a fixture with checkouts. Lands in one
 
 ## Acceptance
 
+- Unit tests of the comparison: two `.toml` files that differ only in layout and comments are equal with no rule, and
+  differ under a `bytes` rule; two other files that differ in one byte differ with no rule. `cargo scenarios` passes
+  every recorded scenario with no record changed.
 - Component tests: `project_repository = []`, `= [{ url = "x" }]`, and `= [1]` each end as `NotArrayOfTables` naming the
   file, with the file byte-equal after; with `--local`, the same in the local file with the shared file untouched; an
   absent key is still `NotFound`. `= "abc"`, `= false`, and `[project_repository]` end as `RepositoriesNotArray` from

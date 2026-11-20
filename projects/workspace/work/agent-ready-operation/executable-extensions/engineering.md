@@ -43,3 +43,19 @@ cannot erase already-completed earlier effects from its report. Serves `product:
 Conformance execution defaults to non-mutating probes or isolated stand-ins; invoking real provider action words with a
 synthetic name is not proof of isolation. Effectful checks require an isolated target, bounded subprocesses, and
 authorization separate from ordinary inspection. Serves `product:safe-conformance`.
+
+## Program calls in recorded scenarios (engineering:program-call-capture)
+
+A recorded scenario whose command starts another program replaces that program with a recording stub, and replay
+compares the calls the stub received with the reference tool's. The harness is built to the `[[stub]]` table and Program
+calls of [scenario-format.md](../../rust-adoption/parity-validation/spec/scenario-format.md) and the `Calls` row of
+[record-and-replay.md](../../rust-adoption/parity-validation/spec/record-and-replay.md), under
+`decision:rust-adoption/parity-validation/program-capture-placement`, before the first command of this epic that starts
+a program. Serves `product:controlled-execution`.
+
+Acceptance:
+
+- Where the invocation hands work to another program, the record also stores the argument vector, working directory, and
+  contract environment variables each such program received.
+- Where a command hands work to another program, replay fails on a different argument vector, working directory, or
+  contract environment variable given to that program.

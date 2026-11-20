@@ -307,6 +307,8 @@ confinement       run_steps trusts no caller. Immediately before each spawn it c
 call capture      CALL_CAPTURE is declared with the runner and read by the record refusal and by replay. The fixture
                   builder is built before the runner and does not read it: until stub.rs exists the builder refuses
                   every scenario that has a [[stub]], unconditionally.
+                  stub.rs, and CALL_CAPTURE = true, are built by epic:agent-ready-operation/executable-extensions
+                  (decision:rust-adoption/parity-validation/program-capture-placement)
 ```
 
 ## Flows

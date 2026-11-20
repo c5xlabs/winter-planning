@@ -6,8 +6,9 @@ status: in-progress
 
 # Judge the replacement against real work
 
-Part of `initiative:rust-adoption`; product requirements live in [requirements.md](./requirements.md). Supports the
-other capability epics by making the replacement's coverage inspectable.
+Part of `initiative:rust-adoption`. Supports the other capability epics with the method each uses to prove its commands
+against the existing Workspace; the account of the whole replacement's coverage belongs to
+`epic:rust-adoption/workspace-release`.
 
 ## The problem
 
@@ -16,9 +17,9 @@ operations, provider failures, and preservation of hand-authored files matter as
 
 ## The outcome
 
-The engineer can see which existing capabilities the replacement covers, which differ deliberately, and which still
-block adoption. Maintainers can exercise the replacement against isolated representative workspaces before risking live
-feature work.
+Maintainers can record the existing Workspace's behaviour in an isolated fixture workspace and replay the replacement
+against that record, so each command is shown to keep the old behaviour, its refusals included, or to differ only where
+a decision says it does, before it is trusted with live feature work.
 
 ## Depends on
 

@@ -1,18 +1,20 @@
 ---
 name: program-capture
 depends-on:
-  - replay-target
-  - scenario-context
+  - epic:rust-adoption/parity-validation
+code:
+  - winter-workspace/crates/test-support/src/scenario/fixture.rs::Plan::of
+  - winter-workspace/crates/test-support/src/scenario/runner.rs::CALL_CAPTURE
+  - winter-workspace/crates/test-support/src/scenario/compare.rs::Dimension
 ---
 
 # Stub programs and the calls dimension
 
-Builds `scenario::stub` and the `Calls` comparison: the `[[stub]]` table and Program calls section of
-[scenario-format.md](../spec/scenario-format.md) and the `Calls` row of
-[record-and-replay.md](../spec/record-and-replay.md). Delivers the hand-off clauses of
-`engineering:behavioral-fixtures`. It is not part of the groundwork that `engineering:method-proof` completes: no proof
-scenario uses a stub, and this change is built before the first epic whose behaviour starts another program, not before
-the epics that start none.
+Builds `scenario::stub` and the `Calls` comparison: the `[[stub]]` table and Program calls of
+[scenario-format.md](../../../rust-adoption/parity-validation/spec/scenario-format.md) and the `Calls` row of
+[record-and-replay.md](../../../rust-adoption/parity-validation/spec/record-and-replay.md). Delivers
+`engineering:program-call-capture` under `decision:rust-adoption/parity-validation/program-capture-placement`. Lands
+before the first command of this epic that starts a program, so that command's recorded scenarios can stub it.
 
 ## Change
 
@@ -39,7 +41,7 @@ the epics that start none.
 - Replay with a stand-in that passes one different argument yields one `Calls` difference naming the call number; one
   call fewer yields a count difference.
 - A stub declared with `exit = 3` makes the calling stand-in observe 3.
-- A scenario without `[[stub]]` has no `calls/` directory in its record, and the eight proof scenarios replay unchanged.
+- A scenario without `[[stub]]` has no `calls/` directory in its record, and every recorded scenario replays unchanged.
 - `cargo dev gate full` exits 0.
 
 ## Out of scope

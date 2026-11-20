@@ -25,6 +25,7 @@ starting services or changing a live environment.
 
 - `epic:parallel-workspaces/component-runtime`
 - `epic:parallel-workspaces/workspace-configuration`
+- `epic:rust-adoption/parity-validation`
 
 ## Left for later
 
