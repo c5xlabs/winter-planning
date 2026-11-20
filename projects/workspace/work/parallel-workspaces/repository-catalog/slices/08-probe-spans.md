@@ -25,7 +25,7 @@ extension of [child-processes.md](../spec/child-processes.md), Domain: with trac
   command span, recorded only when the command span is, ended when the handle drops, and sent in the command span's one
   export.
 - `Context` gains `tracer`, which `run_with` fills from the `Invocation`, and `locations::list` takes it; `changes.md`,
-  A command file, states that the one call is also handed `cx.tracer` when it opens an operation span.
+  A command, states that the one call is also handed `cx.tracer` when it opens an operation span.
 - `crates/core/src/lib.rs` re-exports `OperationSpan` beside `CommandTracer`, which the binary's `Tracer` needs to
   implement `operation`.
 - Each worktree probe opens `git status` with `winter.repo` and `winter.env`, and the workspace probe `git status` with

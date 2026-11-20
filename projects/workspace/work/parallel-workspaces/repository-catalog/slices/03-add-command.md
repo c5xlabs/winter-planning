@@ -43,7 +43,7 @@ Check 6 and Writing step c follow in later slices, under
   into a file with one block; a standalone with `--path`, `--prefix`, `--ref`, `--main-branch`, two `--git-exclude`, and
   a `--cmd`; `--local` with no local file; `--name ""`; a URL already declared as a project added as a standalone;
   `…/api` beside a declared `…/api.git`; a duplicate URL; a duplicate name; a duplicate of a local entry added to the
-  shared file; `--standalone --pinned`; `--path` without `--standalone`; `--path ../x`; `--path /x`; an invalid URL; an
+  shared file; `--standalone --pinned`; `--path` without `--standalone`; `--path ../x`; `--path=/x`; an invalid URL; an
   invalid URL outside a workspace.
 
 ## Acceptance

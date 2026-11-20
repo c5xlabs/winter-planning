@@ -33,5 +33,6 @@ caller sees without a concurrent writer.
 - Unit tests in `repository_catalog.rs` with a `WriteFiles` stand-in whose `update` hands the closure bytes that differ
   from the file the first load read: bytes that already hold the new URL end as `DuplicateUrl` and write nothing; bytes
   with an unrelated new block are appended to, keeping it; bytes that are not valid TOML end as `FileRead` with `Toml`;
-  bytes declaring a standalone at the new location end as `DuplicatePath`.
+  bytes declaring a standalone at the new location end as `DuplicatePath`; bytes holding `project_repository = "abc"`
+  end as `RepositoriesNotArray` and write nothing.
 - `cargo scenarios repo-add` passes every scenario unchanged; `cargo dev gate full` exits 0.

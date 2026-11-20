@@ -31,7 +31,7 @@ bullet of `product:inventory-presence`, the main-branch override bullet of `prod
 - `ProcessEnv` gains `pairs`, as [child-processes.md](../spec/child-processes.md), Domain, gives it; `OsPrograms::new`
   reads the snapshot through it.
 - `Context` gains `programs`, and `run_with` builds one `OsPrograms` from the invocation's snapshot beside `OsFiles`.
-  `changes.md`, A command file, states that the one call is also handed `cx.programs` when it starts a program.
+  `changes.md`, A command, states that the one call is also handed `cx.programs` when it starts a program.
 - `ReadFiles` gains `read_link` on `OsFiles` and `MemoryFiles`, as [drift-warning.md](../spec/drift-warning.md), Domain,
   gives it; the repository rule reads the target of a `HEAD` link through it.
 - `Termination::Repo(Box<RepoError>)`, `RepoError`, and the git-failure variant of `RepoMessage` are added as

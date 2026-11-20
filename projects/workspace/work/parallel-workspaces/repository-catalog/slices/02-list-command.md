@@ -3,8 +3,7 @@ name: list-command
 depends-on:
   - epic:parallel-workspaces/workspace-configuration
 code:
-  - winter-workspace/crates/core/src/config_load.rs::load
-  - winter-workspace/crates/core/src/diagnostics.rs::record
+  - winter-workspace/crates/core/src/diagnostics.rs
   - winter-workspace/crates/core/src/files.rs::ReadFiles
   - winter-workspace/crates/core/src/files.rs::OsFiles
   - winter-workspace/crates/core/src/files.rs::MemoryFiles
@@ -43,9 +42,9 @@ creates-nothing bullet of `product:inventory-presence`, under
   root-relative location, and a pinned mark, through `output`; nothing for an empty human inventory. It exits 0 and
   writes no file.
 - `context/architecture/structure.md` and `changes.md` gain the rows for `drift.rs`, the command file, `Diagnostics`,
-  and the new `files.rs` content; `changes.md`, A command file, states that a command file may build `Diagnostics` from
+  and the new `files.rs` content; `changes.md`, A command, states that a command file may build `Diagnostics` from
   `cx.err` and `cx.log` and hand it to its one call.
-- `drift` joins `COMMAND_FILE_NAMES` in `crates/dev/src/architecture.rs`, as `changes.md`, A command file, requires of a
+- `drift` joins `COMMAND_FILE_NAMES` in `crates/dev/src/architecture.rs`, as `changes.md`, A command, requires of a
   module only a domain entry calls; the pinned test of the list is renamed for its new count, nineteen.
 - Recorded scenarios under `scenarios/repo-list/`, recorded with `cargo dev record` from the reference tool, the
   executable path given with the task, `stdout = "json"`: an empty inventory; projects from both files with one pinned,
