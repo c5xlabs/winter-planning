@@ -10,8 +10,8 @@ code:
 
 Adds the read and write git ports of the Git operations in [standalone-pins.md](../spec/standalone-pins.md), except
 `fetch`, with the Operation spans there, as one module over the program port of
-[child-processes.md](../../repository-catalog/spec/child-processes.md). Shaped by `engineering:domain-io-boundaries`,
-which keeps read authority apart from mutation. Nothing calls the ports yet.
+[child-processes.md](../../repository-catalog/spec/child-processes.md), under `decision:git-cli`. Shaped by
+`engineering:domain-io-boundaries`, which keeps read authority apart from mutation. Nothing calls the ports yet.
 
 ## Change
 

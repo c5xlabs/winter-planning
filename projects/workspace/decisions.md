@@ -102,6 +102,20 @@ lists those made before it was delivered.
   It reads no `component.toml`, `.winterrc`, or launcher handoff metadata, never forwards a command to the Python CLI,
   and never executes Python for first-party behaviour; user-owned external programs remain the user's runtime choice.
 
+## Git through its command line (decision:git-cli)
+
+**Decider:** product owner and engineering
+
+Workspace drives Git by running the `git` executable, never through a Git library. Every call goes through the program
+port of [child-processes.md](./work/parallel-workspaces/repository-catalog/spec/child-processes.md).
+The reference tool also runs `git` (GitPython starts the executable). Running it means the user's Git configuration,
+credential helpers, SSH setup, hooks, and checkout filters apply as they do there, so behaviour follows the reference
+under `decision:functional-parity`. Machine-readable output modes (`--porcelain`, `rev-parse`, `write-tree`) keep the
+parsing narrow. libgit2 (`git2`) was set aside: it is a C library with its own reimplementation of Git, so behaviour can
+drift from the executable's. gitoxide (`gix`) was set aside too: at 0.90 it has no checkout into an existing worktree,
+no stash, and no `add -u` or `write-tree` over a chosen index, and its dirty check ignores untracked files. Revisit only
+when a library covers every operation the specs name.
+
 ## Specs before slices (decision:requirements-first)
 
 Full specs are written from the reference tool's observable behaviour before any implementation slice is cut. An area
