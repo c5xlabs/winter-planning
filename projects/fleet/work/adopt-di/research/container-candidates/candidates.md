@@ -14,8 +14,8 @@ down that tenant alone.
 
 The others fell away for reasons specific to blizzard:
 
-- dependency-injector silently ignores its own markers under `from __future__ import annotations`, which all 46 of
-  blizzard's routing modules use, and gives the type checker almost nothing to check.
+- dependency-injector silently ignores its own markers under `from __future__ import annotations`, which 149 of the 157
+  modules in blizzard's `hub/api` and `runner/api` use, and gives the type checker almost nothing to check.
 - wireup reaches a long-lived tenant only through internal interface, on a project with one maintainer.
 - injector needs more wiring than writing it by hand.
 - svcs is a lookup table rather than a container and checks nothing before first use.

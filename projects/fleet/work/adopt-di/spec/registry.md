@@ -30,9 +30,13 @@ T_co = TypeVar("T_co", covariant=True)
 class Ref(Generic[T_co]):
     key: object
 
+T_port = TypeVar("T_port")  # declared invariant, never inferred: Port[IRead] is not a Port[IWrite] or Port[object]
+
 @dataclass(frozen=True)
-class Port[T]:
-    annotation: object  # the constructor annotation this port aliases
+class Port(Generic[T_port]):
+    annotation: type[T_port]  # the constructor annotation this port aliases
+
+def port[T](annotation: type[T]) -> Port[T]: ...  # the only constructor; T is inferred from the annotation
 
 class Lifetime(Enum):
     PROCESS = "process"
@@ -48,6 +52,11 @@ class Registry(Protocol):
     def resource[T](self, open: Callable[..., Iterator[T]], *, lifetime: Lifetime) -> Ref[T]: ...
     def context[T](self, port: Port[T], *, lifetime: Lifetime) -> Ref[T]: ...
     def alias[T](self, port: Port[T], target: Ref[T]) -> None: ...
+    def absent[T](self, port: Port[T], *, lifetime: Lifetime, label: str) -> None: ...
+    def optional[T](self, port: Port[T], target: Ref[T] | None, *, lifetime: Lifetime) -> Ref[T | None]: ...
+
+class ServiceAbsent(Exception):  # raised by resolving an absent registration
+    label: str
 ```
 
 | Operation  | Key and ownership                                                                                     |
@@ -57,17 +66,21 @@ class Registry(Protocol):
 | `resource` | Yielded annotation key; one yield, finalizer owned by the declared lifetime                           |
 | `context`  | Declared annotation key; supplied when that lifetime opens; borrowed, with no implicit finalizer      |
 | `alias`    | Port annotation resolves the target key; no new construction, cache, or finalizer                     |
+| `absent`   | Port registered as deliberately missing in this root; resolving it raises `ServiceAbsent(label)`      |
+| `optional` | Registers the key `T \| None`: the target's instance when this root has it, else `None`; no new owner |
 
 `Ref` is nominal, identifies a registration issued by the registry, and is not a live instance. A `Port[T]` constant
-names a runtime annotation; the area's typed `Ref[PortType]` parameters check adapter compatibility before its aliases
-are declared. Factories use normal Python annotations, not a parallel dependency-map language.
+names a runtime annotation and is built only through `port`, so its type parameter cannot differ from its annotation
+(`engineering:role-is-a-type`); translation also rejects a `Port` whose annotation is not the key it is registered
+under; the area's typed `Ref[PortType]` parameters check adapter compatibility before its aliases are declared.
+Factories use normal Python annotations, not a parallel dependency-map language.
 
 ## Interfaces
 
 ```python
 # Area-owned ports and wiring; engineering:area-wiring, engineering:one-instance-per-port.
-READ_FINDINGS: Port[IReadFindingRepository] = Port(IReadFindingRepository)
-WRITE_FINDINGS: Port[IWriteFindingRepository] = Port(IWriteFindingRepository)
+READ_FINDINGS: Port[IReadFindingRepository] = port(IReadFindingRepository)
+WRITE_FINDINGS: Port[IWriteFindingRepository] = port(IWriteFindingRepository)
 
 def register(
     registry: Registry,
@@ -97,16 +110,17 @@ class ExampleService:
 def example_service(clock: IClock) -> ExampleService:
     return ExampleService(clock=clock, limit=32)  # preserve the existing constructor's default
 
-def owned_engine(settings: DatabaseSettings) -> Iterator[Engine]:
-    engine = create_engine(settings.url)
+def owned_http_client(settings: ClientSettings) -> Iterator[httpx.Client]:
+    client = httpx.Client(timeout=settings.timeout)
     try:
-        yield engine
+        yield client
     finally:
-        engine.dispose()
+        client.close()
 
 registry.factory(example_service, lifetime=Lifetime.PROCESS)
-registry.resource(owned_engine, lifetime=Lifetime.PROCESS)
-registry.context(Port[StoreScope](StoreScope), lifetime=Lifetime.TENANT)
+registry.resource(owned_http_client, lifetime=Lifetime.PROCESS)
+registry.context(port(Engine), lifetime=Lifetime.PROCESS)  # borrowed from the starting command
+registry.context(port(StoreScope), lifetime=Lifetime.TENANT)
 ```
 
 ```python
@@ -131,14 +145,14 @@ class TestOverrides(Protocol):
 Overrides require an existing owned target and retain its key/lifetime; aliases keep targeting that key. A supplied
 replacement value is borrowed. Replacement happens before validation, not while a container is running.
 
-| Translation boundary | Contract                                                                                                                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Production build     | Pin a non-deprecated Dishka 1.x API; evaluate annotations; use strict validation; reject duplicate keys, missing dependencies, cycles, and longer-lived providers requiring shorter-lived dependencies |
-| Defaults             | Reject automatic registration of a constructor carrying defaults; require an explicit factory                                                                                                          |
-| Alias                | Alias the owned target registration; reject a second owner, never infer a new adapter instance                                                                                                         |
-| Scope values         | Map `Port.annotation` to Dishka context dependencies; missing values fail resolution                                                                                                                   |
-| Typing               | Keep the library's strict waiver inside translation; area modules and root registration calls remain strict-clean                                                                                      |
-| Overrides            | A separate test-only builder replaces an existing provider before validation; area `Registry` has no replacement operation                                                                             |
+| Translation boundary | Contract                                                                                                                                                                                                                                                                               |
+| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Production build     | Pin `dishka>=1.10,<2` and use only its non-deprecated API, held by the suite's `DeprecationWarning`-as-error filter; evaluate annotations; use strict validation; reject duplicate keys, missing dependencies, cycles, and longer-lived providers requiring shorter-lived dependencies |
+| Defaults             | Reject automatic registration of a constructor carrying defaults; require an explicit factory                                                                                                                                                                                          |
+| Alias                | Alias the owned target registration; reject a second owner, never infer a new adapter instance                                                                                                                                                                                         |
+| Scope values         | Map `Port.annotation` to Dishka context dependencies; missing values fail resolution                                                                                                                                                                                                   |
+| Typing               | Keep the library's strict waiver inside translation; area modules and root registration calls remain strict-clean                                                                                                                                                                      |
+| Overrides            | A separate test-only builder replaces an existing provider before validation; area `Registry` has no replacement operation                                                                                                                                                             |
 
 Runtime container types and generic resolution stay in translation and entrypoint adapters. Domain services have no
 `Ref`, container, or request-state parameter. Wiring modules may import their own package's ports and service types,

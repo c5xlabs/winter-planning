@@ -4,22 +4,26 @@ Engineering requirements for `epic:adopt-di`.
 
 ## What already holds
 
-- Measured on `master` at `d2e3e916e`: the hub's `TenantServices` holds 87 members and its `HubServices` 37; some 220
-  route handlers take the whole `TenantServices` through one dependency; four of its members are read by no route.
-- The hub's `TenantServices` builder is some 370 lines, in a composition module of more than 1,500 lines. The runner's
-  process graph is assembled by hand in `runner/composition.py`, some 1,200 lines.
+- Measured on `master` at `acd1c6126`: the hub's `TenantServices` holds 116 members, its `HubServices` 43, and its
+  `TenantStores` 36; some 260 of the hub's roughly 305 route handlers take the whole `TenantServices` through one
+  dependency.
+- The hub's `TenantServices` builder is some 630 lines, in a composition module of some 2,200 lines. The runner's
+  process graph is assembled by hand in `runner/composition.py`, some 2,500 lines, and is still being reshaped by
+  `epic:config/runtime` (`decision:adopt-di/after-runtime-config`).
+- `hub host` opens the hub's store and tracing once and lends them to the hosted app; a layering guard refuses a second
+  acquisition.
 - `bzh:narrow-seams` already makes each runner loop step declare the slice of `LoopContext` it reads. The hub's API edge
   is exempt from it.
-- `bzh:dependency-injection` says blizzard has no dependency-injection container, and records no reason why.
+- `bzh:dependency-injection` requires hand-wired composition roots and CLI roots, and records no reason why.
 - Pyright runs in strict mode since `epic:strict-types`, and dishka's `provide` is partially unknown to it there.
 - The layering gates in `tests/guards/test_layering.py` assume hand wiring: a roster of composition roots, and a check
   that no class is constructed twice across the hub's root files.
-- Fifteen of the eighty-two classes in the hub's bags carry constructor defaults.
+- Some of the classes in the hub's bags carry constructor defaults; each is counted when its area migrates.
 
 ## Brief requirements
 
-- engineering:pin-dishka-one — blizzard pins dishka's 1.x line and uses only forms not already deprecated, so the move
-  to 2.0 is one landing of its own. Serves `epic:adopt-di`.
+- engineering:pin-dishka-one — blizzard pins dishka's 1.x line (`dishka>=1.10,<2`) and uses only forms not already
+  deprecated, so the move to 2.0 is one landing of its own. Serves `epic:adopt-di`.
 - engineering:explicit-factory-for-defaults — A constructor with default arguments is registered through an explicit
   factory, since dishka ignores defaults. Serves `epic:adopt-di`.
 - engineering:dead-members-deleted — Bag members with no live consumer are deleted rather than registered, after

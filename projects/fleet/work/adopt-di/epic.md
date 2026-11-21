@@ -1,7 +1,7 @@
 ---
 epic: adopt-di
-refinement: refined
-status: planned
+refinement: final
+status: ready
 ---
 
 # Adopt dependency injection
@@ -12,16 +12,16 @@ A standalone epic; its requirements are inline below.
 
 Most of blizzard is written by agents meeting a module for the first time (`persona:fleet-agent`), and an agent adding a
 service to the hub learns how it is wired by editing the wiring. It adds a field to a frozen bag of services, adds a
-constructor call to a builder some 370 lines long, and does both inside a composition module of more than 1,500 lines
-that every other agent adding a service is editing the same week. The route that uses the new service then takes the
-whole bag, so its signature says nothing about what it touches, and a reviewer reading it cannot tell which state a
-change can reach.
+constructor call to a builder some 630 lines long, and does both inside a composition module of some 2,200 lines that
+every other agent adding a service is editing the same week. The route that uses the new service then takes the whole
+bag, so its signature says nothing about what it touches, and a reviewer reading it cannot tell which state a change can
+reach.
 
 The bags have grown faster than anyone was watching. Where in mid-July a single bag held 11 services, the hub's two bags
-now hold well over a hundred between them, and some 220 route handlers take the whole tenant bag. In a flat list that
-long, nobody notices when a service stops being used. A bag that every caller reaches into is a service locator by
-another name: it makes depending on everything the cheapest dependency to write. The runner's process graph is assembled
-by hand in the same way.
+now hold some 160 between them, and some 260 route handlers take the whole tenant bag. In a flat list that long, nobody
+notices when a service stops being used. A bag that every caller reaches into is a service locator by another name: it
+makes depending on everything the cheapest dependency to write. The runner's process graph is assembled by hand in the
+same way.
 
 ## The outcome
 
@@ -75,4 +75,6 @@ behavior, so removing the old path is the epic's own last step rather than a fol
 
 Acceptance:
 
-- Every route, command, configuration, and wire model behaves as before each landing.
+- Every route, command, configuration, and wire model behaves as before each landing, apart from the two responses
+  `decision:adopt-di/drained-runner-request` and `decision:adopt-di/closed-tenant-request` change for a request racing
+  its runner's retirement or its tenant's deletion.
