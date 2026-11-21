@@ -1,5 +1,6 @@
 ---
 name: hub-lifecycle-passes
+external: github:paul-gross/blizzard#2366
 depends-on:
   - hub-identity
   - hub-cadence

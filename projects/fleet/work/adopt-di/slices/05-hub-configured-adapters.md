@@ -1,5 +1,6 @@
 ---
 name: hub-configured-adapters
+external: github:paul-gross/blizzard#2355
 depends-on:
   - hub-store-adapters
 code:

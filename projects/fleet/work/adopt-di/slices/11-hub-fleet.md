@@ -1,5 +1,6 @@
 ---
 name: hub-fleet
+external: github:paul-gross/blizzard#2360
 depends-on:
   - hub-projects
   - hub-graphs

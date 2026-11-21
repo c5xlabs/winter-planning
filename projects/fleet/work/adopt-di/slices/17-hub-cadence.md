@@ -1,5 +1,6 @@
 ---
 name: hub-cadence
+external: github:paul-gross/blizzard#2364
 depends-on:
   - hub-garden-runs
   - hub-urgency

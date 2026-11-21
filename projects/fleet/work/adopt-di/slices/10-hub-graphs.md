@@ -1,5 +1,6 @@
 ---
 name: hub-graphs
+external: github:paul-gross/blizzard#2359
 depends-on:
   - hub-store-adapters
 code:

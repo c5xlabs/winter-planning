@@ -1,5 +1,6 @@
 ---
 name: hub-events
+external: github:paul-gross/blizzard#2365
 depends-on:
   - hub-operations
   - hub-flow-execution

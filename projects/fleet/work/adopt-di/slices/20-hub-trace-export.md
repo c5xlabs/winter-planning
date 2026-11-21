@@ -1,5 +1,6 @@
 ---
 name: hub-trace-export
+external: github:paul-gross/blizzard#2374
 depends-on:
   - hub-events
   - hub-fleet

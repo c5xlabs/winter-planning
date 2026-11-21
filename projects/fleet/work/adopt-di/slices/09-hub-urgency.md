@@ -1,5 +1,6 @@
 ---
 name: hub-urgency
+external: github:paul-gross/blizzard#2358
 depends-on:
   - hub-configured-adapters
 code:

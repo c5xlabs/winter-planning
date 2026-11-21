@@ -1,5 +1,6 @@
 ---
 name: hub-operations
+external: github:paul-gross/blizzard#2371
 depends-on:
   - hub-execution
   - hub-urgency

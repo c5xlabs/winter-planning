@@ -1,5 +1,6 @@
 ---
 name: registry
+external: github:paul-gross/blizzard#2353
 ---
 
 # Typed registry and translation

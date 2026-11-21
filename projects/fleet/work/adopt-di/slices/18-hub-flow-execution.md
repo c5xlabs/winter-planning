@@ -1,5 +1,6 @@
 ---
 name: hub-flow-execution
+external: github:paul-gross/blizzard#2373
 depends-on:
   - hub-garden-materialization
   - hub-execution

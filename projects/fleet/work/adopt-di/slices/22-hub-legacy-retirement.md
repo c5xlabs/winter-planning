@@ -1,5 +1,6 @@
 ---
 name: hub-legacy-retirement
+external: github:paul-gross/blizzard#2367
 depends-on:
   - hub-lifecycle-passes
   - hub-offline-roots

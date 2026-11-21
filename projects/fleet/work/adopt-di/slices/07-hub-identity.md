@@ -1,5 +1,6 @@
 ---
 name: hub-identity
+external: github:paul-gross/blizzard#2370
 depends-on:
   - hub-store-adapters
   - hub-configured-adapters

@@ -1,5 +1,6 @@
 ---
 name: hub-store-adapters
+external: github:paul-gross/blizzard#2369
 depends-on:
   - hub-request-pilot
 code:

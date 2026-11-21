@@ -1,5 +1,6 @@
 ---
 name: hub-garden-runs
+external: github:paul-gross/blizzard#2363
 depends-on:
   - hub-garden-authoring
 code:

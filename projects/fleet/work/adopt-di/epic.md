@@ -2,6 +2,7 @@
 epic: adopt-di
 refinement: final
 status: ready
+external: github:paul-gross/blizzard#2352
 ---
 
 # Adopt dependency injection

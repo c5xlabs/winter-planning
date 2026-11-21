@@ -1,5 +1,6 @@
 ---
 name: hub-request-pilot
+external: github:paul-gross/blizzard#2354
 depends-on:
   - hub-scope-cache
 code:

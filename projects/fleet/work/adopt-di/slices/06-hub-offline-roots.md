@@ -1,5 +1,6 @@
 ---
 name: hub-offline-roots
+external: github:paul-gross/blizzard#2356
 depends-on:
   - hub-configured-adapters
 code:

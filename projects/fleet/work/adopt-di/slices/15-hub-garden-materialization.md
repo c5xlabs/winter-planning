@@ -1,5 +1,6 @@
 ---
 name: hub-garden-materialization
+external: github:paul-gross/blizzard#2362
 depends-on:
   - hub-garden-authoring
   - hub-configured-adapters

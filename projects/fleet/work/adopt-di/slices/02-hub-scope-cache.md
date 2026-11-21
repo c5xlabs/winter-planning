@@ -1,5 +1,6 @@
 ---
 name: hub-scope-cache
+external: github:paul-gross/blizzard#2368
 depends-on:
   - registry
 ---

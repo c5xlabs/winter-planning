@@ -1,5 +1,6 @@
 ---
 name: hub-execution
+external: github:paul-gross/blizzard#2361
 depends-on:
   - hub-fleet
   - hub-configured-adapters

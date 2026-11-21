@@ -1,5 +1,6 @@
 ---
 name: hub-garden-authoring
+external: github:paul-gross/blizzard#2372
 depends-on:
   - hub-operations
   - hub-projects
