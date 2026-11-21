@@ -1,5 +1,6 @@
 ---
 name: fingerprint-command
+external: github:paul-gross/winter#223
 depends-on:
   - bounded-fetch
 code:

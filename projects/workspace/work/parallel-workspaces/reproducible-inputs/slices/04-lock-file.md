@@ -1,5 +1,6 @@
 ---
 name: lock-file
+external: github:paul-gross/winter#217
 depends-on:
   - module-scaffold
 code:

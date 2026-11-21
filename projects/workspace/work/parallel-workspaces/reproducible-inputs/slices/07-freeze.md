@@ -1,5 +1,6 @@
 ---
 name: freeze
+external: github:paul-gross/winter#220
 depends-on:
   - update-command
 code:

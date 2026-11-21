@@ -1,5 +1,6 @@
 ---
 name: module-scaffold
+external: github:paul-gross/winter#214
 depends-on:
   - epic:parallel-workspaces/repository-catalog
 code:

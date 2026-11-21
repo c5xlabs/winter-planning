@@ -1,5 +1,6 @@
 ---
 name: bounded-fetch
+external: github:paul-gross/winter#216
 depends-on:
   - git-port
 ---

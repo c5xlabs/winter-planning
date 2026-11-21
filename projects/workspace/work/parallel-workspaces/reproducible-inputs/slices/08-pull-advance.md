@@ -1,5 +1,6 @@
 ---
 name: pull-advance
+external: github:paul-gross/winter#221
 depends-on:
   - resolve-and-materialize
 ---

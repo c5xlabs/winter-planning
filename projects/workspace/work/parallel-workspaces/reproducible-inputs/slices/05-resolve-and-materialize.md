@@ -1,5 +1,6 @@
 ---
 name: resolve-and-materialize
+external: github:paul-gross/winter#218
 depends-on:
   - git-port
   - lock-file

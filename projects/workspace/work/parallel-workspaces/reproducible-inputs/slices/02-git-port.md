@@ -1,5 +1,6 @@
 ---
 name: git-port
+external: github:paul-gross/winter#215
 depends-on:
   - module-scaffold
 ---

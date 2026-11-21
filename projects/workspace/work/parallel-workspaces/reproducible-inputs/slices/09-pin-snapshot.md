@@ -1,5 +1,6 @@
 ---
 name: pin-snapshot
+external: github:paul-gross/winter#222
 depends-on:
   - git-port
   - lock-file

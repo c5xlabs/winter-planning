@@ -2,6 +2,7 @@
 epic: parallel-workspaces/reproducible-inputs
 refinement: final
 status: ready
+external: github:paul-gross/winter#213
 ---
 
 # Reproduce and compare the workspace's inputs

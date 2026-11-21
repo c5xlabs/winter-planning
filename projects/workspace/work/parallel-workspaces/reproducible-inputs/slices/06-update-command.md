@@ -1,5 +1,6 @@
 ---
 name: update-command
+external: github:paul-gross/winter#219
 depends-on:
   - bounded-fetch
   - resolve-and-materialize

@@ -1,5 +1,6 @@
 ---
 name: reference-scenarios
+external: github:paul-gross/winter#224
 depends-on:
   - freeze
   - fingerprint-command
