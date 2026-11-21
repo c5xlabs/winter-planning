@@ -9,7 +9,7 @@ depends-on:
 
 Fills `pins/snapshot.rs` with the Pin snapshot flow of [standalone-pins.md](../spec/standalone-pins.md). The workspace
 status of `epic:parallel-workspaces/coordinated-git` is its reader, delivering the pin bullet of
-`product:inspect-workspace-git`; nothing calls it here.
+`product:parallel-workspaces/coordinated-git/inspect-workspace-git`; nothing calls it here.
 
 ## Change
 

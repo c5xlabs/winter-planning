@@ -4,6 +4,7 @@ depends-on:
   - bounded-fetch
 code:
   - winter-workspace/crates/core/src/files.rs::OsFiles
+  - winter-workspace/crates/core/src/context.rs::Context
 ---
 
 # `ws fingerprint` prints the definition's digest
@@ -21,15 +22,17 @@ Delivers `product:workspace-content-identity` and `engineering:fingerprint-obser
 
 - The file port gains `ScratchFiles`, implemented on `OsFiles` alone: a copy that keeps bytes and modification time, and
   an empty path, each in a uniquely named directory under the `temp` directory the caller passes, removed on drop, named
-  as `files.rs` names its own temporary files.
+  as `files.rs` names its own temporary files. `Context` gains `scratch`, which `run_with` fills with its `OsFiles`, and
+  `ScratchFiles` joins `COMMAND_FILE_NAMES` beside `ReadFiles`, its pinned test renamed for the new count.
 - The program port's `Call` gains `env`, set over the child environment for that call alone, which `tree` and `dirty`
   use for `GIT_INDEX_FILE` and `GIT_OPTIONAL_LOCKS`; every existing call passes an empty slice.
 - `git.rs` gains `tree`, through a scratch copy of the real index or a scratch path seeded by `read-tree`, and `dirty`,
   through a status that takes no optional locks, each with its operation span.
-- The command file hands `fingerprint::compute` the file ports, `cx.programs`, `cx.tracer`, and `TMPDIR` of `cx.env`,
-  else `/tmp`. It fingerprints the workspace root and each standalone sorted by name, refusing a checkout that
-  `ReadFiles::is_dir` denies as `RepoMessage::MissingCheckout`, digests the canonical preimage with SHA-256, and the
-  command prints the digest or the shape A document.
+- The command file calls `fingerprint::compute` with `cx.files`, `cx.scratch`, `cx.programs`, `cx.tracer`, `TMPDIR` of
+  `cx.env`, else `/tmp`, and `cx.cwd`, with the signature content-identity.md gives. It fingerprints the workspace root
+  and each standalone sorted by name, refusing a checkout that `ReadFiles::is_dir` denies as
+  `RepoMessage::MissingCheckout`, digests the canonical preimage with SHA-256, and the command prints the digest or the
+  shape A document.
 - The library gains a SHA-256 dependency, listed in the architecture context's dependency table.
 
 ## Acceptance

@@ -18,8 +18,9 @@ beside the delivered removal, through its write integrity. Its usage errors are 
 ## Change
 
 - `--force` without `--freeze`, and `--freeze` with `--autostash`, are the usage errors command-surface.md gives.
-- `pins/freeze.rs` selects any standalone a pattern matches, pinned or not, with the update's glob rule, and refuses an
-  unknown literal name as `RepoMessage::NoStandaloneNamed`.
+- `pins/freeze.rs` gains `freeze`, with the signature of standalone-pins.md, Running `ws update`; the command file calls
+  it with the same sink as `repin`. It selects any standalone a pattern matches, pinned or not, with the update's glob
+  rule, and refuses an unknown literal name as `RepoMessage::NoStandaloneNamed`.
 - Each selected standalone reports `already_pinned`, `refused` with the reference's reasons, or `pinned`, after `ref` is
   inserted after the last key of the first block whose effective name matches, in the file that declares it, and the
   commit entry is upserted. The writer sits in `config_edit.rs` beside `remove_repository_block` and matches blocks

@@ -10,7 +10,7 @@ Fills `pins/advance.rs` with `PullMode`, `Integration`, `IntegrateCheckout`, `Ad
 flow of [standalone-pins.md](../spec/standalone-pins.md), under
 `decision:parallel-workspaces/reproducible-inputs/resolution-and-locks`. The standalone integration of
 `epic:parallel-workspaces/coordinated-git` implements `IntegrateCheckout` and calls `advance`, delivering the held-pin
-bullet of `product:integrate-selected-repositories`; nothing calls it here.
+bullet of `product:parallel-workspaces/coordinated-git/integrate-selected-repositories`; nothing calls it here.
 
 ## Change
 

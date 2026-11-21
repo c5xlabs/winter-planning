@@ -27,7 +27,8 @@ epics that fetch. Nothing calls it yet.
   fixes both. `context/standards/rust.md`, Output and environment access, names `programs.rs` as the one library file
   that reads the monotonic clock, sleeps, and draws a random number, as the exception to its "reads no clock".
 - The architecture check forbids `Instant::now`, `thread::sleep`, `fastrand`, and `rustix` in the library outside
-  `programs.rs`, with the pinned test of the token list updated.
+  `programs.rs`, with the pinned test of the token list updated and the four tokens added to the token table of
+  `context/standards/rust.md`, each marked as allowed in `programs.rs` alone.
 - The library gains `rustix` (`event`, `process`) and `fastrand`, listed in the architecture context's dependency table.
 - `fetch` opens one `git fetch` span over all its attempts.
 

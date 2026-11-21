@@ -18,9 +18,11 @@ configuration. Nothing calls it yet.
 
 ## Change
 
+- `workspace_files.rs` gains `LOCK_FILE`, `.winter/config.lock`, beside `CONFIG_FILE`, which reading and upsert use.
 - Reading answers an empty lock for a missing file and refuses every other row of the lock's error table as
   `ConfigError::Lock`; a malformed file is never read as absent. `version` is accepted as the integer `1`, the float
-  `1.0`, or `true`, as lock-and-state.md gives it.
+  `1.0`, or `true`, as lock-and-state.md gives it. An entry field that is not a string is `MalformedEntry` until the
+  probe of `update-command` settles it.
 - Upsert is one `WriteFiles::update` read-modify-write: read, replace the entry by `name`, sort by name, and write the
   managed comment, `version = 1`, and one `[[standalone]]` block per entry with the full commit. A read error inside the
   update closure is carried out through a captured variable and leaves the file unwritten.

@@ -81,37 +81,48 @@ call's failure, carrying its exit. A run succeeds unless an outcome is `refused`
 is `Diverged` (`modules/workspace/models/service_model.py:514-522`). A `pin_ref` written `<rendered>` below is the
 `RepoError` as Python's `str()` renders it (`modules/workspace/models/domain_model.py:322-337`): the message, then
 `$ <program> <subcommand> <args>`, `cwd: <cwd>`, `exit <n>` (with `(killed by signal <s>)` for a negative exit), and
-`stderr: <stderr, trimmed>`, each on its own line and only when present.
+`stderr: <stderr, trimmed>`, each on its own line, indented by two spaces, and only when present; lines are joined by
+`\n` with none after the last. `PinResult`, `PinOutcome`, and that rendering, `pins::outcome::rendered`, live in
+`crates/core/src/pins/outcome.rs`.
 
 Every type and entry the slices re-export for tests is `pub` inside its private module, and so is every type their
-signatures name: the file port's `ReadFiles`, `WriteFiles`, and `OsFiles`, the program port's `Call`, `Finished`,
-`Exit`, `Program`, and `RunPrograms`, `CommandTracer`, and `Diagnostics` included; `lib.rs` re-exports them by name
-(changes.md, A domain module).
+signatures name or their tests build: the file port's `ReadFiles`, `WriteFiles`, and `OsFiles`; the program port's
+`Call`, `Finished`, `Exit`, `Program`, `RunPrograms`, and `OsPrograms` with `OsPrograms::new`; `CommandTracer`;
+`Diagnostics` with the `Log` and `Level` it holds and `Log::DEFAULT`; `LockError` and `LockEntryFault`; and `PinError`.
+`lib.rs` re-exports them by name (changes.md, A domain module), each module's names on a `pub use` line of its own.
 
 Every warning, notice, and log record below is written by the domain entry through the `Diagnostics` of
-[repository-list.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/repository-list.md), Domain,
-which each entry takes beside its ports; a command file writes none
-(`decision:parallel-workspaces/workspace-configuration/domain-reporting`). A warning or debug record is
-`diagnostics::record` at that level; a line quoted with its `warning:` prefix is written as quoted.
+[repository-list.md](../../repository-catalog/spec/repository-list.md), Domain, which each entry takes beside its ports;
+a command file writes none (`decision:parallel-workspaces/workspace-configuration/domain-reporting`). What the reference
+logs at warning or debug is `diagnostics::record` at that level; a line quoted with its `warning:` prefix, which the
+reference echoes, is `diagnostics::notice`.
+
+A placeholder written `<x!r>` in quoted wording is the value as Python's `repr` quotes it; one written `<x>` is the
+value as it is.
 
 ```rust
 // engineering:typed-outcomes; the RepoMessage of results-and-exit-codes.md, Domain, gains the causes the reference
-// raises as RepoError; the wording is the reference's, <name> and <ref> quoted as Python's repr quotes them
+// raises as RepoError; the wording is the reference's (gitpython_repository.py:241, init_service.py:539-540,
+// workspace_sync_service.py:557,561,624)
 UnresolvableRef { r#ref: String, path: PathBuf }
-    // "unresolvable ref <ref> at <path>: not a branch, tag, or commit SHA"; cwd the path
+    // "unresolvable ref <ref!r> at <path>: not a branch, tag, or commit SHA"; the RepoError's cwd is the path
 DirtyRePin { name: String }
-    // "refusing to re-pin <name>: working tree has uncommitted changes; commit or stash first (or run
+    // "refusing to re-pin <name!r>: working tree has uncommitted changes; commit or stash first (or run
     // `winter ws fetch <name>` to sync refs)"
-NotPinned { name: String }          // "standalone repo <name> has no `ref` configured — nothing to update"
-NoPinnedNamed { name: String }      // "no pinned standalone repo named <name>"
-NoStandaloneNamed { name: String }  // "no standalone repo named <name>"
-// the last four carry no detail field: the reference passes no cwd or an empty one
+NotPinned { name: String }          // "standalone repo <name!r> has no `ref` configured — nothing to update"
+NoPinnedNamed { name: String }      // "no pinned standalone repo named <name!r>"
+NoStandaloneNamed { name: String }  // "no standalone repo named <name!r>"
+// a RepoError built from any of the last four carries no cwd: the reference passes none or an empty one
 
-// crates/core/src/pins.rs, whose flows are its submodules pins/{resolve,materialize,advance,repin,freeze,snapshot}.rs
-// — the module's own error sum, which materialize, advance, the re-pin run, and the freeze
-// run answer; the command maps it: Repo -> Termination::Repo, Config -> Termination::Config, exit 1 either way
-pub enum PinError { Repo(RepoError), Config(ConfigError) }   // Config holds the lock's ConfigError::Lock and
-                                                                    // the Set a standalone ref writer's errors
+// crates/core/src/pins.rs, whose flows are its pub(crate) submodules
+// pins/{outcome,resolve,materialize,advance,repin,freeze,snapshot}.rs — the module's own error sum, which materialize,
+// advance, the re-pin run, and the freeze run answer; the command maps it: Repo -> Termination::Repo,
+// Config -> Termination::Config, exit 1 either way; Output is returned as it is
+pub enum PinError {
+    Repo(RepoError),
+    Config(ConfigError),      // the lock's ConfigError::Lock and the Set a standalone ref writer's errors
+    Output(Termination),      // the event sink's Err: a write to stdout failed, and the run stopped
+}
 ```
 
 ## Interfaces
@@ -231,16 +242,42 @@ Text, one line per event (`modules/workspace/pull_reporter.py:28-92`,
 | no outcome at all       | stdout | `Nothing to update`, dim, after `pull_completed` |
 
 Exit 1 when the run does not succeed; in text mode a run with no outcome exits 0. Before selection, in both modes, the
-command writes the drift notice of
-[drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md)
+re-pin entry writes the drift notice of [drift-warning.md](../../repository-catalog/spec/drift-warning.md)
 (`modules/workspace/handlers/workspace_handler.py:723`).
+
+### Running `ws update`
+
+```rust
+// crates/core/src/pins/repin.rs and pins/freeze.rs — the domain entries the ws update command file calls
+pub enum PinEvent { Started, Synced(PinOutcome), Completed { success: bool } }   // pull_started, repo_synced,
+                                                                                    // pull_completed
+// The command's sink, called once per event as it is reached, with the entry's Diagnostics so a text-mode stderr row
+// can be written; an Err stops the run at once, after any pending stash_pop, and is answered as PinError::Output.
+pub type EventSink<'s> = dyn FnMut(&PinEvent, &mut Diagnostics<'_>) -> Result<(), Termination> + 's;
+
+pub fn repin(files: &dyn ReadFiles, writer: &dyn WriteFiles, programs: &dyn RunPrograms, tracer: &dyn CommandTracer,
+    env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[String], autostash: bool,
+    sink: &mut EventSink<'_>) -> Result<(), PinError>;
+pub fn freeze(files: &dyn ReadFiles, writer: &dyn WriteFiles, programs: &dyn RunPrograms, tracer: &dyn CommandTracer,
+    diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[String], force: bool,
+    sink: &mut EventSink<'_>) -> Result<(), PinError>;
+```
+
+```text
+the sink, built by the command file over output::Results of runtime.md, Writing more than one piece of a result,
+which this command is the first caller of and builds:
+  --json   each event is Results::event of its shape C line
+  text     a stdout row is Results::line; a stderr row (refused, pin_error, pull_completed false, each with its
+           blank line where the table gives one) is diagnostics::notice; `Nothing to update` follows pull_completed
+           when no Synced event was seen
+```
 
 ## Flows
 
 ### Materialize a pin
 
 ```text
-# product:recorded-input-materialization; called by the standalone reconciliation of epic:parallel-workspaces/workspace-bootstrap
+# product:parallel-workspaces/workspace-bootstrap/recorded-input-materialization; called by the standalone reconciliation of epic:parallel-workspaces/workspace-bootstrap
 # after its clone or fetch; reference: modules/workspace/init_service.py:485-560
 materialize(repo, path) -> Result<Option<(RefKind, Sha)>, PinError>
   repo.ref is None                      -> None
@@ -261,14 +298,14 @@ materialize(repo, path) -> Result<Option<(RefKind, Sha)>, PinError>
 ### Advance a pin on pull
 
 ```text
-# product:integrate-selected-repositories; called by the standalone integration of epic:parallel-workspaces/coordinated-git
+# product:parallel-workspaces/coordinated-git/integrate-selected-repositories; called by the standalone integration of epic:parallel-workspaces/coordinated-git
 # after its fetch, for a standalone that declares a ref; reference: modules/workspace/workspace_sync_service.py:426-504
 advance(repo, mode, autostash, integration: &dyn IntegrateCheckout) -> Result<Advanced, PinError>
   r := resolve(path, repo.ref)          # an error propagates, as PinError::Repo, to the pull's per-repository handling
   Tag | Commit -> Pin(HeldPin), pin_ref repo.ref                  # never moves, whatever the mode
   Branch:
     dirty := not clean(path)
-    dirty and not autostash -> Pin(PinError) "branch pin <name> has uncommitted changes; commit/stash or pass --autostash"
+    dirty and not autostash -> Pin(PinError) "branch pin <name!r> has uncommitted changes; commit/stash or pass --autostash"
     dirty -> stash_push; its failure -> Pin(PinError) <rendered>
     i := integration.integrate(path, "origin/<ref>", mode, autostash)
     dirty -> stash_pop; its failure is logged at warning, naming the checkout, and changes no outcome
@@ -292,14 +329,14 @@ select(patterns):
     names an unpinned standalone -> RepoError NotPinned, exit 1
     names none                  -> RepoError NoPinnedNamed, exit 1
   no pattern -> every pinned standalone; else the pinned standalones any pattern matches; a glob matching none adds none
-  a selected checkout missing on disk -> stderr "warning: standalone/<name> — missing on disk (run `winter ws init`)",
+  a selected checkout missing on disk -> notice "warning: standalone/<name> — missing on disk (run `winter ws init`)",
                                          dropped
 emit pull_started
 per selected standalone, in order (an outcome does not stop the next):
   fetch(path); its failure is logged at warning and resolution continues against the refs on disk
                                         # a moved remote tag is not fetched over the local one, so it reads up to date
   dirty := not clean(path)
-  dirty and not autostash -> PinError "refusing to re-pin <name>: uncommitted changes; commit/stash or pass --autostash"
+  dirty and not autostash -> PinError "refusing to re-pin <name!r>: uncommitted changes; commit/stash or pass --autostash"
   dirty -> stash_push; its failure -> PinError <rendered>
   r := resolve(path, ref); its failure -> PinError <rendered>
   r.commit == head(path) and lock[name].commit == r.commit -> UpToDate     # no checkout, no lock write
@@ -322,15 +359,15 @@ select(patterns):
 emit pull_started
 per selected standalone, in order:
   declares a ref                       -> AlreadyPinned, pin_ref the ref
-  path missing                         -> Refused "<name> is not cloned (run `winter ws init`)"
+  path missing                         -> Refused "<name!r> is not cloned (run `winter ws init`)"
   c := head(path); its failure         -> Refused <message>               # read before the dirty check; the message
                                                                           # alone (workspace_sync_service.py:647)
-  not force and not clean(path)        -> Refused "<name> has uncommitted changes, so its commit does not describe it;
+  not force and not clean(path)        -> Refused "<name!r> has uncommitted changes, so its commit does not describe it;
                                           commit/stash or pass --force"
   set `ref = "<c>"` in config.toml, else config.local.toml, on the first block whose effective name (`name`, else
   derived from `url`) is the standalone's, matched by the effective_name of config_edit.rs that the removal uses
                                        # the Set a standalone ref writer, through write integrity; neither file
-                                       # declares it -> Refused "<name> is not declared in config.toml or config.local.toml"
+                                       # declares it -> Refused "<name!r> is not declared in config.toml or config.local.toml"
   upsert {name, ref: c, kind: Commit, commit: c} -> Pinned, pin_ref c[..8]
                                        # a LockError here ends the whole run as PinError::Config, exit 1, with the
                                        # ref already written to the config file and no pull_completed
@@ -342,7 +379,7 @@ emit repo_synced per outcome, then pull_completed
 ### Pin snapshot
 
 ```text
-# product:inspect-workspace-git; read by the workspace status of epic:parallel-workspaces/coordinated-git
+# product:parallel-workspaces/coordinated-git/inspect-workspace-git; read by the workspace status of epic:parallel-workspaces/coordinated-git
 # reference: modules/workspace/workspace_snapshot_service.py:557-601,
 #            modules/workspace/handlers/workspace_handler.py:1512-1523
 snapshot(standalones) -> Vec<PinSnapshot>
@@ -351,3 +388,10 @@ snapshot(standalones) -> Vec<PinSnapshot>
   a malformed lock is read as absent (modules/workspace/workspace_snapshot_service.py:570-574)
   head(path) per standalone; its failure is logged at debug and leaves head_commit None
 ```
+
+## Open questions
+
+- What a lock entry whose field is not a string reads as in the reference tool, which
+  [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Open
+  questions, leaves to this epic. The recorded scenario `ws-update/lock-field-not-string` answers it, and this section
+  is replaced by the rule it shows.

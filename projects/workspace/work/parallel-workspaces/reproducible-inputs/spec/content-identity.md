@@ -27,8 +27,9 @@ pub struct WorkspaceFingerprint {
 
 ```rust
 // engineering:typed-outcomes; RepoMessage (results-and-exit-codes.md, Domain) gains, the wording the reference's
-// (workspace_fingerprint_service.py:55):
-MissingCheckout { name: String, path: PathBuf }   // "cannot fingerprint <name>: <path> does not exist"; cwd the path
+// (workspace_fingerprint_service.py:55), name and path as they are, not repr-quoted:
+MissingCheckout { name: String, path: PathBuf }   // "cannot fingerprint <name>: <path> does not exist"; the RepoError's
+                                                  // cwd is the path
 ```
 
 ## Interfaces
@@ -65,7 +66,12 @@ pub trait ScratchFiles {
 }
 pub struct ScratchFile { /* the path, and the directory removed on drop */ }
 // OsFiles alone implements it, naming each directory uniquely as files.rs names its own temporary files; no crate is
-// added. `temp` is TMPDIR of the invocation's snapshot, else /tmp, which the fingerprint entry reads from cx.env.
+// added. `temp` is TMPDIR of the invocation's snapshot, else /tmp, which the command file reads from cx.env.
+// crates/core/src/context.rs — Context gains `scratch: &'a dyn ScratchFiles`, which run_with fills with the OsFiles it
+// builds; ScratchFiles joins the names no command file may hold, beside ReadFiles, WriteFiles, and OsFiles
+// crates/core/src/fingerprint.rs — the domain entry the command file calls:
+pub fn compute(files: &dyn ReadFiles, scratch: &dyn ScratchFiles, programs: &dyn RunPrograms,
+    tracer: &dyn CommandTracer, temp: &Path, start: &Path) -> Result<WorkspaceFingerprint, RepoError>;
 // The Process inputs table of command-surface.md is completed by this row:
 //   TMPDIR    The directory ws fingerprint makes its scratch index under; also passed to the child.
 ```

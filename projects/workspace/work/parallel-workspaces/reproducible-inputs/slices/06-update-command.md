@@ -21,20 +21,27 @@ events shape C of
 ## Change
 
 - The command file registers the command with the arguments and bare-name shape command-surface.md gives it, without
-  `--freeze` and `--force`. It builds `Diagnostics` from `cx.err` and `cx.log` and hands `pins::repin` the file ports,
-  `cx.programs`, `cx.tracer`, `cx.env`, and the `Diagnostics`, then maps `PinError` to its `Termination`.
+  `--freeze` and `--force`. It builds `Diagnostics` from `cx.err` and `cx.log` and an event sink over `output::Results`,
+  and calls `pins::repin` with the arguments of standalone-pins.md, Running `ws update`, then maps `PinError` to its
+  `Termination`, returning `PinError::Output` as it is.
+- `crates/core/src/output.rs` gains `Results` with `new`, `line`, `document`, and `event`, as
+  [runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Writing more than one piece
+  of a result, gives it; this command is its first caller.
+- `pins/repin.rs` gains `PinEvent`, `EventSink`, and `repin`. The sink writes `--json` events through `Results::event`,
+  text stdout rows through `Results::line`, and the stderr rows through `diagnostics::notice`; an `Err` from the sink
+  stops the run after any pending pop.
 - `pins/repin.rs` writes the drift notice through `Diagnostics` before selection, from `drift::detect` and
   `drift::notice_line`.
 - Selection reads a pattern holding `*`, `?`, or `[` as a case-sensitive `fnmatchcase` glob and any other as a literal;
   it refuses an unpinned or unknown literal as `RepoMessage::NotPinned` or `NoPinnedNamed`, keeps every pinned
-  standalone a glob matches, and drops a missing checkout, writing the spec's `warning:` line through `Diagnostics`.
+  standalone a glob matches, and drops a missing checkout, writing the spec's `warning:` line as `diagnostics::notice`.
 - Each selected standalone is fetched, guarded, optionally stashed, resolved, and either reported up to date or checked
   out and upserted; the pop runs on every path after a stash, and a failed pop is a warning record naming the checkout.
 - A failed head read or a lock error ends the run as that `PinError` after the pop, with no `pull_completed`.
 - Events are written and flushed as they happen; the run exits 1 when an outcome is `pin_error`.
-- What a lock entry whose field is not a string reads as is settled by the recorded scenario below, the probe
-  lock-and-state.md, Open questions, hands this epic; the reader follows the record, and the delivered spec's open
-  question is answered from it in a change to the planning repository.
+- The recorded scenario below answers the open question of standalone-pins.md on a lock entry field that is not a
+  string; `config_lock.rs`'s reader follows the record, and that open question is replaced by the rule it shows, in a
+  change to the planning repository. The delivered lock-and-state.md is left as it is.
 
 ## Acceptance
 
@@ -55,6 +62,8 @@ events shape C of
   matching none and a run with every selected checkout missing write `Nothing to update` and exit 0; two literals select
   exactly those two; `lib-[ab]` selects `lib-a` and `lib-b` and not `Lib-a`; an empty name and `a/b` are the command
   surface's bare-name refusals.
+- A component test with a stdout that fails after the first event: the run stops with that write's `Termination`, no
+  later event is attempted, and a pending stash is popped.
 - Component tests of the `up_to_date`, `re_pinned`, and `pin_error` rows and both `pull_completed` rows, in text and
   `--json`; the drift notice precedes `→ pulling` when a declared project is missing on disk.
 - A recorded scenario `scenarios/ws-update/lock-field-not-string`, recorded with `cargo dev record` from the reference

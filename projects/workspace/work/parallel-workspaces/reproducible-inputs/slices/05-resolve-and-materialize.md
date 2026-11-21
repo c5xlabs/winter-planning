@@ -8,10 +8,11 @@ depends-on:
 # Resolving a ref and materializing its lock entry
 
 Fills `pins/resolve.rs` and `pins/materialize.rs` with the Resolution interface and the Materialize a pin flow of
-[standalone-pins.md](../spec/standalone-pins.md): the resolution order of `product:standalone-reference-policy`, and
-what the `ws init` of `epic:parallel-workspaces/workspace-bootstrap` calls to deliver
-`product:recorded-input-materialization`, under `decision:parallel-workspaces/reproducible-inputs/resolution-and-locks`.
-Nothing calls `materialize` here.
+[standalone-pins.md](../spec/standalone-pins.md), and `pins/outcome.rs` with the outcome types and the `RepoError`
+rendering that `update-command` and `pull-advance` share: the resolution order of `product:standalone-reference-policy`,
+and what the `ws init` of `epic:parallel-workspaces/workspace-bootstrap` calls to deliver
+`product:parallel-workspaces/workspace-bootstrap/recorded-input-materialization`, under
+`decision:parallel-workspaces/reproducible-inputs/resolution-and-locks`. Nothing calls `materialize` here.
 
 ## Change
 
@@ -24,7 +25,9 @@ Nothing calls `materialize` here.
   upserts the entry, in that order.
 - A lock error is `PinError::Config` and a git failure or refusal `PinError::Repo`; the checkout's failure writes no
   entry.
-- Both are re-exported by name from `lib.rs` for their component tests.
+- `pins/outcome.rs` holds `PinResult`, `PinOutcome`, and `rendered`, the `RepoError` as Python's `str()` renders it, as
+  standalone-pins.md, Domain, gives them.
+- `resolve`, `materialize`, and the outcome names are re-exported by name from `lib.rs` for their tests.
 
 ## Acceptance
 
@@ -41,4 +44,7 @@ Nothing calls `materialize` here.
 - Component tests: a fresh commit entry whose commit is absent from the object store fails with the lock's bytes
   unchanged; a stale entry whose checkout git refuses, an untracked file in the way of the new commit's tracked file, is
   `PinError::Repo` with the lock's bytes and the checkout's HEAD unchanged.
+- Unit tests of `rendered`: a `RepoError` with every field gives the message and the `$`, `cwd:`, `exit`, and `stderr:`
+  lines, each indented by two spaces, joined by newlines with none after the last; an exit of -9 adds
+  `(killed by signal 9)`; absent fields give no line; stderr is trimmed.
 - `cargo dev gate slice` exits 0.
