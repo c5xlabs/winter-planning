@@ -13,9 +13,8 @@ status of `epic:parallel-workspaces/coordinated-git` is its reader, delivering t
 
 ## Change
 
-- `snapshot` takes the file ports, `&dyn RunPrograms`, `&dyn CommandTracer`, `Diagnostics`, the workspace root, and the
-  loaded standalones, and answers one `PinSnapshot` per standalone whose `reference` is `Some`, in merged order, from
-  one read of the lock and a HEAD read per checkout.
+- `snapshot` takes `Ports`, `Diagnostics`, the workspace root, and the loaded standalones, and answers one `PinSnapshot`
+  per standalone whose `reference` is `Some`, in merged order, from one read of the lock and a HEAD read per checkout.
 - No pinned standalone reads no lock; an unreadable lock is a warning record and read empty; an unreadable HEAD is a
   debug record and leaves `head_commit` empty and `head_drift` false.
 - `snapshot` is re-exported by name from `lib.rs` for its component tests.

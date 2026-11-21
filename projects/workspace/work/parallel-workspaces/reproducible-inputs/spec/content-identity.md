@@ -71,7 +71,9 @@ pub struct ScratchFile { /* the path, and the directory removed on drop */ }
 // builds; ScratchFiles joins the names no command file may hold, beside ReadFiles, WriteFiles, and OsFiles
 // crates/core/src/fingerprint.rs — the domain entry the command file calls:
 pub fn compute(files: &dyn ReadFiles, scratch: &dyn ScratchFiles, programs: &dyn RunPrograms,
-    tracer: &dyn CommandTracer, temp: &Path, start: &Path) -> Result<WorkspaceFingerprint, RepoError>;
+    tracer: &dyn CommandTracer, temp: &Path, start: &Path) -> Result<WorkspaceFingerprint, GitFailure>;
+// GitFailure of standalone-pins.md, Domain; MissingCheckout travels as its Repo arm. An interrupt ends the process as
+// the runtime's handler does, and a scratch directory it interrupts stays under temp.
 // The Process inputs table of command-surface.md is completed by this row:
 //   TMPDIR    The directory ws fingerprint makes its scratch index under; also passed to the child.
 ```

@@ -27,6 +27,7 @@ binary, proving the commands' flows in [standalone-pins.md](../spec/standalone-p
 - `ws-update` freeze scenarios: a pin written into `config.toml`, one into `config.local.toml`, a dirty refusal, and
   `--force`. Each declares `[[compare.file]] path = "ws/.winter/*.toml" mode = "bytes"` with the reason that the
   `Set a standalone ref` writer keeps the file's other bytes, which the parsed-TOML default would not show.
-- A `ws-update` drift scenario: a declared project missing on disk writes the drift notice before the run.
+- `ws-update` drift scenarios: a declared project missing on disk writes the drift notice before the run, with and
+  without `--freeze`.
 - `ws-fingerprint` scenarios: a clean workspace and one with a staged edit, each giving the reference's digest.
 - `cargo dev gate full` exits 0.

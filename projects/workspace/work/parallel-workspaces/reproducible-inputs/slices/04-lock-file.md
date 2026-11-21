@@ -3,7 +3,7 @@ name: lock-file
 depends-on:
   - module-scaffold
 code:
-  - winter-workspace/crates/core/src/files.rs::WriteFiles
+  - winter-workspace/crates/core/src/workspace_files.rs::CONFIG_FILE
 ---
 
 # Reading and upserting the lock file
@@ -21,8 +21,10 @@ configuration. Nothing calls it yet.
 - `workspace_files.rs` gains `LOCK_FILE`, `.winter/config.lock`, beside `CONFIG_FILE`, which reading and upsert use.
 - Reading answers an empty lock for a missing file and refuses every other row of the lock's error table as
   `ConfigError::Lock`; a malformed file is never read as absent. `version` is accepted as the integer `1`, the float
-  `1.0`, or `true`, as lock-and-state.md gives it. An entry field that is not a string is `MalformedEntry` until the
-  probe of `update-command` settles it.
+  `1.0`, or `true`, as lock-and-state.md gives it. An entry's `name`, `ref`, `kind`, or `commit` that is an integer, a
+  float, or a boolean reads as Python's `str()` gives it, as the reference coerces each
+  (`modules/workspace/internal/config_lock_repository.py:69-72`); the probe of `update-command` confirms it for an
+  integer `commit`.
 - Upsert is one `WriteFiles::update` read-modify-write: read, replace the entry by `name`, sort by name, and write the
   managed comment, `version = 1`, and one `[[standalone]]` block per entry with the full commit. A read error inside the
   update closure is carried out through a captured variable and leaves the file unwritten.
@@ -36,6 +38,7 @@ configuration. Nothing calls it yet.
   upserted out of order are written sorted by name; an empty lock writes the comment and `version = 1` alone.
 - Unit tests of the version: `1`, `1.0`, and `true` are read; `2`, `"1"`, and an absent `version` are
   `UnsupportedVersion`.
+- Unit tests of the coercion: `commit = 123` reads as `"123"`, `ref = 1.5` as `"1.5"`, and `ref = true` as `"True"`.
 - Component tests, one per row of the lock's error table: an unreadable file, invalid TOML, `version = 2`, a missing
   `commit`, and `kind = "branchy"`.
 - Component tests: an upsert into a malformed lock fails with `ConfigError::Lock` and the file's bytes unchanged; two

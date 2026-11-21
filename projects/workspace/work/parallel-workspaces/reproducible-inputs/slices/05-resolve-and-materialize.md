@@ -18,13 +18,13 @@ and what the `ws init` of `epic:parallel-workspaces/workspace-bootstrap` calls t
 
 - `resolve` tries the `origin` branch, then the tag, then the commit, answering the first match, and refuses a ref none
   of them match with `RepoMessage::UnresolvableRef`; it opens one `git rev-parse` span over its verifies.
-- `materialize` takes the file ports, `&dyn RunPrograms`, `&dyn CommandTracer`, the workspace root, and the loaded
+- `resolve` and `materialize` take `Ports`; `materialize` also takes the workspace root and the loaded
   `StandaloneRepository`. It does nothing for a standalone whose `reference` is `None`; checks out a fresh entry without
   re-resolving, detached at the recorded commit for a tag or commit and onto the tracking branch for a branch; and
   re-resolves a missing or stale entry, refusing a dirty checkout with `RepoMessage::DirtyRePin`, then checks out and
   upserts the entry, in that order.
-- A lock error is `PinError::Config` and a git failure or refusal `PinError::Repo`; the checkout's failure writes no
-  entry.
+- A lock error is `PinError::Config`, a git failure or refusal `PinError::Repo`, and a git that could not be started
+  `PinError::Internal`; the checkout's failure writes no entry.
 - `pins/outcome.rs` holds `PinResult`, `PinOutcome`, and `rendered`, the `RepoError` as Python's `str()` renders it, as
   standalone-pins.md, Domain, gives them.
 - `resolve`, `materialize`, and the outcome names are re-exported by name from `lib.rs` for their tests.

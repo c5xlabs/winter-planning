@@ -20,7 +20,8 @@ beside the delivered removal, through its write integrity. Its usage errors are 
 - `--force` without `--freeze`, and `--freeze` with `--autostash`, are the usage errors command-surface.md gives.
 - `pins/freeze.rs` gains `freeze`, with the signature of standalone-pins.md, Running `ws update`; the command file calls
   it with the same sink as `repin`. It selects any standalone a pattern matches, pinned or not, with the update's glob
-  rule, and refuses an unknown literal name as `RepoMessage::NoStandaloneNamed`.
+  rule, and refuses an unknown literal name as `RepoMessage::NoStandaloneNamed`. Like `repin`, it writes the drift
+  notice before selection, as the reference does before it branches on `--freeze`.
 - Each selected standalone reports `already_pinned`, `refused` with the reference's reasons, or `pinned`, after `ref` is
   inserted after the last key of the first block whose effective name matches, in the file that declares it, and the
   commit entry is upserted. The writer sits in `config_edit.rs` beside `remove_repository_block` and matches blocks
@@ -28,9 +29,7 @@ beside the delivered removal, through its write integrity. Its usage errors are 
 - A lock error after the `ref` is written ends the run as `PinError::Config`, the config file already changed, with no
   `pull_completed`, as the reference does.
 - Nothing fetches and nothing checks out.
-- The README's paragraph on where the binary may run, and the matching rationale in `AGENTS.md`, name `ws update` beside
-  `repo remove`: it fetches, resets branches, stashes, and writes the lock and, with `--freeze`, the configuration of
-  the workspace it finds.
+- The README and `AGENTS.md` sentence on `ws update` adds that with `--freeze` it also writes the configuration.
 
 ## Acceptance
 
@@ -40,6 +39,7 @@ beside the delivered removal, through its write integrity. Its usage errors are 
   files unchanged.
 - Component tests: a dirty checkout is `refused` without `--force` and `pinned` with it; a missing checkout and a
   directory that is not a repository are `refused` by name; each refusal exits 1.
+- A component test: with a declared project missing on disk, `--freeze` writes the drift notice before `→ pulling`.
 - Component tests: a commit not present on the remote is pinned; with the remote unreachable, every freeze succeeds and
   the checkout's HEAD and refs are unchanged.
 - A component test: with a malformed `.winter/config.lock`, a freeze exits 1 with the configuration error, the

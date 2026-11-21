@@ -15,10 +15,11 @@ bullet of `product:parallel-workspaces/coordinated-git/integrate-selected-reposi
 ## Change
 
 - A tag or commit pin reports `held_pin` with the declared ref in every mode and touches nothing.
-- `advance` takes the file ports, `&dyn RunPrograms`, `&dyn CommandTracer`, and `Diagnostics` beside the spec's
-  arguments. A branch pin is guarded, stashed when dirty and `autostash` is set, integrated onto `origin/<ref>` in the
-  given mode, and popped, a failed pop a warning record naming the checkout; a fast-forward upserts the new HEAD and
-  reports `re_pinned`, and any other integration is returned with the lock unchanged.
+- `advance` takes `Ports`, `Diagnostics`, the workspace root, and the spec's arguments; the integration's `GitFailure`
+  and a git that could not be started end it as `PinError::Repo` or `Internal`. A branch pin is guarded, stashed when
+  dirty and `autostash` is set, integrated onto `origin/<ref>` in the given mode, and popped, a failed pop a warning
+  record naming the checkout; a fast-forward upserts the new HEAD and reports `re_pinned`, and any other integration is
+  returned with the lock unchanged.
 - The types and `advance` are re-exported by name from `lib.rs` for their component tests.
 
 ## Acceptance

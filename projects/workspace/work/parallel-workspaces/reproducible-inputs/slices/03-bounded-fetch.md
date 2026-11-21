@@ -16,13 +16,15 @@ epics that fetch. Nothing calls it yet.
 - The program port's `Call` gains `timeout: Option<Duration>`; every existing call, the catalog's in `locations.rs`
   included, passes `None` and behaves as before.
 - `OsPrograms` starts no thread: it polls the child's stdout and stderr with poll(2) until both close or the deadline on
-  the monotonic clock passes. On expiry it lists git's direct children with `ps --ppid`, sends SIGKILL to git and then
-  to each child, ignoring a failed listing or kill, reads the streams to their end, and answers `Signal(9)`.
+  the monotonic clock passes. On expiry it lists git's direct children with `ps --ppid` (procps, which the test host
+  provides), sends SIGKILL to git and then to each child, ignoring a failed listing or kill, reads the streams to their
+  end, and answers `Signal(9)`.
 - `fetch` takes the invocation's `ProcessEnv` and the entry's `Diagnostics` beside the ports. It runs `fetch origin`
   with the timeout read from the snapshot on every call, writing the spec's warning record for an invalid or
   non-positive value (`inf` and `nan` are invalid), and retries a transient failure up to three attempts with the
   jittered backoff, writing the spec's retry notice as a warning record per retry. Any other failure is the call's
-  `RepoError` at once.
+  `GitFailure` at once, a git that could not be started its `Internal` arm.
+- `fetch` is re-exported by name from `lib.rs` for its component tests.
 - `programs.rs` supplies the sleep and the jitter draw, through `fastrand`, and the retry loop takes them, so a test
   fixes both. `context/standards/rust.md`, Output and environment access, names `programs.rs` as the one library file
   that reads the monotonic clock, sleeps, and draws a random number, as the exception to its "reads no clock".
@@ -42,7 +44,9 @@ epics that fetch. Nothing calls it yet.
 - Component tests of the wait: a stub that writes 1 MiB to stderr and exits 0 within the timeout succeeds with the whole
   stderr captured; a stub that starts a child holding stderr open and then sleeps past the timeout returns within a
   second of the deadline as `Signal(9)`, its child killed, and stderr the spec's timeout line.
-- Unit tests of the timeout value: unset is 40; `abc`, `inf`, `nan`, and `-1` warn and are 40; `2.5` is 2.5.
+- Unit tests of the timeout value: unset is 40; `abc`, `inf`, and `nan` give the invalid warning with the value
+  repr-quoted, `'abc'`, and are 40; `-1`, `0`, and `-inf` give the non-positive warning with `-1.0`, `0.0`, and `-inf`
+  and are 40; `2.5` and `1_0` are 2.5 and 10.
 - A unit test of the delay: attempts 1, 2, 3, 4, 5 with `u = 1` are 1.5, 3, 6, 8, 8 seconds, and with `u = -1` are 0.5,
   1, 2, 4, 4.
 - A component test against the git fixtures: `fetch` brings a commit pushed to the remote, and leaves a local tag in

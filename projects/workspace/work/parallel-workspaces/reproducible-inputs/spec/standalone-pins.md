@@ -22,7 +22,11 @@ Domain. Reference locations are paths under `tools/winter-cli/src/winter_cli/` o
 // engineering:typed-outcomes
 pub enum RefKind { Branch, Tag, Commit }               // the lock's `kind` values: "branch", "tag", "commit"
 
-pub struct Resolution { pub kind: RefKind, pub commit: Sha }   // Sha: 40 lowercase hex characters
+// crates/core/src/git.rs — a commit or object id as git prints it, 40 lowercase hex characters from git itself; a lock
+// commit is kept as read, unvalidated, as the reference keeps str() of it
+pub type Sha = String;
+
+pub struct Resolution { pub kind: RefKind, pub commit: Sha }
 // For an annotated tag, `commit` is the tag object's id, as `rev-parse --verify refs/tags/<t>` answers it: the lock
 // records that id, it never equals HEAD, and the up-to-date check and head drift read it as moved
 
@@ -68,7 +72,7 @@ pub enum Integration {
     Diverged { ahead: u32, behind: u32 },
 }
 pub trait IntegrateCheckout {
-    fn integrate(&self, path: &Path, target: &str, mode: PullMode, autostash: bool) -> Result<Integration, RepoError>;
+    fn integrate(&self, path: &Path, target: &str, mode: PullMode, autostash: bool) -> Result<Integration, GitFailure>;
 }
 
 // What `advance` answers: a pin outcome of its own, or the pull's integration passed through
@@ -88,14 +92,16 @@ is `Diverged` (`modules/workspace/models/service_model.py:514-522`). A `pin_ref`
 Every type and entry the slices re-export for tests is `pub` inside its private module, and so is every type their
 signatures name or their tests build: the file port's `ReadFiles`, `WriteFiles`, and `OsFiles`; the program port's
 `Call`, `Finished`, `Exit`, `Program`, `RunPrograms`, and `OsPrograms` with `OsPrograms::new`; `CommandTracer`;
-`Diagnostics` with the `Log` and `Level` it holds and `Log::DEFAULT`; `LockError` and `LockEntryFault`; and `PinError`.
-`lib.rs` re-exports them by name (changes.md, A domain module), each module's names on a `pub use` line of its own.
+`Diagnostics` with the `Log` and `Level` it holds and `Log::DEFAULT`; `LockError` and `LockEntryFault`; `Sha`,
+`GitFailure`, `Ports`, and `PinError`. `lib.rs` re-exports them by name (changes.md, A domain module), each module's
+names on a `pub use` line of its own.
 
 Every warning, notice, and log record below is written by the domain entry through the `Diagnostics` of
-[repository-list.md](../../repository-catalog/spec/repository-list.md), Domain, which each entry takes beside its ports;
-a command file writes none (`decision:parallel-workspaces/workspace-configuration/domain-reporting`). What the reference
-logs at warning or debug is `diagnostics::record` at that level; a line quoted with its `warning:` prefix, which the
-reference echoes, is `diagnostics::notice`.
+[repository-list.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/repository-list.md), Domain,
+which each entry takes beside its ports; a command file writes none
+(`decision:parallel-workspaces/workspace-configuration/domain-reporting`). What the reference logs at warning or debug
+is `diagnostics::record` at that level; a line quoted with its `warning:` prefix, which the reference echoes, is
+`diagnostics::notice`.
 
 A placeholder written `<x!r>` in quoted wording is the value as Python's `repr` quotes it; one written `<x>` is the
 value as it is.
@@ -114,14 +120,22 @@ NoPinnedNamed { name: String }      // "no pinned standalone repo named <name!r>
 NoStandaloneNamed { name: String }  // "no standalone repo named <name!r>"
 // a RepoError built from any of the last four carries no cwd: the reference passes none or an empty one
 
+// crates/core/src/git.rs — what a git operation answers on failure: the call's RepoError, or a git that could not be
+// started, which child-processes.md ends as InternalError::Unexpected; boxed as Termination boxes them
+pub enum GitFailure { Repo(Box<RepoError>), Internal(Box<InternalError>) }
+
 // crates/core/src/pins.rs, whose flows are its pub(crate) submodules
-// pins/{outcome,resolve,materialize,advance,repin,freeze,snapshot}.rs — the module's own error sum, which materialize,
-// advance, the re-pin run, and the freeze run answer; the command maps it: Repo -> Termination::Repo,
-// Config -> Termination::Config, exit 1 either way; Output is returned as it is
+// pins/{outcome,resolve,materialize,advance,repin,freeze,snapshot}.rs. The ports every pin entry takes, as one value:
+pub struct Ports<'p> {
+    pub files: &'p dyn ReadFiles, pub writer: &'p dyn WriteFiles,
+    pub programs: &'p dyn RunPrograms, pub tracer: &'p dyn CommandTracer,
+}
+// The module's own error sum, which materialize, advance, snapshot, the re-pin run, and the freeze run answer; the
+// command maps it: Repo -> Termination::Repo, Config -> Termination::Config, Internal -> Termination::Internal
 pub enum PinError {
-    Repo(RepoError),
-    Config(ConfigError),      // the lock's ConfigError::Lock and the Set a standalone ref writer's errors
-    Output(Termination),      // the event sink's Err: a write to stdout failed, and the run stopped
+    Repo(Box<RepoError>),
+    Config(Box<ConfigError>),     // the lock's ConfigError::Lock and the Set a standalone ref writer's errors
+    Internal(Box<InternalError>), // a git that could not be started
 }
 ```
 
@@ -160,9 +174,11 @@ Reference: `modules/workspace/internal/gitpython_repository.py:205-375`,
 # the bound child-processes.md leaves to the epics that fetch; the program port's Call gains `timeout: Option<Duration>`,
 # None on every call but fetch's; fetch takes the invocation's ProcessEnv and the entry's Diagnostics
 timeout     WINTER_GIT_TIMEOUT_S of the snapshot, float seconds; unset -> 40
-            unparseable, inf, or nan -> warning "ignoring invalid WINTER_GIT_TIMEOUT_S=<raw> (expected float seconds);
-            using default 40s", 40; <= 0 -> warning "ignoring non-positive timeout <value> (would kill every git
-            subprocess immediately); using default 40s", 40; read on every call
+            unparseable as Python's float() parses (surrounding blanks and `_` between digits allowed), inf, or nan
+            -> warning "ignoring invalid WINTER_GIT_TIMEOUT_S=<raw!r> (expected float seconds); using default 40s",
+            40; <= 0, -inf included -> warning "ignoring non-positive timeout <value> (would kill every git
+            subprocess immediately); using default 40s", 40, <value> as Python's float repr gives it (-1.0, 0.0,
+            -inf); read on every call
             # Python's float() accepts inf and nan and passes them to GitPython; Rust's Duration refuses both, so
             # they take the invalid-value path: a difference of the libraries, not a change of function
 wait        OsPrograms, in programs.rs, starts no thread: it polls the child's stdout and stderr with poll(2) until
@@ -207,7 +223,7 @@ attribute winter.repo = the standalone's resolved name; never an argument, a pat
 ```text
 # decision:parallel-workspaces/reproducible-inputs/resolution-and-locks
 # reference: modules/workspace/internal/gitpython_repository.py:222-243
-resolve(path, ref) -> Result<Resolution, RepoError>
+resolve(ports, path, ref) -> Result<Resolution, GitFailure>
   verify refs/remotes/origin/<ref>   -> Branch
   else verify refs/tags/<ref>        -> Tag
   else verify <ref>^{commit}         -> Commit
@@ -241,8 +257,13 @@ Text, one line per event (`modules/workspace/pull_reporter.py:28-92`,
 | `pull_completed`, false | stderr | a blank line, then `✗ pull had errors`           |
 | no outcome at all       | stdout | `Nothing to update`, dim, after `pull_completed` |
 
+Dim is SGR 2 around the line when `cx.out_is_terminal`, and the plain line otherwise, as
+[runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Terminal, colour, width,
+gives styling.
+
 Exit 1 when the run does not succeed; in text mode a run with no outcome exits 0. Before selection, in both modes, the
-re-pin entry writes the drift notice of [drift-warning.md](../../repository-catalog/spec/drift-warning.md)
+re-pin and freeze entries each write the drift notice of
+[drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md)
 (`modules/workspace/handlers/workspace_handler.py:723`).
 
 ### Running `ws update`
@@ -252,15 +273,17 @@ re-pin entry writes the drift notice of [drift-warning.md](../../repository-cata
 pub enum PinEvent { Started, Synced(PinOutcome), Completed { success: bool } }   // pull_started, repo_synced,
                                                                                     // pull_completed
 // The command's sink, called once per event as it is reached, with the entry's Diagnostics so a text-mode stderr row
-// can be written; an Err stops the run at once, after any pending stash_pop, and is answered as PinError::Output.
+// can be written; an Err stops the run at once, after any pending stash_pop, and the entry answers RunEnd::Stopped.
 pub type EventSink<'s> = dyn FnMut(&PinEvent, &mut Diagnostics<'_>) -> Result<(), Termination> + 's;
 
-pub fn repin(files: &dyn ReadFiles, writer: &dyn WriteFiles, programs: &dyn RunPrograms, tracer: &dyn CommandTracer,
-    env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[String], autostash: bool,
-    sink: &mut EventSink<'_>) -> Result<(), PinError>;
-pub fn freeze(files: &dyn ReadFiles, writer: &dyn WriteFiles, programs: &dyn RunPrograms, tracer: &dyn CommandTracer,
-    diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[String], force: bool,
-    sink: &mut EventSink<'_>) -> Result<(), PinError>;
+// How a run that raised no PinError ended; the command maps Completed { success: true } -> Termination::Success,
+// Completed { success: false } -> Termination::Reported (exit 1, the rows already written), Stopped(t) -> t
+pub enum RunEnd { Completed { success: bool }, Stopped(Termination) }
+
+pub fn repin(ports: Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[String],
+    autostash: bool, sink: &mut EventSink<'_>) -> Result<RunEnd, PinError>;
+pub fn freeze(ports: Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[String], force: bool,
+    sink: &mut EventSink<'_>) -> Result<RunEnd, PinError>;
 ```
 
 ```text
@@ -270,6 +293,8 @@ which this command is the first caller of and builds:
   text     a stdout row is Results::line; a stderr row (refused, pin_error, pull_completed false, each with its
            blank line where the table gives one) is diagnostics::notice; `Nothing to update` follows pull_completed
            when no Synced event was seen
+the sink's stderr rows are the one exception to "a command file writes no notice": they are the command's own
+result rows, which the reference's reporter writes to stderr, and not a notice of the domain
 ```
 
 ## Flows
@@ -279,7 +304,7 @@ which this command is the first caller of and builds:
 ```text
 # product:parallel-workspaces/workspace-bootstrap/recorded-input-materialization; called by the standalone reconciliation of epic:parallel-workspaces/workspace-bootstrap
 # after its clone or fetch; reference: modules/workspace/init_service.py:485-560
-materialize(repo, path) -> Result<Option<(RefKind, Sha)>, PinError>
+materialize(ports, root, repo) -> Result<Option<(RefKind, Sha)>, PinError>   # path: the catalog's location of repo
   repo.ref is None                      -> None
   entry := lock[repo.name]              # LockError propagates as PinError::Config
   entry present and entry.ref == repo.ref:
@@ -300,8 +325,8 @@ materialize(repo, path) -> Result<Option<(RefKind, Sha)>, PinError>
 ```text
 # product:parallel-workspaces/coordinated-git/integrate-selected-repositories; called by the standalone integration of epic:parallel-workspaces/coordinated-git
 # after its fetch, for a standalone that declares a ref; reference: modules/workspace/workspace_sync_service.py:426-504
-advance(repo, mode, autostash, integration: &dyn IntegrateCheckout) -> Result<Advanced, PinError>
-  r := resolve(path, repo.ref)          # an error propagates, as PinError::Repo, to the pull's per-repository handling
+advance(ports, diagnostics, root, repo, mode, autostash, integration: &dyn IntegrateCheckout) -> Result<Advanced, PinError>
+  r := resolve(path, repo.ref)          # an error propagates, as PinError::Repo or Internal, to the pull's handling
   Tag | Commit -> Pin(HeldPin), pin_ref repo.ref                  # never moves, whatever the mode
   Branch:
     dirty := not clean(path)
@@ -338,7 +363,8 @@ per selected standalone, in order (an outcome does not stop the next):
   dirty := not clean(path)
   dirty and not autostash -> PinError "refusing to re-pin <name!r>: uncommitted changes; commit/stash or pass --autostash"
   dirty -> stash_push; its failure -> PinError <rendered>
-  r := resolve(path, ref); its failure -> PinError <rendered>
+  r := resolve(path, ref); its failure -> warning record "resolve_ref failed for standalone <name>: <rendered>",
+                                        then PinError <rendered> (workspace_sync_service.py:726)
   r.commit == head(path) and lock[name].commit == r.commit -> UpToDate     # no checkout, no lock write
   Branch -> checkout_branch(path, ref); else checkout_detached(path, r.commit); its failure -> PinError <rendered>,
                                         and the lock is not written
@@ -361,7 +387,7 @@ per selected standalone, in order:
   declares a ref                       -> AlreadyPinned, pin_ref the ref
   path missing                         -> Refused "<name!r> is not cloned (run `winter ws init`)"
   c := head(path); its failure         -> Refused <message>               # read before the dirty check; the message
-                                                                          # alone (workspace_sync_service.py:647)
+                                                                          # alone (workspace_sync_service.py:661)
   not force and not clean(path)        -> Refused "<name!r> has uncommitted changes, so its commit does not describe it;
                                           commit/stash or pass --force"
   set `ref = "<c>"` in config.toml, else config.local.toml, on the first block whose effective name (`name`, else
@@ -388,6 +414,15 @@ snapshot(standalones) -> Vec<PinSnapshot>
   a malformed lock is read as absent (modules/workspace/workspace_snapshot_service.py:570-574)
   head(path) per standalone; its failure is logged at debug and leaves head_commit None
 ```
+
+### Interrupts
+
+An interrupt during `ws update` ends the invocation as the runtime's handler ends it for a command that does not defer
+([runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Interrupts and signals): at
+once, without a pop. A stash pushed before it stays in the checkout's stash list, and a lock write either landed whole
+or not at all, through the delivered write integrity. The reference pops in a `finally` when Python raises its
+interrupt; this binary does not defer for a stash, since changes.md defers only around a child process the command must
+outlive.
 
 ## Open questions
 

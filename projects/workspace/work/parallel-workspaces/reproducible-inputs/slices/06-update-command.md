@@ -4,6 +4,7 @@ depends-on:
   - bounded-fetch
   - resolve-and-materialize
   - epic:parallel-workspaces/repository-catalog
+  - epic:rust-adoption/parity-validation
 ---
 
 # `ws update` re-pins the selected standalones
@@ -22,22 +23,31 @@ events shape C of
 
 - The command file registers the command with the arguments and bare-name shape command-surface.md gives it, without
   `--freeze` and `--force`. It builds `Diagnostics` from `cx.err` and `cx.log` and an event sink over `output::Results`,
-  and calls `pins::repin` with the arguments of standalone-pins.md, Running `ws update`, then maps `PinError` to its
-  `Termination`, returning `PinError::Output` as it is.
-- `crates/core/src/output.rs` gains `Results` with `new`, `line`, `document`, and `event`, as
+  and calls `pins::repin` with `Ports` and the arguments of standalone-pins.md, Running `ws update`. It maps `RunEnd`
+  and `PinError` to the `Termination` that section and Domain give: a run with a `refused` or `pin_error` outcome ends
+  as `Termination::Reported`, exit 1.
+- `context/architecture/changes.md`, A command, states the one exception to "a command file writes no notice": the event
+  sink a command file builds writes the command's own stderr result rows through `diagnostics::notice`.
+- `crates/core/src/output.rs` gains `Results` with `new`, `line`, and `event`, as
   [runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Writing more than one piece
-  of a result, gives it; this command is its first caller.
+  of a result, gives it; this command is its first caller, and `document` waits for a command that writes events and
+  then a document.
 - `pins/repin.rs` gains `PinEvent`, `EventSink`, and `repin`. The sink writes `--json` events through `Results::event`,
   text stdout rows through `Results::line`, and the stderr rows through `diagnostics::notice`; an `Err` from the sink
-  stops the run after any pending pop.
+  stops the run after any pending pop, answering `RunEnd::Stopped`. `Nothing to update` is dim when
+  `cx.out_is_terminal`.
 - `pins/repin.rs` writes the drift notice through `Diagnostics` before selection, from `drift::detect` and
   `drift::notice_line`.
 - Selection reads a pattern holding `*`, `?`, or `[` as a case-sensitive `fnmatchcase` glob and any other as a literal;
   it refuses an unpinned or unknown literal as `RepoMessage::NotPinned` or `NoPinnedNamed`, keeps every pinned
   standalone a glob matches, and drops a missing checkout, writing the spec's `warning:` line as `diagnostics::notice`.
 - Each selected standalone is fetched, guarded, optionally stashed, resolved, and either reported up to date or checked
-  out and upserted; the pop runs on every path after a stash, and a failed pop is a warning record naming the checkout.
-- A failed head read or a lock error ends the run as that `PinError` after the pop, with no `pull_completed`.
+  out and upserted; a failed resolve also writes the spec's `resolve_ref failed` warning record; the pop runs on every
+  path after a stash, and a failed pop is a warning record naming the checkout.
+- A failed head read, a lock error, or a git that could not be started ends the run as that `PinError` after the pop,
+  with no `pull_completed`.
+- The README's paragraph on where the binary may run, and the matching rationale in `AGENTS.md`, name `ws update` beside
+  `repo remove`: it fetches, resets branches, stashes, and writes the lock of the workspace it finds.
 - Events are written and flushed as they happen; the run exits 1 when an outcome is `pin_error`.
 - The recorded scenario below answers the open question of standalone-pins.md on a lock entry field that is not a
   string; `config_lock.rs`'s reader follows the record, and that open question is replaced by the rule it shows, in a

@@ -16,7 +16,9 @@ handed, and `Context` gains nothing. Nothing calls them yet.
 
 - `head`, `clean`, and `verify` read; `checkout_branch`, `checkout_detached`, `stash_push`, and `stash_pop` write. Each
   is a function over `&dyn RunPrograms` and `&dyn CommandTracer` making `Program::Git` calls with the checkout as cwd; a
-  domain entry passes them the `cx.programs` and `cx.tracer` its command file hands it.
+  domain entry passes them the `cx.programs` and `cx.tracer` its command file hands it. Each answers `GitFailure` on
+  failure: `Repo` for the call's `RepoError`, `Internal` holding `InternalError::Unexpected` for a git the port could
+  not start.
 - A non-zero exit is the `RepoError` of
   [location-listing.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md), except
   where the spec reads it as a value: `clean` reads any failure as dirty, and `verify` reads a non-zero exit as no
@@ -33,6 +35,7 @@ handed, and `Context` gains nothing. Nothing calls them yet.
   at it; `stash_pop` restores a stashed modification.
 - A component test: a local commit on `main`, then `checkout_branch(main)`, leaves `main` at `origin/main` and the local
   commit off every branch.
+- A unit test with a `RunPrograms` of the test's own whose `run` is `Err`: `head` answers `GitFailure::Internal`.
 - A component test: `stash_push` on a tree dirty only by an untracked file creates no stash entry.
 - A component test with tracing on: one `git checkout` span per checkout, attributed with `winter.repo` alone.
 - `cargo dev gate slice` exits 0.
