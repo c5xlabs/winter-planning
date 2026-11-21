@@ -16,9 +16,9 @@ Makes the two command files what [command-registration.md](../spec/command-regis
 holds, and adds the check that section lists, under `engineering:additive-registration` and
 `engineering:domain-io-boundaries`. The removal transaction and the index lookup move into domain modules that take the
 file port, and the workspace's file names get one owner. Behaviour does not change: the order of checks of
-[repository-removal.md](../../../../work/parallel-workspaces/repository-catalog/spec/repository-removal.md), Interfaces,
-and the reads of [index-lookup.md](../../../../work/parallel-workspaces/environment-lifecycle/spec/index-lookup.md),
-Interfaces, are the ones the code has today.
+[repository-removal.md](../../repository-catalog/spec/repository-removal.md), Interfaces, and the reads of
+[index-lookup.md](../../../../work/parallel-workspaces/environment-lifecycle/spec/index-lookup.md), Interfaces, are the
+ones the code has today.
 
 ## Change
 

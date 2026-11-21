@@ -7,8 +7,9 @@ depends-on:
 # `fetch` with a timeout and bounded retry
 
 Adds `fetch` to `git.rs` with the Remote calls of [standalone-pins.md](../spec/standalone-pins.md): the timeout
-`WINTER_GIT_TIMEOUT_S` sets, the bound that [child-processes.md](../../repository-catalog/spec/child-processes.md)
-leaves to the epics that fetch. Nothing calls it yet.
+`WINTER_GIT_TIMEOUT_S` sets, the bound that
+[child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md) leaves to the
+epics that fetch. Nothing calls it yet.
 
 ## Change
 

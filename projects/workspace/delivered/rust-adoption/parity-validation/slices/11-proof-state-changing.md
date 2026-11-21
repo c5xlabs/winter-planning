@@ -26,8 +26,8 @@ completes the groundwork every command epic builds on.
   record's `after/tree.txt` with the one hash replaced. `record/` is not edited.
 - The record of `removes-middle-block` is compared with the spec's prediction of the reference behaviour. When they
   differ, the change stops and reports it, so that the reference column of
-  [repository-removal.md](../../../../work/parallel-workspaces/repository-catalog/spec/repository-removal.md) is
-  corrected first; the expectation is not adjusted to make replay pass.
+  [repository-removal.md](../../../parallel-workspaces/repository-catalog/spec/repository-removal.md) is corrected
+  first; the expectation is not adjusted to make replay pass.
 - `crates/test-support/tests/proof.rs` gains the `repo-remove` rows of the spec's "Proof that a wrong implementation is
   caught".
 - The reference tool's checkout is reached only through `cargo dev record`; no other command is run in it or on it. The

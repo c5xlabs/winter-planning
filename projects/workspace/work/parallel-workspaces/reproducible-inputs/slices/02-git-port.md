@@ -7,8 +7,9 @@ depends-on:
 # The git operations over the program port
 
 Fills `git.rs` with the Git operations of [standalone-pins.md](../spec/standalone-pins.md), except `fetch`, with the
-Operation spans there, over the program port of [child-processes.md](../../repository-catalog/spec/child-processes.md),
-under `decision:git-cli`. Shaped by `engineering:domain-io-boundaries`: the operations take the ports a domain entry is
+Operation spans there, over the program port of
+[child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md), under
+`decision:git-cli`. Shaped by `engineering:domain-io-boundaries`: the operations take the ports a domain entry is
 handed, and `Context` gains nothing. Nothing calls them yet.
 
 ## Change
@@ -16,7 +17,8 @@ handed, and `Context` gains nothing. Nothing calls them yet.
 - `head`, `clean`, and `verify` read; `checkout_branch`, `checkout_detached`, `stash_push`, and `stash_pop` write. Each
   is a function over `&dyn RunPrograms` and `&dyn CommandTracer` making `Program::Git` calls with the checkout as cwd; a
   domain entry passes them the `cx.programs` and `cx.tracer` its command file hands it.
-- A non-zero exit is the `RepoError` of [location-listing.md](../../repository-catalog/spec/location-listing.md), except
+- A non-zero exit is the `RepoError` of
+  [location-listing.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md), except
   where the spec reads it as a value: `clean` reads any failure as dirty, and `verify` reads a non-zero exit as no
   match.
 - Each operation opens its operation span through `CommandTracer::operation`, named and attributed as the spec gives it;

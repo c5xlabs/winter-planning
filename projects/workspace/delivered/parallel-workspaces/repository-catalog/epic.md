@@ -1,7 +1,7 @@
 ---
 epic: parallel-workspaces/repository-catalog
 refinement: final
-status: in-progress
+status: delivered
 external: github:paul-gross/winter#196
 ---
 

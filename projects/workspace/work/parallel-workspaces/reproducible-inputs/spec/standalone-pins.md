@@ -5,8 +5,8 @@ commands report. The lock file format, its errors, the `Set a standalone ref` wr
 [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md) and
 [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md);
 this leaf builds them. Every git call goes through the program port of
-[child-processes.md](../../repository-catalog/spec/child-processes.md), with the child environment it states. The
-`ws update` arguments, the bare-name refusal, and the usage errors are those of
+[child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md), with the
+child environment it states. The `ws update` arguments, the bare-name refusal, and the usage errors are those of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md); shape C is
 that of [output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md), JSON
 shapes; `RepoMessage` and `Termination` are those of
@@ -75,10 +75,11 @@ pub trait IntegrateCheckout {
 pub enum Advanced { Pin(PinOutcome), Integrated(Integration) }
 ```
 
-`RepoError` is that of [location-listing.md](../../repository-catalog/spec/location-listing.md): a git call's failure,
-carrying its exit. A run succeeds unless an outcome is `refused` or `pin_error`, or a pull's integration is `Diverged`
-(`modules/workspace/models/service_model.py:514-522`). A `pin_ref` written `<rendered>` below is the `RepoError` as
-Python's `str()` renders it (`modules/workspace/models/domain_model.py:322-337`): the message, then
+`RepoError` is that of
+[location-listing.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md): a git
+call's failure, carrying its exit. A run succeeds unless an outcome is `refused` or `pin_error`, or a pull's integration
+is `Diverged` (`modules/workspace/models/service_model.py:514-522`). A `pin_ref` written `<rendered>` below is the
+`RepoError` as Python's `str()` renders it (`modules/workspace/models/domain_model.py:322-337`): the message, then
 `$ <program> <subcommand> <args>`, `cwd: <cwd>`, `exit <n>` (with `(killed by signal <s>)` for a negative exit), and
 `stderr: <stderr, trimmed>`, each on its own line and only when present.
 
@@ -88,9 +89,10 @@ signatures name: the file port's `ReadFiles`, `WriteFiles`, and `OsFiles`, the p
 (changes.md, A domain module).
 
 Every warning, notice, and log record below is written by the domain entry through the `Diagnostics` of
-[repository-list.md](../../repository-catalog/spec/repository-list.md), Domain, which each entry takes beside its ports;
-a command file writes none (`decision:parallel-workspaces/workspace-configuration/domain-reporting`). A warning or debug
-record is `diagnostics::record` at that level; a line quoted with its `warning:` prefix is written as quoted.
+[repository-list.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/repository-list.md), Domain,
+which each entry takes beside its ports; a command file writes none
+(`decision:parallel-workspaces/workspace-configuration/domain-reporting`). A warning or debug record is
+`diagnostics::record` at that level; a line quoted with its `warning:` prefix is written as quoted.
 
 ```rust
 // engineering:typed-outcomes; the RepoMessage of results-and-exit-codes.md, Domain, gains the causes the reference
@@ -229,7 +231,8 @@ Text, one line per event (`modules/workspace/pull_reporter.py:28-92`,
 | no outcome at all       | stdout | `Nothing to update`, dim, after `pull_completed` |
 
 Exit 1 when the run does not succeed; in text mode a run with no outcome exits 0. Before selection, in both modes, the
-command writes the drift notice of [drift-warning.md](../../repository-catalog/spec/drift-warning.md)
+command writes the drift notice of
+[drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md)
 (`modules/workspace/handlers/workspace_handler.py:723`).
 
 ## Flows

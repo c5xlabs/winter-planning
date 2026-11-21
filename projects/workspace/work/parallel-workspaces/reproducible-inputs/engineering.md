@@ -5,9 +5,11 @@ For `epic:parallel-workspaces/reproducible-inputs`.
 ## What already holds
 
 Nothing yet. `epic:parallel-workspaces/repository-catalog`, in progress, builds what this epic stands on: the program
-port and its child environment ([child-processes.md](../repository-catalog/spec/child-processes.md)), operation spans
-through `cx.tracer`, `Diagnostics`, `RepoError` and `Termination::Repo`, `ReadFiles::is_dir`, and `drift::detect` and
-`drift::notice_line` ([drift-warning.md](../repository-catalog/spec/drift-warning.md)).
+port and its child environment
+([child-processes.md](../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md)), operation
+spans through `cx.tracer`, `Diagnostics`, `RepoError` and `Termination::Repo`, `ReadFiles::is_dir`, and `drift::detect`
+and `drift::notice_line`
+([drift-warning.md](../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md)).
 
 ## Resolution record integrity across writers (engineering:resolution-write-integrity)
 

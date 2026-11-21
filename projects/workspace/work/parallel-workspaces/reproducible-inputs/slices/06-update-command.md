@@ -10,7 +10,8 @@ depends-on:
 
 Adds `ws update [REPOS]... [--autostash] [--json]` running the Re-pin flow, with the `ws update` events and text of
 [standalone-pins.md](../spec/standalone-pins.md) and the drift notice of
-[drift-warning.md](../../repository-catalog/spec/drift-warning.md). Its arguments and bare-name refusal are those of
+[drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md). Its arguments
+and bare-name refusal are those of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), and its
 events shape C of
 [output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md). Delivers
