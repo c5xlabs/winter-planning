@@ -28,7 +28,9 @@ attributable status and fair live logs without learning a second backend-specifi
 
 Each native provider is delivered by its own epic in this initiative. Required-service checks integrate at
 `product:running-environments/resource-provisioning/required-service-preconditions`; registry lifecycle integration
-remains with `epic:parallel-workspaces/environment-lifecycle` and does not make this epic depend on provisioning.
+remains with `epic:parallel-workspaces/environment-lifecycle` and does not make this epic depend on provisioning. This
+epic adds the `setup/service-discovery` and `setup/service-orchestration` topics of
+`epic:agent-ready-operation/context-navigation`.
 
 ## What this epic is not
 

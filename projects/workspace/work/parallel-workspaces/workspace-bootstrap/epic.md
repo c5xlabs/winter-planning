@@ -30,5 +30,6 @@ identifies and removes obsolete managed material without adopting a source fork 
 Environment creation belongs to `epic:parallel-workspaces/environment-lifecycle`; extension installation and harness
 projection belong to `epic:agent-ready-operation/extension-management` and
 `epic:agent-ready-operation/harness-projection`. Bootstrap places context-navigation's common eager safety hook in
-`AGENTS.md` and the `CLAUDE.md` shim without waiting for those richer projections. Migration of existing framework forks
-belongs to `epic:rust-adoption/workspace-migration`.
+`AGENTS.md` and the `CLAUDE.md` shim without waiting for those richer projections, and adds the `setup/walkthrough`,
+`setup/contributing`, and `setup/project-setup` topics of `epic:agent-ready-operation/context-navigation`. Migration of
+existing framework forks belongs to `epic:rust-adoption/workspace-migration`.

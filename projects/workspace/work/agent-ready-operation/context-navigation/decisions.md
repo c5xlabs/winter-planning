@@ -1,5 +1,21 @@
 # Context navigation decisions
 
+## Setup guidance (decision:agent-ready-operation/context-navigation/setup-guidance)
+
+**Decider:** product owner
+
+Workspace setup is a family of Workspace topics under `setup`, reachable from the root, instead of a workspace skill
+with guides beside it, because a skill is only Markdown and topics already match the binary's version. Setup topics are
+read on request and never placed in `AGENTS.md`.
+
+## Product scope (decision:agent-ready-operation/context-navigation/product-scope)
+
+**Decider:** product owner
+
+The `context` command and its topics belong to the Workspace binary and cover Workspace guidance only, so each product
+ships guidance that matches its own release. Other documents cite a topic as `winter:/workspace/<id>`, naming the
+product, so a later router across products changes no reference.
+
 ## Configuration inspection (decision:agent-ready-operation/context-navigation/configuration-inspection)
 
 **Decider:** product owner
