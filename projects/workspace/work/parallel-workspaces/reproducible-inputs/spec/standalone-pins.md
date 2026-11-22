@@ -31,6 +31,10 @@ pub struct Resolution { pub kind: RefKind, pub commit: Sha }
 // records that id, it never equals HEAD, and the up-to-date check and head drift read it as moved
 
 pub struct LockEntry { pub name: String, pub r#ref: String, pub kind: RefKind, pub commit: Sha }
+// A field of a lock entry that is not a string is read as its text, as Python's str() gives it, and is not refused:
+// `commit = 42` reads as the commit "42", as the recorded scenario ws-update/lock-field-not-string shows. Such a
+// commit equals no resolved one, so the next re-pin moves the checkout and rewrites the entry with the resolved
+// commit as a string. Reference: modules/workspace/internal/config_lock_repository.py:69-72
 
 // A standalone is the loaded StandaloneRepository of discovery-and-loading.md, Domain, unchanged: below, repo.name is
 // its common.name, repo.ref its reference, and its checkout the catalog's location (location-listing.md, Interfaces,
@@ -423,10 +427,3 @@ once, without a pop. A stash pushed before it stays in the checkout's stash list
 or not at all, through the delivered write integrity. The reference pops in a `finally` when Python raises its
 interrupt; this binary does not defer for a stash, since changes.md defers only around a child process the command must
 outlive.
-
-## Open questions
-
-- What a lock entry whose field is not a string reads as in the reference tool, which
-  [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Open
-  questions, leaves to this epic. The recorded scenario `ws-update/lock-field-not-string` answers it, and this section
-  is replaced by the rule it shows.
