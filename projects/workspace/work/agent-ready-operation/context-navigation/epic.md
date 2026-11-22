@@ -10,18 +10,19 @@ Part of `initiative:agent-ready-operation`; product requirements live in [requir
 
 ## The problem
 
-Agents currently read copied framework documents and several different extension paths. Once the workspace stops
+Agents currently read Winter's framework guidance from documents copied into each workspace. Once the workspace stops
 carrying framework source, they still need to find the right conventions before acting, without loading every guide.
 
 ## The outcome
 
-The person or agent starts with a small context entry point and follows the branch their task needs, across built-in
-framework guidance, installed extension context, and project-owned context. Framework guidance matches the selected
-Workspace component, and essential safety rules reach the agent before it can mutate an environment.
+The person or agent starts with a small context entry point in the Workspace component and asks for the topic their task
+needs. The guidance matches the installed Workspace version, and essential safety rules reach the agent before it can
+mutate an environment.
 
-The common eager safety text and context entry hook belong to this epic, with new-workspace placement in
-`epic:parallel-workspaces/workspace-bootstrap`; the first milestone does not defer that minimum to later harness
-integration.
+The context covers Winter's own framework guidance only. Extensions and projects are repositories, so their guidance
+stays in their own Markdown files, read by path. The common eager safety text belongs to this epic; placing it in a new
+or reconciled workspace belongs to `epic:parallel-workspaces/workspace-bootstrap`, and the first milestone does not
+defer that minimum to later harness integration.
 
 ## Depends on
 
@@ -30,5 +31,5 @@ integration.
 ## Left for later
 
 Harness-specific projection, richer delivery, and managed skills/agents belong to
-`epic:agent-ready-operation/harness-projection`; extension installation belongs to
-`epic:agent-ready-operation/extension-management`. Built-in and project context remain useful without extensions.
+`epic:agent-ready-operation/harness-projection`; extension installation and extension context entry points belong to
+`epic:agent-ready-operation/extension-management`.

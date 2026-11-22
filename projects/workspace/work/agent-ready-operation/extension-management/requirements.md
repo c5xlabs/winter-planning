@@ -60,7 +60,7 @@ for workspace-owned declarations.
 Acceptance:
 
 - Context delivery selects the first existing configured entry candidate, reports an explicitly requested missing entry,
-  and distinguishes eager, lazy, and suppressed delivery through `epic:agent-ready-operation/context-navigation`.
+  and distinguishes eager, lazy, and suppressed delivery through `epic:agent-ready-operation/harness-projection`.
 - A project extension does not eagerly inject the source checkout as if it were the agent's active feature worktree.
 - Dependency declarations are visible to `epic:agent-ready-operation/dependency-graph` and checkout-scoped quality
   checks; declaring a dependency does not automatically acquire or execute it.

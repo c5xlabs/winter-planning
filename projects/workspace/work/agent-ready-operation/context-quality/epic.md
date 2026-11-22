@@ -25,7 +25,6 @@ evidence without pretending the workspace was repaired.
 - `epic:parallel-workspaces/workspace-configuration`
 - `epic:parallel-workspaces/repository-catalog`
 - `epic:agent-ready-operation/dependency-graph` for module dependency checks.
-- `epic:agent-ready-operation/context-navigation` for identifying the guidance source being checked.
 
 Contributed checks integrate with `epic:agent-ready-operation/executable-extensions`; service-reference checking
 consumes `epic:running-environments/service-orchestration` catalog evidence without requiring services to be started or

@@ -4,8 +4,8 @@ For `epic:agent-ready-operation/harness-projection`.
 
 ## What already holds
 
-`engineering:concurrent-state-safety` governs accepted updates and recoverable writes. Context source/address decisions
-belong to `epic:agent-ready-operation/context-navigation`; the resolver in
+`engineering:concurrent-state-safety` governs accepted updates and recoverable writes. Built-in framework topics and the
+eager safety text belong to `epic:agent-ready-operation/context-navigation`; the resolver in
 `epic:agent-ready-operation/agent-model-resolution` is independent of installed artifacts, avoiding a dependency cycle.
 
 ## Destination authority before mutation (engineering:projection-authority)

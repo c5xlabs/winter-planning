@@ -4,20 +4,19 @@ For `epic:agent-ready-operation/context-navigation`.
 
 ## Version-bound framework context (engineering:version-bound-context)
 
-Framework context is distributed with the Workspace component and addressed deterministically for that version; offline
-reads cannot fetch newer framework content or fall back to a copied legacy framework tree. Serves
+Framework context is compiled into the Workspace binary and addressed deterministically for that version. Offline reads
+cannot fetch newer framework content or fall back to a copied legacy framework tree. Serves
 `product:progressive-context`.
 
-## Read-only source resolution (engineering:context-source-safety)
+## Built-in topic resolution (engineering:built-in-topics)
 
-Topic resolution enforces source boundaries, rejects path traversal and ambiguous source names, and does not execute
-content or extension entry points. Missing or unreadable sources are reported without suppressing the distinction
-between built-in, project, and extension context. Serves `product:unified-context-sources`.
+A topic id resolves only against the topic map compiled into the binary. Resolution reads no workspace file, so an id
+cannot reach a path outside the built-in set. An unknown id exits non-zero, names the id, and names the request that
+lists the available topics; it never selects the closest match. A test checks that every id an index lists resolves.
+Serves `product:progressive-context`.
 
 ## Consistent hook and router (engineering:safety-hook-consistency)
 
-The eager hook and on-demand router carry the same essential safety obligations and have coverage for harnesses with and
-without session-start execution. Common-hook updates follow
-`product:parallel-workspaces/workspace-bootstrap/managed-content-ownership`, not whole-file replacement or a dependency
-on later harness projection; harness-specific projection consumes that baseline. Serves
-`product:eager-workspace-safety`.
+The eager safety text and the context root carry the same safety rules from one source in the binary, and a test fails
+when they differ. The binary exposes the eager safety text for `epic:parallel-workspaces/workspace-bootstrap` to place;
+harness-specific projection consumes the same text. Serves `product:eager-workspace-safety`.
