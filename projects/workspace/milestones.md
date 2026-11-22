@@ -13,15 +13,15 @@ milestone builds on everything reached before it.
 An engineer can create and inspect a workspace, declare its repositories and local settings, and give an agent guidance
 that matches the selected tool. They do not clone Winter's framework source to start configuring their own system.
 
-| Epic                                               | Status    |
-| -------------------------------------------------- | --------- |
-| `epic:parallel-workspaces/component-runtime`       | delivered |
-| `epic:rust-adoption/parity-validation`             | delivered |
-| `epic:parallel-workspaces/workspace-configuration` | delivered |
-| `epic:parallel-workspaces/repository-catalog`      | delivered |
-| `epic:parallel-workspaces/reproducible-inputs`     | ready     |
-| `epic:agent-ready-operation/context-navigation`    | planned   |
-| `epic:parallel-workspaces/workspace-bootstrap`     | planned   |
+| Epic                                               | Status      |
+| -------------------------------------------------- | ----------- |
+| `epic:parallel-workspaces/component-runtime`       | delivered   |
+| `epic:rust-adoption/parity-validation`             | delivered   |
+| `epic:parallel-workspaces/workspace-configuration` | delivered   |
+| `epic:parallel-workspaces/repository-catalog`      | delivered   |
+| `epic:parallel-workspaces/reproducible-inputs`     | in-progress |
+| `epic:agent-ready-operation/context-navigation`    | planned     |
+| `epic:parallel-workspaces/workspace-bootstrap`     | planned     |
 
 ## Work across isolated branches (milestone:parallel-branches)
 
