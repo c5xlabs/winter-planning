@@ -12,8 +12,8 @@ Acceptance:
 - Creation establishes discoverable workspace configuration and a route to the selected component's guidance.
 - The new workspace records its selected Workspace release through the agreed Platform pin contract under
   `decision:platform/launcher-shim/version-selection`, without changing another workspace's selection.
-- Initial placement includes context-navigation's minimum eager safety text and common hook through `AGENTS.md` and a
-  `CLAUDE.md` shim, without waiting for harness-specific projection or requiring command execution during context load.
+- Initial placement includes context-navigation's eager safety text through `AGENTS.md` and a `CLAUDE.md` shim, without
+  waiting for harness-specific projection or requiring command execution during context load.
 - Creation refuses an already initialized workspace instead of silently becoming reconciliation or overwriting it.
 - Existing files in an otherwise eligible target are preserved or explicitly identified as blocking creation.
 - The resulting workspace needs neither embedded CLI source nor copied inherited framework documentation to operate.
@@ -56,7 +56,7 @@ rules into a sibling workspace checkout.
 Acceptance:
 
 - Managed content is distinguishable from user-owned text; updates preserve unrelated files, comments, and rules.
-- Initial or repeated placement of the common safety hook preserves existing `AGENTS.md` and `CLAUDE.md` instructions;
+- Initial or repeated placement of the eager safety text preserves existing `AGENTS.md` and `CLAUDE.md` instructions;
   conflicting ownership is explained rather than resolved by replacing the user's file with a generated shim.
 - Runtime artifacts and managed clone locations do not pollute the workspace repository's ordinary status.
 - A workspace that is itself a linked worktree has independent managed excludes from its siblings and source checkout.

@@ -124,11 +124,11 @@ abbreviates `tools/winter-cli/tests/`, and `D/` abbreviates `context/winter/`.
 ## Sequencing and limits
 
 Configuration follows component runtime; catalog follows configuration. Reproducible inputs follow catalog. Bootstrap
-follows catalog and context navigation, not environment lifecycle or harness projection; it places the minimum common
-eager safety hook in `AGENTS.md` and the `CLAUDE.md` shim while preserving user content. Environment lifecycle follows
-catalog, coordinated Git follows lifecycle, safe history follows coordinated Git, and stacked history follows safe
-history. Nested workspaces additionally need scope environment, provisioning, and service orchestration; wire those
-later without making core lifecycle or runtime depend back on nesting.
+follows catalog and context navigation, not environment lifecycle or harness projection; it places the eager safety text
+in `AGENTS.md` and the `CLAUDE.md` shim while preserving user content. Environment lifecycle follows catalog,
+coordinated Git follows lifecycle, safe history follows coordinated Git, and stacked history follows safe history.
+Nested workspaces additionally need scope environment, provisioning, and service orchestration; wire those later without
+making core lifecycle or runtime depend back on nesting.
 
 This investigation did not choose Rust libraries, storage formats, result schemas, a child protocol, or final command
 names. It did not exercise live environments, run tests, inspect provider implementations exhaustively, or establish

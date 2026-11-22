@@ -5,8 +5,8 @@
 **Decider:** product owner and engineering
 
 **Open.** Choose seed/template configuration, source-control initialization, and handling of existing content during
-creation; this blocks finalizing `product:create-unforked-workspace`, not the no-fork boundary, minimum common eager
-safety hook, or refusal to overwrite an initialized workspace.
+creation; this blocks finalizing `product:create-unforked-workspace`, not the no-fork boundary, eager safety text, or
+refusal to overwrite an initialized workspace.
 
 ## Reconciliation scope (decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope)
 

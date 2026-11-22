@@ -27,7 +27,7 @@ crates/core/src/commands/context.rs   the `context` command: one call into topic
 
 rebuild    build.rs prints cargo:rerun-if-changed for crates/core/topics and every directory under it
 no reads   at run time the command reads no file, no environment variable, and no workspace: it needs no workspace
-           root and runs the same in any directory (engineering:built-in-topics)
+           root and runs the same in any readable working directory (engineering:built-in-topics)
 ```
 
 ```text
@@ -47,7 +47,8 @@ pub struct Topic {
     pub id: TopicId,
     pub title: &'static str,          // one line, from the source's front matter
     pub text: &'static str,           // the served text: the source's body, unchanged; for root, Composition below
-    pub next: &'static [TopicId],     // ids the text references, in order of first reference, without repeats
+    pub next: &'static [TopicId],     // ids the text references, in order of first reference, without repeats;
+                                      // never the topic's own id
 }
 
 // Generated. Sorted by id; one entry per authored topic plus the generated `topics`.
@@ -56,6 +57,9 @@ pub(crate) static TOPICS: &[Topic];
 pub(crate) fn root() -> &'static Topic;                          // id "root"; what `context` with no TOPIC serves
 pub(crate) fn find(id: &str) -> Result<&'static Topic, ContextError>;   // exact match on the whole string only
 pub fn eager_text() -> &'static str;                             // the body of `safety`; for workspace-bootstrap
+
+// crates/core/src/lib.rs re-exports eager_text and ContextError; Topic, TopicId, TOPICS, root, and find stay
+// crate-internal (repository-layout.md, What stays a shared edit)
 
 #[derive(Debug, thiserror::Error)]
 pub enum ContextError {
@@ -68,16 +72,16 @@ pub enum ContextError {
 
 ### Reserved ids
 
-| Id       | Source                    | Content                                                                                             |
-| -------- | ------------------------- | --------------------------------------------------------------------------------------------------- |
-| `root`   | authored, required        | The entry point: what the guidance covers and a request for each branch.                            |
-| `safety` | authored, required        | The eager safety text, whole. Composed into `root`; returned by `eager_text()`.                     |
-| `topics` | generated, never authored | One line per topic in `TOPICS` order: `` `winter context <id>` `` and its title. Lists itself last. |
+| Id       | Source                    | Content                                                                                       |
+| -------- | ------------------------- | --------------------------------------------------------------------------------------------- |
+| `root`   | authored, required        | The entry point: what the guidance covers and a request for each branch.                      |
+| `safety` | authored, required        | The eager safety text, whole. Composed into `root`; returned by `eager_text()`.               |
+| `topics` | generated, never authored | One line per topic, itself included, sorted by id: `` `winter context <id>` `` and its title. |
 
 ### Composition
 
 ```text
-# engineering:safety-hook-consistency — one source for the safety rules
+# engineering:safety-text-consistency — one source for the safety rules
 served text of root   = body of safety + "\n" + body of root
 eager_text()          = body of safety, byte for byte
 a test asserts        root().text starts with eager_text(), and eager_text() is the body of the source whose id is safety
@@ -99,9 +103,10 @@ winter context <TOPIC> --json  the same topic as one shape A document
 ```
 
 ```text
-stdout, human     the topic's text exactly as served, then a line break if the text does not end with one
+stdout, human     the title on one line, a blank line, then the topic's text exactly as served, then a line break
+                  if the text does not end with one
 stdout, --json    {"id": <string>, "title": <string>, "text": <string>, "next": [<string>, ...]}
-                  "text" is message text under output-formats.md; "next" is Topic.next, in order
+                  "text" is Topic.text byte for byte and is not message text; "next" is Topic.next, in order
 unknown TOPIC     Termination::Command(CommandError::Context(UnknownTopic)); stderr only, stdout empty; exit 1
                   same with --json: nothing on stdout
 success           exit 0
@@ -114,13 +119,13 @@ success           exit 0
 winter:/workspace            the Workspace root; read with `winter context`
 winter:/workspace/<id>       a Workspace topic; read with `winter context <id>`
 the `workspace` segment names the product and is never part of an id: the binary refuses `winter context workspace/x`
-as UnknownTopic unless a topic's own id is `workspace/x`. A router across products later resolves the same references.
+as UnknownTopic unless a topic's own id is `workspace/x`
 ```
 
 ### Eager text for bootstrap
 
 ```rust
-// engineering:safety-hook-consistency
+// engineering:safety-text-consistency
 // workspace-bootstrap places this text in AGENTS.md inside the managed block it owns
 // (product:parallel-workspaces/workspace-bootstrap/managed-content-ownership). It never edits the text and adds
 // nothing inside it; the block's markers are bootstrap's.
@@ -144,8 +149,8 @@ title: Workspace safety rules
   `winter ws reset --hard`, `winter ws clean`, `winter ws destroy`, `winter ws restack`, `winter clean`, and
   `winter provision --destroy`. Each reaches every worktree or environment its arguments match. Try one in a scratch
   environment first.
-- `winter context` prints this Workspace version's guidance; `winter context <topic>` prints one topic, which other
-  documents cite as `winter:/workspace/<topic>`.
+- `winter context` prints this Workspace version's guidance and `winter context topics` lists every topic. Other
+  documents cite a topic as `winter:/workspace/<topic>`.
 ```
 
 ## Data
@@ -168,11 +173,14 @@ front matter  the file starts with exactly: "---\n", "id: <id>\n", "title: <one 
 id            matches the TopicId grammar; unique across all files; not "topics"
 required      ids "root" and "safety" exist
 body          everything after the front matter's closing line, unchanged
-reference     a code span whose text is `winter context` alone (root) or `winter context ` + a string matching the
-              TopicId grammar; a span such as `winter context <topic>` matches no id and is not a reference
+reference     an inline code span outside any fenced or indented code block whose whole text is `winter context`
+              (root) or `winter context ` followed by a string matching the TopicId grammar
+refused       an inline code span outside code blocks whose text is `winter context ` followed by a TopicId and then
+              more text, as in `winter context ws/push --json`: a link must be the bare request
+not a link    a span such as `winter context <topic>`, whose rest matches no TopicId; anything inside a code block
 resolves      every reference names an authored id, "root", or "topics"
 reachable     every authored topic except safety is reached from root by following references
-size          the body of safety is at most 15 lines; the served text of root is at most 80 lines
+size          engineering:entry-size: safety body at most 15 lines; served text of root at most 80 lines
 ```
 
 ### Coverage of commands
@@ -182,23 +190,28 @@ a component test over REGISTRY, so a change that adds a command fails until it a
   every Registration::Command entry that is not hidden   has a topic whose id is its path joined by "/"   ws/index
   every group that holds such an entry                   has a topic whose id is the group's name         ws
   an Alias entry                                          needs no topic; its sibling's topic covers it
-  a topic's text describes only commands and options of the build it ships in
-```
 
-The topics this epic adds are `root`, `safety`, `context`, `setup`, and one topic per command and group the build holds
-when the epic is delivered. A later epic that adds a command or a workspace concept adds its topic in the same change.
+held in review, not by a test (product:framework-guidance)
+  a topic's text describes only commands and options of the build it ships in
+  safety is exempt: it states the workspace rules for every Workspace command, including ones the build lacks
+
+added by this epic     root, safety, context, topics, and one topic per command and group the build holds at delivery
+added later            a topic for each command or workspace concept, by the change that adds it
+```
 
 ### Setup topics
 
 ```text
 # decision:agent-ready-operation/context-navigation/setup-guidance
 setup                         branch index; root references it; lists only the leaves the build holds
+                                                                                          epic:parallel-workspaces/workspace-bootstrap
 setup/walkthrough             the interactive, re-runnable workspace setup procedure      epic:parallel-workspaces/workspace-bootstrap
 setup/contributing            writing a workspace's context/project/contributing.md       epic:parallel-workspaces/workspace-bootstrap
 setup/project-setup           writing a workspace's context/project/project-setup.md      epic:parallel-workspaces/workspace-bootstrap
 setup/service-discovery       what the walkthrough records about an application's services
                                                                                           epic:running-environments/service-orchestration
 setup/service-orchestration   choosing and configuring a service provider                 epic:running-environments/service-orchestration
-each leaf is added by the epic named beside it, with the commands it walks through, and setup gains its reference then
+each topic is added by the epic named beside it, with the commands it walks through; setup and its root reference
+land with the first leaf, so setup is never an empty index
 no setup topic is a skill or is placed in AGENTS.md; an agent reaches it from root, or a person asks for it by id
 ```

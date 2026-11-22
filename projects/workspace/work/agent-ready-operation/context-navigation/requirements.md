@@ -17,6 +17,19 @@ Acceptance:
 - Raw text and machine-readable output are available without requiring a TUI.
 - Reading context does not read or rewrite the workspace, install an extension, or run hooks.
 
+## Find guidance for each command and for setup (product:framework-guidance)
+
+The engineer or agent finds guidance for every Workspace command and for setting up a workspace through the context,
+without a copied framework tree or a separate setup skill. Setup is settled by
+`decision:agent-ready-operation/context-navigation/setup-guidance`.
+
+Acceptance:
+
+- Every visible command and command group of the invoked Workspace build has a topic.
+- A topic describes only commands and options that build holds; the eager safety text alone may name commands the build
+  lacks.
+- Workspace setup is a branch of topics reachable from the root, not a skill, and is never placed in `AGENTS.md`.
+
 ## Read safety rules before acting (product:eager-workspace-safety)
 
 An agent sees the provision-before-run and destructive-scope rules even when its harness cannot run a command during

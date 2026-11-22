@@ -28,7 +28,7 @@ agent sees or does.
 ## The outcome
 
 `epic:agent-ready-operation/context-navigation` supplies version-matched, progressively disclosed guidance and the
-minimum eager safety hook. `epic:agent-ready-operation/executable-extensions` and
+minimum eager safety text. `epic:agent-ready-operation/executable-extensions` and
 `epic:agent-ready-operation/extension-management` separate acquiring an extension from enabling or trusting its
 contributions, without importing foreign code into Workspace. `epic:agent-ready-operation/agent-model-resolution`
 explains effective model, effort, and permission settings; `epic:agent-ready-operation/harness-projection` delivers

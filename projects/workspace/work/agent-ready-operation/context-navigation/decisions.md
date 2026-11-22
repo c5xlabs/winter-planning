@@ -16,15 +16,7 @@ The `context` command and its topics belong to the Workspace binary and cover Wo
 ships guidance that matches its own release. Other documents cite a topic as `winter:/workspace/<id>`, naming the
 product, so a later router across products changes no reference.
 
-## Configuration inspection (decision:agent-ready-operation/context-navigation/configuration-inspection)
-
-**Decider:** product owner
-
-The context command does not explain effective configuration, and no command for it is added now, because the context
-covers framework guidance rather than live workspace state;
-`product:parallel-workspaces/workspace-configuration/configuration-explanation` stays proposed with no owning epic.
-
-## Safety hook delivery (decision:agent-ready-operation/context-navigation/safety-hook)
+## Safety text delivery (decision:agent-ready-operation/context-navigation/safety-hook)
 
 **Decider:** product owner
 

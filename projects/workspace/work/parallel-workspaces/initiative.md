@@ -31,7 +31,7 @@ engineer's own system.
 CLI. `epic:parallel-workspaces/workspace-configuration`, `epic:parallel-workspaces/repository-catalog`, and
 `epic:parallel-workspaces/reproducible-inputs` make declarations, repository roles, and selected revisions explainable.
 `epic:parallel-workspaces/workspace-bootstrap` creates a user-owned workspace without carrying Winter's framework source
-and preserves authored instructions while placing the common safety hook.
+and preserves authored instructions while placing the eager safety text.
 
 `epic:parallel-workspaces/environment-lifecycle` gives tasks stable allocations and their own worktrees.
 `epic:parallel-workspaces/coordinated-git` respects each repository's tracking when synchronizing or publishing work.
