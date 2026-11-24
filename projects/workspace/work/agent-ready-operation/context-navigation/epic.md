@@ -32,6 +32,8 @@ defer that minimum to later harness integration.
 
 Harness-specific projection, richer delivery, and managed skills/agents belong to
 `epic:agent-ready-operation/harness-projection`; extension installation and extension context entry points belong to
-`epic:agent-ready-operation/extension-management`. Explaining the effective configuration stays open under
+`epic:agent-ready-operation/extension-management`. The setup topics themselves are added by
+`epic:parallel-workspaces/workspace-bootstrap` and `epic:running-environments/service-orchestration`. Explaining the
+effective configuration stays open under
 `decision:parallel-workspaces/workspace-configuration/configuration-inspection`; this epic adds no inspection topic or
 command.

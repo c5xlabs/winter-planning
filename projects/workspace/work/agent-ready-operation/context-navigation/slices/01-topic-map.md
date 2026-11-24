@@ -37,7 +37,8 @@ Composition, Eager text for bootstrap, and Topic source sections of [spec.md](..
   `context/architecture/changes.md`, What stays a shared edit, gains a topic: a Markdown file under
   `crates/core/topics/`, found by the library's build script, and a reference to it from `root` or from its group's
   topic, since the build refuses a topic `root` does not reach.
-- `crates/core/Cargo.toml` adds pulldown-cmark as spec.md, System, gives it, a build- and dev-dependency only.
+- `crates/core/Cargo.toml` adds pulldown-cmark as spec.md, System, gives it, a build- and dev-dependency only, and
+  `context/architecture/structure.md` gains its dependency row.
 - `crates/dev/src/fmt.rs` names `crates/core/build/topics.rs` among the files `cargo fmt` does not reach.
 - `context/verification/matrix.md`, `workspace:manual-registration`, also applies to a change touching
   `crates/core/build/topics.rs` or `crates/core/topics/`, and gains two cases: a topic added in a new subdirectory and
@@ -51,14 +52,14 @@ Composition, Eager text for bootstrap, and Topic source sections of [spec.md](..
 - Unit tests of `build/topics.rs`, one per rule of spec.md, Topic source, each failing with a message that starts with
   the offending path: a file that is neither a directory nor `*.md`; front matter that differs from the exact form; an
   id outside the grammar, a repeated id, and an authored `topics`; a missing `root` or `safety`; a reference to an id no
-  topic has; a topic other than `safety` that `root` does not reach; a span `winter-workspace context ws/push --json`; a
-  `safety` body of 16 lines and a served `root` of 81 lines.
+  topic has; a topic other than `safety` that `root` does not reach, including one that only the generated `topics`
+  lists; a span `winter-workspace context ws/push --json`; a `safety` body of 16 lines and a served `root` of 81 lines.
 - Unit tests of reference recognition: `winter-workspace context` names `root`; `winter-workspace context ws/push` names
   `ws/push`; a span `winter-workspace context <topic>` and a span inside a fenced or an indented code block name
   nothing; repeats and the topic's own id are left out of `next`, which keeps the order of first reference.
 - A unit test of the generated `topics`: its title is `Workspace topics`, and it holds one line per topic, itself
-  included, sorted by id, each `` `winter-workspace context
-  <id>` `` and its title.
+  included, in byte order of id, each in the line form spec.md, Reserved ids, gives it, with `ws-x` before `ws/push`;
+  its `next` is every other id in that order.
 - Unit tests of the composition: `root`'s text starts with `eager_text()`, and `eager_text()` is the body of the source
   whose id is `safety`, byte for byte; moving `safety.md` into a subdirectory changes neither.
 - A unit test: the `safety` source holds the provision-before-run rule, the destructive-scope rule, and

@@ -25,10 +25,11 @@ crates/core/build.rs              also walks topics/ and writes $OUT_DIR/topics.
 crates/core/src/topics.rs         include!(concat!(env!("OUT_DIR"), "/topics.rs")); lookup and the eager text
 crates/core/src/commands/context.rs   the `context` command: one call into topics, one result written
 crates/dev/src/fmt.rs             format_files also names crates/core/build/topics.rs, which cargo fmt does not reach
-crates/core/Cargo.toml            pulldown-cmark with default-features = false, the one Markdown reader of the topic
-                                  rules, under [build-dependencies] for build.rs and [dev-dependencies] for the unit
-                                  tests of build/topics.rs; a shared edit (repository-layout.md). The shipped binary
-                                  does not link it
+crates/core/Cargo.toml            pulldown-cmark at its current release, with default-features = false, the one
+                                  Markdown reader of the topic rules, under [build-dependencies] for build.rs and
+                                  [dev-dependencies] for the unit tests of build/topics.rs; a shared edit
+                                  (repository-layout.md). The shipped binary does not link it;
+                                  context/architecture/structure.md gains its dependency row
 
 embedded   each topic's title, text, and next are static strings in the binary; no Markdown file ships beside it
 rebuild    build.rs prints cargo:rerun-if-changed for crates/core/topics and every directory under it
@@ -38,7 +39,7 @@ no reads   at run time the command reads no file, no environment variable, and n
 
 ```text
 checked by crates/dev/tests/architecture.rs over crates/core/src/topics.rs and crates/core/src/commands/context.rs
-  names none of   ReadFiles  WriteFiles  OsFiles  workspace_root  workspace_files  config_raw  std::fs  std::env
+  names none of   the names of COMMAND_FILE_NAMES in crates/dev/src/architecture.rs, std::fs, and std::env
 ```
 
 ## Domain
@@ -57,7 +58,7 @@ pub struct Topic {
                                       // never the topic's own id
 }
 
-// Generated. Sorted by id; one entry per authored topic plus the generated `topics`.
+// Generated. Sorted by id in byte order; one entry per authored topic plus the generated `topics`.
 pub(crate) static TOPICS: &[Topic];
 
 pub(crate) fn root() -> &'static Topic;                          // id "root"; what `context` with no TOPIC serves
@@ -78,11 +79,11 @@ pub enum ContextError {
 
 ### Reserved ids
 
-| Id       | Source                    | Content                                                                                                                           |
-| -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| `root`   | authored, required        | The entry point: what the guidance covers and a request for each branch.                                                          |
-| `safety` | authored, required        | The eager safety text, whole. Composed into `root`; returned by `eager_text()`.                                                   |
-| `topics` | generated, never authored | Title `Workspace topics`. One line per topic, itself included, sorted by id: `` `winter-workspace context <id>` `` and its title. |
+| Id       | Source                    | Content                                                                                                                                                                                 |
+| -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`   | authored, required        | The entry point: what the guidance covers and a request for each branch.                                                                                                                |
+| `safety` | authored, required        | The eager safety text, whole. Composed into `root`; returned by `eager_text()`.                                                                                                         |
+| `topics` | generated, never authored | Title `Workspace topics`. One line per topic, itself included, in byte order of id: ``- `winter-workspace context <id>` — <title>\n``. Its `next` is every other id, in the same order. |
 
 ### Composition
 
@@ -158,8 +159,9 @@ title: Workspace safety rules
   `winter-workspace ws destroy`, `winter-workspace ws restack`, `winter-workspace clean`, and
   `winter-workspace provision --destroy`. Each reaches every worktree or environment its arguments match. Try one in a
   scratch environment first.
-- `winter-workspace context` prints this Workspace version's guidance and `winter-workspace context topics` lists every
-  topic. Other documents cite a topic as `winter:/workspace/<topic>`.
+- `winter-workspace context` prints this Workspace version's guidance, `winter-workspace context topics` lists every
+  topic, and `winter-workspace context <group>/<command>`, as in `ws/init`, gives a command's details. Other documents
+  cite a topic as `winter:/workspace/<topic>`.
 ```
 
 ## Data
@@ -191,7 +193,8 @@ refused       an inline code span whose text is `winter-workspace context ` foll
 not a link    a span such as `winter-workspace context <topic>`, whose rest matches no TopicId; anything inside a
               code block
 resolves      every reference names an authored id, "root", or "topics"
-reachable     every authored topic except safety is reached from root by following references
+reachable     every authored topic except safety is reached from root by following the references of authored topics;
+              the walk never follows the `next` of the generated `topics`
 size          engineering:entry-size: safety body at most 15 lines; served text of root at most 80 lines
 ```
 
@@ -203,6 +206,11 @@ that adds a command fails until it adds the command's topic
   every Registration::Command entry that is not hidden   has a topic whose id is its path joined by "/"   ws/index
   every group that holds such an entry                   has a topic whose id is the group's name         ws
   an Alias entry                                          needs no topic; its sibling's topic covers it
+
+a unit test in the same module, so a topic cannot describe a command or an option the build lacks
+  every inline code span that starts "winter-workspace ", in every authored body except safety's, split on spaces
+  after that word, parses through parse::parse over REGISTRY to a command to run, not a usage error
+  safety is exempt: it states the workspace rules for every Workspace command, including ones the build lacks
 ```
 
 ### Setup topics
@@ -217,7 +225,5 @@ setup/project-setup           writing a workspace's context/project/project-setu
 setup/service-discovery       what the walkthrough records about an application's services
                                                                                           epic:running-environments/service-orchestration
 setup/service-orchestration   choosing and configuring a service provider                 epic:running-environments/service-orchestration
-each topic is added by the epic named beside it, with the commands it walks through; setup and its root reference
-land with the first leaf, so setup is never an empty index
-no setup topic is a skill or is placed in AGENTS.md; an agent reaches it from root, or a person asks for it by id
+each topic is added by the epic named beside it, with the commands it walks through
 ```

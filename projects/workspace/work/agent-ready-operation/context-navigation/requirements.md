@@ -28,7 +28,8 @@ Acceptance:
 - Every visible command and command group of the invoked Workspace build has a topic.
 - A topic describes only commands and options that build holds; the eager safety text alone may name commands the build
   lacks.
-- Workspace setup is a branch of topics reachable from the root, not a skill, and is never placed in `AGENTS.md`.
+- Workspace setup guidance is never a skill and is never placed in `AGENTS.md`; each setup topic, once added, is
+  reachable from the root.
 
 ## Read safety rules before acting (product:eager-workspace-safety)
 

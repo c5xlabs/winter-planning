@@ -2,8 +2,10 @@
 name: command-topics
 depends-on:
   - topic-map
+  - context-command
 code:
   - winter-workspace/crates/core/src/registry.rs::REGISTRY
+  - winter-workspace/crates/core/src/parse.rs::parse
 ---
 
 # Every visible command and group has a topic
@@ -18,6 +20,9 @@ leaves to the setup topics.
 - A unit test in `crates/core/src/topics.rs` checks spec.md, Coverage of commands, over `REGISTRY` and `TOPICS`: each
   visible command has a topic whose id is its path joined by `/`, each group holding one has a topic named for the
   group, and an alias needs none.
+- A second unit test there checks the command spans of every authored body except `safety`'s, as spec.md, Coverage of
+  commands, gives it: each span that starts `winter-workspace` parses through `parse::parse` over `REGISTRY` to a
+  command to run. It needs the `context` command, which `root`'s own span names.
 - `crates/core/topics/` gains a topic for each command and group the build holds when this lands, among them `ws`,
   `ws/index`, `repo`, and `repo/remove`. Each describes only that build's commands and options; each group topic
   references its commands, and `root` references each group and each command outside a group.
@@ -28,6 +33,9 @@ leaves to the setup topics.
 
 - The coverage unit test passes on the tree, and fails naming the path when a visible command's topic is removed, when a
   group's topic is removed, and when a command is added without one; a hidden command and an alias need none.
+- The command-span unit test passes on the tree, and fails naming the topic and the span for a topic that names
+  `winter-workspace ws index --cut` and for one that names `winter-workspace ws restack`; the same spans in `safety`
+  pass.
 - The build accepts the added topics, so each reference among them resolves and each is reachable from `root`, by the
   build rules of `topic-map`.
 - `cargo dev gate slice` exits 0.
@@ -37,4 +45,3 @@ leaves to the setup topics.
 - The `context` command's own topic: `context-command`.
 - The `setup` topics: `epic:parallel-workspaces/workspace-bootstrap` and
   `epic:running-environments/service-orchestration`.
-- That a topic describes only the build's commands: held in review under `product:framework-guidance`, not by a test.
