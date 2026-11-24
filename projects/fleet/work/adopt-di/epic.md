@@ -1,7 +1,7 @@
 ---
 epic: adopt-di
 refinement: final
-status: ready
+status: in-progress
 external: github:paul-gross/blizzard#2352
 ---
 
