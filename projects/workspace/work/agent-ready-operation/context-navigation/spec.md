@@ -24,7 +24,13 @@ crates/core/build/topics.rs       the topic rules and the code generation, as pu
 crates/core/build.rs              also walks topics/ and writes $OUT_DIR/topics.rs
 crates/core/src/topics.rs         include!(concat!(env!("OUT_DIR"), "/topics.rs")); lookup and the eager text
 crates/core/src/commands/context.rs   the `context` command: one call into topics, one result written
+crates/dev/src/fmt.rs             format_files also names crates/core/build/topics.rs, which cargo fmt does not reach
+crates/core/Cargo.toml            pulldown-cmark with default-features = false, the one Markdown reader of the topic
+                                  rules, under [build-dependencies] for build.rs and [dev-dependencies] for the unit
+                                  tests of build/topics.rs; a shared edit (repository-layout.md). The shipped binary
+                                  does not link it
 
+embedded   each topic's title, text, and next are static strings in the binary; no Markdown file ships beside it
 rebuild    build.rs prints cargo:rerun-if-changed for crates/core/topics and every directory under it
 no reads   at run time the command reads no file, no environment variable, and no workspace: it needs no workspace
            root and runs the same in any readable working directory (engineering:built-in-topics)
@@ -64,7 +70,7 @@ pub fn eager_text() -> &'static str;                             // the body of 
 #[derive(Debug, thiserror::Error)]
 pub enum ContextError {
     // Any string that is not the id of a topic, including one that is not a valid id ("../x", "WS/push", "").
-    // Display names the id and the request `winter context topics`. No closest-match suggestion.
+    // Display names the id and the request `winter-workspace context topics`. No closest-match suggestion.
     UnknownTopic { id: String },
 }
 // CommandError gains: #[error(transparent)] Context(#[from] ContextError)   — exit 1
@@ -72,11 +78,11 @@ pub enum ContextError {
 
 ### Reserved ids
 
-| Id       | Source                    | Content                                                                                       |
-| -------- | ------------------------- | --------------------------------------------------------------------------------------------- |
-| `root`   | authored, required        | The entry point: what the guidance covers and a request for each branch.                      |
-| `safety` | authored, required        | The eager safety text, whole. Composed into `root`; returned by `eager_text()`.               |
-| `topics` | generated, never authored | One line per topic, itself included, sorted by id: `` `winter context <id>` `` and its title. |
+| Id       | Source                    | Content                                                                                                                           |
+| -------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| `root`   | authored, required        | The entry point: what the guidance covers and a request for each branch.                                                          |
+| `safety` | authored, required        | The eager safety text, whole. Composed into `root`; returned by `eager_text()`.                                                   |
+| `topics` | generated, never authored | Title `Workspace topics`. One line per topic, itself included, sorted by id: `` `winter-workspace context <id>` `` and its title. |
 
 ### Composition
 
@@ -84,7 +90,8 @@ pub enum ContextError {
 # engineering:safety-text-consistency — one source for the safety rules
 served text of root   = body of safety + "\n" + body of root
 eager_text()          = body of safety, byte for byte
-a test asserts        root().text starts with eager_text(), and eager_text() is the body of the source whose id is safety
+a test asserts        root().text starts with eager_text(), and eager_text() is the body of the source whose id is
+                      safety
 ```
 
 ## Interfaces
@@ -96,10 +103,10 @@ a test asserts        root().text starts with eager_text(), and eager_text() is 
 | `context` | `[TOPIC]` | `--json` | A        | Print one topic of this version's guidance; no TOPIC prints root. |
 
 ```text
-winter context                 root: the safety text, then the entry point
-winter context ws/push         one topic
-winter context topics          every id with its title
-winter context <TOPIC> --json  the same topic as one shape A document
+winter-workspace context                  root: the safety text, then the entry point
+winter-workspace context ws/push          one topic
+winter-workspace context topics           every id with its title
+winter-workspace context <TOPIC> --json   the same topic as one shape A document
 ```
 
 ```text
@@ -116,10 +123,11 @@ success           exit 0
 
 ```text
 # decision:agent-ready-operation/context-navigation/product-scope
-winter:/workspace            the Workspace root; read with `winter context`
-winter:/workspace/<id>       a Workspace topic; read with `winter context <id>`
-the `workspace` segment names the product and is never part of an id: the binary refuses `winter context workspace/x`
-as UnknownTopic unless a topic's own id is `workspace/x`
+# decision:agent-ready-operation/context-navigation/request-form
+winter:/workspace            the Workspace root; read with `winter-workspace context`
+winter:/workspace/<id>       a Workspace topic; read with `winter-workspace context <id>`
+the `workspace` segment names the product and is never part of an id: the binary refuses
+`winter-workspace context workspace/x` as UnknownTopic unless a topic's own id is `workspace/x`
 ```
 
 ### Eager text for bootstrap
@@ -143,14 +151,15 @@ title: Workspace safety rules
 
 ## Workspace safety
 
-- Bring a feature environment up in order: `winter ws init <env>`, then `winter provision <env>`, then
-  `winter service up <env>`. Never run or exercise an environment that has not been provisioned.
-- Never run a destructive command against a live environment you do not intend to change: `winter ws checkout`,
-  `winter ws reset --hard`, `winter ws clean`, `winter ws destroy`, `winter ws restack`, `winter clean`, and
-  `winter provision --destroy`. Each reaches every worktree or environment its arguments match. Try one in a scratch
-  environment first.
-- `winter context` prints this Workspace version's guidance and `winter context topics` lists every topic. Other
-  documents cite a topic as `winter:/workspace/<topic>`.
+- Bring a feature environment up in order: `winter-workspace ws init <env>`, then `winter-workspace provision <env>`,
+  then `winter-workspace service up <env>`. Never run or exercise an environment that has not been provisioned.
+- Never run a destructive command against a live environment you do not intend to change:
+  `winter-workspace ws checkout`, `winter-workspace ws reset --hard`, `winter-workspace ws clean`,
+  `winter-workspace ws destroy`, `winter-workspace ws restack`, `winter-workspace clean`, and
+  `winter-workspace provision --destroy`. Each reaches every worktree or environment its arguments match. Try one in a
+  scratch environment first.
+- `winter-workspace context` prints this Workspace version's guidance and `winter-workspace context topics` lists every
+  topic. Other documents cite a topic as `winter:/workspace/<topic>`.
 ```
 
 ## Data
@@ -163,7 +172,7 @@ id: ws/push
 title: Push matched worktrees to their upstream
 ---
 
-Body: Markdown, served unchanged. A reference to another topic is the code span `winter context <id>`.
+Body: Markdown, served unchanged. A reference to another topic is the code span `winter-workspace context <id>`.
 ```
 
 ```text
@@ -173,11 +182,14 @@ front matter  the file starts with exactly: "---\n", "id: <id>\n", "title: <one 
 id            matches the TopicId grammar; unique across all files; not "topics"
 required      ids "root" and "safety" exist
 body          everything after the front matter's closing line, unchanged
-reference     an inline code span outside any fenced or indented code block whose whole text is `winter context`
-              (root) or `winter context ` followed by a string matching the TopicId grammar
-refused       an inline code span outside code blocks whose text is `winter context ` followed by a TopicId and then
-              more text, as in `winter context ws/push --json`: a link must be the bare request
-not a link    a span such as `winter context <topic>`, whose rest matches no TopicId; anything inside a code block
+markdown      the body is read with pulldown-cmark's Parser::new, no options; an inline code span is an Event::Code,
+              and text inside a fenced or indented code block never is one
+reference     an inline code span whose whole text is `winter-workspace context` (root) or `winter-workspace context `
+              followed by a string matching the TopicId grammar
+refused       an inline code span whose text is `winter-workspace context ` followed by a TopicId and then more text, as
+              in `winter-workspace context ws/push --json`: a link must be the bare request
+not a link    a span such as `winter-workspace context <topic>`, whose rest matches no TopicId; anything inside a
+              code block
 resolves      every reference names an authored id, "root", or "topics"
 reachable     every authored topic except safety is reached from root by following references
 size          engineering:entry-size: safety body at most 15 lines; served text of root at most 80 lines
@@ -186,17 +198,11 @@ size          engineering:entry-size: safety body at most 15 lines; served text 
 ### Coverage of commands
 
 ```text
-a component test over REGISTRY, so a change that adds a command fails until it adds the command's topic
+a unit test in crates/core/src/topics.rs over REGISTRY and TOPICS, both crate-internal and compiled in, so a change
+that adds a command fails until it adds the command's topic
   every Registration::Command entry that is not hidden   has a topic whose id is its path joined by "/"   ws/index
   every group that holds such an entry                   has a topic whose id is the group's name         ws
   an Alias entry                                          needs no topic; its sibling's topic covers it
-
-held in review, not by a test (product:framework-guidance)
-  a topic's text describes only commands and options of the build it ships in
-  safety is exempt: it states the workspace rules for every Workspace command, including ones the build lacks
-
-added by this epic     root, safety, context, topics, and one topic per command and group the build holds at delivery
-added later            a topic for each command or workspace concept, by the change that adds it
 ```
 
 ### Setup topics

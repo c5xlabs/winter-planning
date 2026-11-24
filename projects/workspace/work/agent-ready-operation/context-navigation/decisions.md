@@ -1,5 +1,13 @@
 # Context navigation decisions
 
+## Request form (decision:agent-ready-operation/context-navigation/request-form)
+
+**Decider:** product owner
+
+Every request a topic, the `topics` listing, an error, or the eager safety text shows is written as the binary names
+itself, `winter-workspace <command>`, under `decision:parallel-workspaces/component-runtime/program-name`. Routing
+through the `winter` launcher is left to a later change and alters no `winter:/workspace/<id>` reference.
+
 ## Setup guidance (decision:agent-ready-operation/context-navigation/setup-guidance)
 
 **Decider:** product owner
