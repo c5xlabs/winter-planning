@@ -21,7 +21,7 @@ that matches the selected tool. They do not clone Winter's framework source to s
 | `epic:parallel-workspaces/repository-catalog`      | delivered   |
 | `epic:parallel-workspaces/reproducible-inputs`     | in-progress |
 | `epic:agent-ready-operation/context-navigation`    | in-progress |
-| `epic:parallel-workspaces/workspace-bootstrap`     | planned     |
+| `epic:parallel-workspaces/workspace-bootstrap`     | ready       |
 
 ## Work across isolated branches (milestone:parallel-branches)
 

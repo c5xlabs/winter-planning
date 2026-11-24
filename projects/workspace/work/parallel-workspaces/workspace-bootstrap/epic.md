@@ -1,7 +1,7 @@
 ---
 epic: parallel-workspaces/workspace-bootstrap
 refinement: outline
-status: planned
+status: ready
 ---
 
 # Create and reconcile a workspace without a framework fork
