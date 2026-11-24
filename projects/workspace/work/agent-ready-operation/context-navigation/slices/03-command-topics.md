@@ -1,5 +1,6 @@
 ---
 name: command-topics
+external: github:paul-gross/winter#239
 depends-on:
   - topic-map
   - context-command

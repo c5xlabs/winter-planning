@@ -1,5 +1,6 @@
 ---
 name: topic-map
+external: github:paul-gross/winter#237
 depends-on:
   - epic:parallel-workspaces/component-runtime
 code:

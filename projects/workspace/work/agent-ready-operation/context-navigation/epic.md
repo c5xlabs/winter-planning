@@ -2,6 +2,7 @@
 epic: agent-ready-operation/context-navigation
 refinement: outline
 status: ready
+external: github:paul-gross/winter#236
 ---
 
 # Read guidance matching the workspace tool

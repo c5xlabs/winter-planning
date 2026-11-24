@@ -1,5 +1,6 @@
 ---
 name: context-command
+external: github:paul-gross/winter#238
 depends-on:
   - topic-map
 code:
