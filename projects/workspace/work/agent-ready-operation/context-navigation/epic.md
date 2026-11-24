@@ -1,7 +1,7 @@
 ---
 epic: agent-ready-operation/context-navigation
 refinement: outline
-status: ready
+status: in-progress
 external: github:paul-gross/winter#236
 ---
 
