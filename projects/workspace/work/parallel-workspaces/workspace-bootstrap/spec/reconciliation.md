@@ -10,9 +10,9 @@ its refusals that file's `ws init` row of Combination rules. Shape C and its fra
 Domain. Every git call goes through the program port of
 [child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md) with the
 child environment it states; the pin step is `materialize` of
-[standalone-pins.md](../../reproducible-inputs/spec/standalone-pins.md), Flows, Materialize a pin. The managed blocks
-are those of [managed-content.md](./managed-content.md). Reference locations are paths under
-`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `b57b020`. Message wording is the binary's own
+[standalone-pins.md](../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md), Flows,
+Materialize a pin. The managed blocks are those of [managed-content.md](./managed-content.md). Reference locations are
+paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `b57b020`. Message wording is the binary's own
 (`decision:functional-parity`).
 
 ## System

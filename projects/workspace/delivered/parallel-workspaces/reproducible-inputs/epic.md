@@ -1,7 +1,7 @@
 ---
 epic: parallel-workspaces/reproducible-inputs
 refinement: final
-status: in-progress
+status: delivered
 external: github:paul-gross/winter#213
 ---
 
