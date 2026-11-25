@@ -33,12 +33,12 @@ decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope
 
 Steps that other epics add to a repository or to the run, each after the step named:
 
-| Step                                                         | After                    | Owner                                            |
-| ------------------------------------------------------------ | ------------------------ | ------------------------------------------------ |
-| Extension projection, retraction, `AGENTS.winter.md`, hooks  | the standalone's pin     | `epic:agent-ready-operation/extension-management` |
-| Extension lines of an eligible exclude block (`extra`)       | `finalize`'s eligible    | `epic:agent-ready-operation/extension-management` |
-| Workspace skill projection into the vendor skill directories | the projects fan-out | `epic:agent-ready-operation/harness-projection`  |
-| Nested workspace reconciliation                              | the repository's `cmd`   | `epic:parallel-workspaces/nested-workspaces`     |
+| Step                                                         | After                  | Owner                                             |
+| ------------------------------------------------------------ | ---------------------- | ------------------------------------------------- |
+| Extension projection, retraction, `AGENTS.winter.md`, hooks  | the standalone's pin   | `epic:agent-ready-operation/extension-management` |
+| Extension lines of an eligible exclude block (`extra`)       | `finalize`'s eligible  | `epic:agent-ready-operation/extension-management` |
+| Workspace skill projection into the vendor skill directories | the projects fan-out   | `epic:agent-ready-operation/harness-projection`   |
+| Nested workspace reconciliation                              | the repository's `cmd` | `epic:parallel-workspaces/nested-workspaces`      |
 
 ## Domain
 
@@ -271,15 +271,15 @@ interrupt     SIGINT ends the invocation as the runtime's handler does for a com
 
 ### Events and text
 
-| Event             | `--json` line (shape C)                                                         | Text                                                 |
-| ----------------- | ------------------------------------------------------------------------------- | ---------------------------------------------------- |
-| `TargetStarted`   | `{"type":"target_started","target"}`                                            | `→ <target>`                                         |
-| `TargetCompleted` | `{"type":"target_completed","target","success"}`                                | `✓ <target> done`; false: stderr `✗ <target> failed` |
-| `RepoAction`      | `{"type":"repo_action","repo","location","action","detail"}`                    | by action, below                                     |
-| `RepoError`       | `{"type":"repo_error","repo","error"}`                                          | stderr `[<repo>] ERROR: <error>`                     |
-| `CmdStarted`      | `{"type":"cmd_started","repo","command"}`                                       | `[<repo>] $ <command>`                               |
-| `CmdOutputLine`   | `{"type":"cmd_output_line","repo","line"}`                                      | `[<repo>] <line>`                                    |
-| `CmdCompleted`    | `{"type":"cmd_completed","repo","command","returncode"}`                        | non-zero only, stderr `[<repo>] ✗ <command> (exit <returncode>)` |
+| Event             | `--json` line (shape C)                                      | Text                                                             |
+| ----------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- |
+| `TargetStarted`   | `{"type":"target_started","target"}`                         | `→ <target>`                                                     |
+| `TargetCompleted` | `{"type":"target_completed","target","success"}`             | `✓ <target> done`; false: stderr `✗ <target> failed`             |
+| `RepoAction`      | `{"type":"repo_action","repo","location","action","detail"}` | by action, below                                                 |
+| `RepoError`       | `{"type":"repo_error","repo","error"}`                       | stderr `[<repo>] ERROR: <error>`                                 |
+| `CmdStarted`      | `{"type":"cmd_started","repo","command"}`                    | `[<repo>] $ <command>`                                           |
+| `CmdOutputLine`   | `{"type":"cmd_output_line","repo","line"}`                   | `[<repo>] <line>`                                                |
+| `CmdCompleted`    | `{"type":"cmd_completed","repo","command","returncode"}`     | non-zero only, stderr `[<repo>] ✗ <command> (exit <returncode>)` |
 
 ```text
 # text of a RepoAction, by action; reference: modules/workspace/init_reporter.py:57-100
@@ -291,9 +291,9 @@ workspace_excludes_updated  [<repo>] workspace excludes updated: <detail>
 agents_md_updated           [<repo>] AGENTS.md safety rules updated at <location>
 ```
 
-Reference: `modules/workspace/init_reporter.py:35-163`. A text row on stderr is written through
-`diagnostics::notice`, the exception standalone-pins.md, Running `ws update`, makes for a command's own result rows.
-The rendering is the domain's, because `ws init` and `ws prune` both write it:
+Reference: `modules/workspace/init_reporter.py:35-163`. A text row on stderr is written through `diagnostics::notice`,
+the exception standalone-pins.md, Running `ws update`, makes for a command's own result rows. The rendering is the
+domain's, because `ws init` and `ws prune` both write it:
 
 ```rust
 // crates/core/src/bootstrap.rs — context/architecture/changes.md: logic two commands share lives in a domain module

@@ -8,17 +8,16 @@ Engineering requirements for `epic:advanced-mocking`.
   nothing from blizzard; every write is checked against the reflected schema first and lands in foreign-key order
   (`blizzard-mock/src/blizzard_mock/mock_data/internal/reflected_store.py`,
   `blizzard-mock/src/blizzard_mock/mock_data/domain/schema_contract.py`).
-- The hub applies a configuration document idempotently (`blizzard hub config apply`), which the workspace's hub
-  service already uses to declare the mock forge, its sources, and its repositories.
+- The hub applies a configuration document idempotently (`blizzard hub config apply`), which the workspace's hub service
+  already uses to declare the mock forge, its sources, and its repositories.
 - The mock forge holds issues, pull requests, comments, labels, checks, and levers in memory, and has no bulk or
   create-by-key route ([`research/mock-composition/findings.md`](./research/mock-composition/findings.md)).
 
 ## Bulk apply (engineering:bulk-apply)
 
-An apply's cost grows with the tables and services it touches and with its rows only in whole batches,
-never one round trip per row, so a script building a hundred thousand chunks finishes in minutes. Serves
-`product:fixture-scale`, `product:fixture-reconcile`. How the batches are made is in
-[`spec/fixture-format.md`](./spec/fixture-format.md).
+An apply's cost grows with the tables and services it touches and with its rows only in whole batches, never one round
+trip per row, so a script building a hundred thousand chunks finishes in minutes. Serves `product:fixture-scale`,
+`product:fixture-reconcile`. How the batches are made is in [`spec/fixture-format.md`](./spec/fixture-format.md).
 
 Acceptance:
 
@@ -42,8 +41,8 @@ Acceptance:
 
 ## The product's own write paths first (engineering:public-paths)
 
-A record the hub can be told to create through its own API or configuration document is created that way,
-so the hub enforces its own rules on it; the stores are written directly only for records with no such path.
+A record the hub can be told to create through its own API or configuration document is created that way, so the hub
+enforces its own rules on it; the stores are written directly only for records with no such path.
 
 Acceptance:
 

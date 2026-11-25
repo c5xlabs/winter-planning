@@ -14,9 +14,10 @@ configuration write on a read, and removal of only a target's own block.
 
 ## Change
 
-- `crates/core/src/workspace_exclude.rs` holds the four entries over `Ports`; `git` calls `rev-parse
-  --absolute-git-dir`, `rev-parse --git-common-dir`, and the `git config` reads and writes the spec lists, each through
-  the program port with its operation span.
+- `crates/core/src/workspace_exclude.rs` holds the four entries over `Ports`; `git` calls
+  `rev-parse
+  --absolute-git-dir`, `rev-parse --git-common-dir`, and the `git config` reads and writes the spec lists,
+  each through the program port with its operation span.
 - `finalize` writes the `winter-config` block whatever the mode, and with any mode but `none` strips each slash-free
   block not eligible and not kept, then writes each eligible block, in one update of the file.
 - Nothing outside tests calls them yet.
@@ -32,7 +33,6 @@ configuration write on a read, and removal of only a target's own block.
 - Component tests of `finalize`: with two eligible standalones then one, the removed one's block is stripped and the
   other kept; with none, the last block is stripped and `winter-config` stays; `winter-dir/projects` survives every
   call; a name in `keep` survives; mode `none` writes `winter-config` alone, leaves other blocks, and returns
-  `Unchanged`; a run that adds `winter-config` alone returns `Unchanged`; a user line outside every block is
-  unchanged.
+  `Unchanged`; a run that adds `winter-config` alone returns `Unchanged`; a user line outside every block is unchanged.
 - A component test: `write_block` reports `None` when the block already holds its lines.
 - `cargo dev gate slice` exits 0.

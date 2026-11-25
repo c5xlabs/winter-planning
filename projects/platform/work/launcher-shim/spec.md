@@ -18,26 +18,26 @@ flowchart LR
     legacy -.->|"execve; target-anchored cwd"| python["selected source venv/bin/winter"]
 ```
 
-| Module (`winter-platform/src/`) | Change                                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `process.rs`                    | Loses its `cfg(dev-sample)` gate; `Process` and `UnixProcess` serve production dispatch          |
-| `dispatch.rs`                   | New: modern version resolution, manifest validation, `ExecRequest` construction                 |
-| `selection.rs`                  | New: ancestor `.winterrc` merge, Workspace pin discovery, version-string validation              |
-| `legacy.rs`                     | New: target/source selection, venv leases/preparation, temporary init; injected effects          |
+| Module (`winter-platform/src/`) | Change                                                                                            |
+| ------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `process.rs`                    | Loses its `cfg(dev-sample)` gate; `Process` and `UnixProcess` serve production dispatch           |
+| `dispatch.rs`                   | New: modern version resolution, manifest validation, `ExecRequest` construction                   |
+| `selection.rs`                  | New: ancestor `.winterrc` merge, Workspace pin discovery, version-string validation               |
+| `legacy.rs`                     | New: target/source selection, venv leases/preparation, temporary init; injected effects           |
 | `cli.rs`                        | Classifies modern groups, legacy command names, init, and platform controls without parsing tails |
 | `sample.rs`                     | Uses extended `ExecRequest` with inherited cwd; keeps dev-only path and handoff behavior          |
 
 `winter-cli/src/main.rs` injects the environment values below; dispatch code never calls `std::env` itself.
 
-| Input            | Source                                     | Default when unset or empty                            |
-| ---------------- | ------------------------------------------ | ------------------------------------------------------ |
-| `cwd`            | `std::env::current_dir()`                   | Required; failure exits 126                            |
-| `HOME`           | `var_os("HOME")`                            | Required for an unset XDG directory; failure exits 126 |
-| `XDG_CONFIG_HOME` | `var_os("XDG_CONFIG_HOME")`, absolute only | `$HOME/.config`                                        |
-| `XDG_CACHE_HOME` | `var_os("XDG_CACHE_HOME")`, absolute only   | `$HOME/.cache`                                         |
-| Host target      | Build-time `TARGET`, exported by `build.rs` | Compiled in                                            |
-| Inherited environment | One `vars_os()` snapshot per dispatch | Modern `DispatchEnv.inherited`; legacy `LegacyEnv.inherited` |
-| Launch instant   | Wall-clock timestamp at launcher entry     | Decimal epoch seconds for legacy `WINTER_LAUNCH_TIME`  |
+| Input                 | Source                                      | Default when unset or empty                                  |
+| --------------------- | ------------------------------------------- | ------------------------------------------------------------ |
+| `cwd`                 | `std::env::current_dir()`                   | Required; failure exits 126                                  |
+| `HOME`                | `var_os("HOME")`                            | Required for an unset XDG directory; failure exits 126       |
+| `XDG_CONFIG_HOME`     | `var_os("XDG_CONFIG_HOME")`, absolute only  | `$HOME/.config`                                              |
+| `XDG_CACHE_HOME`      | `var_os("XDG_CACHE_HOME")`, absolute only   | `$HOME/.cache`                                               |
+| Host target           | Build-time `TARGET`, exported by `build.rs` | Compiled in                                                  |
+| Inherited environment | One `vars_os()` snapshot per dispatch       | Modern `DispatchEnv.inherited`; legacy `LegacyEnv.inherited` |
+| Launch instant        | Wall-clock timestamp at launcher entry      | Decimal epoch seconds for legacy `WINTER_LAUNCH_TIME`        |
 
 Relative XDG values are ignored, per the XDG base-directory specification. Legacy dispatch does not require XDG
 directories, Rust version selections, or the cache. Platform help/version require none of these inputs. Tests isolate
@@ -231,23 +231,23 @@ platform help lists modern groups, opt-in legacy routing, Python-only first --wi
 component help/version after a routing token belongs to that application, not the launcher
 ```
 
-| Invocation | Route |
-| ---------- | ----- |
-| `winter workspace ws init` | Rust Workspace, argv `ws init`; legacy flag ignored |
-| `winter --verbose hub --help` | Rust Hub, argv `--help`; launcher verbosity on stderr |
-| `winter ws init` | Python, original argv `ws init`; legacy flag required |
-| `winter --winter=./alpha/winter service status alpha` | Selected Python source; argv `service status alpha`; original target and its flag |
-| `winter --winter=./alpha/winter --service-orchestrator=./alpha/provider service status alpha` | Selected Python source; provider option and remaining argv unchanged |
-| `winter --service-orchestrator ./alpha/provider service status alpha` | Python, entire original argv; no option parsing |
-| `winter --service-orchestrator init service status alpha` | Flag-gated Python, argv unchanged; never bootstrap |
-| `winter --service-orchestrator hub service status alpha` | Flag-gated Python, argv unchanged; never Rust Hub |
-| `winter service --unknown-option runner` | Python; `runner` is not reclassified as a modern group |
-| `winter init --json` | Temporary Python bootstrap, argv `ws init --json`; no flag/default required |
-| `winter --winter=./alpha/winter init --json` | Bootstrap original cwd with selected Python, argv `ws init --json` |
-| `winter --winter=./alpha/winter workspace ws init` | Usage error, exit 2; no Python/Rust launch or source lookup |
-| `winter` / `winter --verbose` | Identical successful platform help; no cwd or configuration lookup |
-| `winter -V` / `winter --verbose --version` | Platform version; no cwd or configuration lookup |
-| `winter --help` | Platform help; no workspace, Python, default, or cache lookup |
+| Invocation                                                                                    | Route                                                                             |
+| --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `winter workspace ws init`                                                                    | Rust Workspace, argv `ws init`; legacy flag ignored                               |
+| `winter --verbose hub --help`                                                                 | Rust Hub, argv `--help`; launcher verbosity on stderr                             |
+| `winter ws init`                                                                              | Python, original argv `ws init`; legacy flag required                             |
+| `winter --winter=./alpha/winter service status alpha`                                         | Selected Python source; argv `service status alpha`; original target and its flag |
+| `winter --winter=./alpha/winter --service-orchestrator=./alpha/provider service status alpha` | Selected Python source; provider option and remaining argv unchanged              |
+| `winter --service-orchestrator ./alpha/provider service status alpha`                         | Python, entire original argv; no option parsing                                   |
+| `winter --service-orchestrator init service status alpha`                                     | Flag-gated Python, argv unchanged; never bootstrap                                |
+| `winter --service-orchestrator hub service status alpha`                                      | Flag-gated Python, argv unchanged; never Rust Hub                                 |
+| `winter service --unknown-option runner`                                                      | Python; `runner` is not reclassified as a modern group                            |
+| `winter init --json`                                                                          | Temporary Python bootstrap, argv `ws init --json`; no flag/default required       |
+| `winter --winter=./alpha/winter init --json`                                                  | Bootstrap original cwd with selected Python, argv `ws init --json`                |
+| `winter --winter=./alpha/winter workspace ws init`                                            | Usage error, exit 2; no Python/Rust launch or source lookup                       |
+| `winter` / `winter --verbose`                                                                 | Identical successful platform help; no cwd or configuration lookup                |
+| `winter -V` / `winter --verbose --version`                                                    | Platform version; no cwd or configuration lookup                                  |
+| `winter --help`                                                                               | Platform help; no workspace, Python, default, or cache lookup                     |
 
 ```rust
 pub enum DispatchError {
@@ -291,7 +291,7 @@ pub fn run_legacy(req: LegacyRequest, env: &LegacyEnv, setup: &mut dyn LegacySet
 | -------------------------- | ----------- | ---------------------------------------------------------------------------- | ---------------------------- |
 | Replacement succeeds       | Component's | Component's                                                                  | Component's status or signal |
 | `NoSelection`, `NotCached` | Empty       | `winter: cannot run <role>: …`, the files searched or the expected directory | 127                          |
-| `InvalidConfig`            | Empty       | `winter: cannot run <role>: …`, the invalid file and reason                 | 126                          |
+| `InvalidConfig`            | Empty       | `winter: cannot run <role>: …`, the invalid file and reason                  | 126                          |
 | Any other `DispatchError`  | Empty       | `winter: cannot run <role> <version> (from <source file>): …`                | 126                          |
 
 Every dispatch diagnostic starts with `winter: cannot run`; legacy failures use `winter: cannot run legacy workspace`
@@ -320,20 +320,20 @@ never affects component identity, --version output, or behavior other than displ
 
 The shim supports handoff version `1` only. A later handoff version adds to this table and keeps accepting `1`.
 
-| Legacy handoff field | Contract |
-| -------------------- | -------- |
-| Executable | Absolute `<resolved venv>/bin/winter`; direct `execve`, never the old Bash wrapper or `winter` from PATH |
-| Arguments | Original legacy argv minus first `--winter=PATH`; temporary init also rewrites its token to `ws init` |
-| cwd | `<workspace>/tools/winter-cli`, retaining the Python GitPython layout workaround |
-| Invocation directory | `WINTER_INVOCATION_CWD` replaced with original caller cwd before any chdir |
-| Python environment | Remove `PYTHONHOME`; set `VIRTUAL_ENV`; prepend venv `bin` to inherited `PATH` |
-| Launch timing | Replace `WINTER_LAUNCH_TIME` with launcher-entry epoch seconds for Python's existing tracing reader |
-| Invocation metadata | Remove inherited `WINTER_INVOKED_AS`; legacy Python keeps its existing `winter` usage prefix |
-| Streams and process | Inherit fds 0/1/2; same PID after exec; Python owns exit status and signals |
-| Synchronizer | `uv sync --project <absolute selected-cli>`, no shell, cwd = target/tools/winter-cli, output on stderr |
-| Synchronizer environment | Setup environment with `UV_PROJECT_ENVIRONMENT` set to the resolved absolute venv |
-| Venv ownership | Shared lease retained across Python exec; exclusive lease required for synchronization |
-| Setup failure/cancellation | Do not exec Python; preserve failure status or interruption and terminate/reap setup children |
+| Legacy handoff field       | Contract                                                                                                 |
+| -------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Executable                 | Absolute `<resolved venv>/bin/winter`; direct `execve`, never the old Bash wrapper or `winter` from PATH |
+| Arguments                  | Original legacy argv minus first `--winter=PATH`; temporary init also rewrites its token to `ws init`    |
+| cwd                        | `<workspace>/tools/winter-cli`, retaining the Python GitPython layout workaround                         |
+| Invocation directory       | `WINTER_INVOCATION_CWD` replaced with original caller cwd before any chdir                               |
+| Python environment         | Remove `PYTHONHOME`; set `VIRTUAL_ENV`; prepend venv `bin` to inherited `PATH`                           |
+| Launch timing              | Replace `WINTER_LAUNCH_TIME` with launcher-entry epoch seconds for Python's existing tracing reader      |
+| Invocation metadata        | Remove inherited `WINTER_INVOKED_AS`; legacy Python keeps its existing `winter` usage prefix             |
+| Streams and process        | Inherit fds 0/1/2; same PID after exec; Python owns exit status and signals                              |
+| Synchronizer               | `uv sync --project <absolute selected-cli>`, no shell, cwd = target/tools/winter-cli, output on stderr   |
+| Synchronizer environment   | Setup environment with `UV_PROJECT_ENVIRONMENT` set to the resolved absolute venv                        |
+| Venv ownership             | Shared lease retained across Python exec; exclusive lease required for synchronization                   |
+| Setup failure/cancellation | Do not exec Python; preserve failure status or interruption and terminate/reap setup children            |
 
 ## Flows
 
@@ -518,12 +518,12 @@ handoff = 1
 executable = "bin/winter-runner" # relative; normalized result must stay inside this directory
 ```
 
-| File                  | Unknown table or key | `versions.hub` / `versions.runner` | Version string fails grammar |
-| --------------------- | -------------------- | --------------------------------- | ---------------------------- |
-| `.winterrc`           | Ignored              | Merged independently              | `InvalidConfig`              |
-| `.winter/config.toml` | Ignored by shim      | Ignored by shim                   | `InvalidConfig` for pin only |
-| User `winter/config.toml` | Ignored          | Used as role defaults             | `InvalidConfig`              |
-| `component.toml`      | Ignored              | n/a                               | `InvalidManifest`            |
+| File                      | Unknown table or key | `versions.hub` / `versions.runner` | Version string fails grammar |
+| ------------------------- | -------------------- | ---------------------------------- | ---------------------------- |
+| `.winterrc`               | Ignored              | Merged independently               | `InvalidConfig`              |
+| `.winter/config.toml`     | Ignored by shim      | Ignored by shim                    | `InvalidConfig` for pin only |
+| User `winter/config.toml` | Ignored              | Used as role defaults              | `InvalidConfig`              |
+| `component.toml`          | Ignored              | n/a                                | `InvalidManifest`            |
 
 Unknown keys are ignored so later fields can be added without breaking older shims. A `.winterrc` merges only recognized
 `versions` keys, not unrelated tables or arbitrary Workspace configuration. Modern dispatch never writes these files;

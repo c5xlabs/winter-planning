@@ -77,8 +77,8 @@ Acceptance:
 ### One turn at a time (product:turn-at-a-time)
 
 A sentinel takes one turn, the runner commits it to the hub, and only then does the hub grant the next. The agent is
-never more than one turn ahead of what the factory holds, and a runner that falls silent mid-turn loses its grant
-rather than holding the role (`decision:sentinel-agents/turn-timeout`).
+never more than one turn ahead of what the factory holds, and a runner that falls silent mid-turn loses its grant rather
+than holding the role (`decision:sentinel-agents/turn-timeout`).
 
 Acceptance:
 
@@ -89,8 +89,7 @@ Acceptance:
 
 An agent is not left running. An event it is declared for wakes it, such as a chunk escalating or a standing
 `needs-human`, or so does a regular interval, such as checking that the factory is not stalled. It works through what is
-queued for it, then stops. Events arriving while it sleeps or works are queued for it, not lost and not run in
-parallel.
+queued for it, then stops. Events arriving while it sleeps or works are queued for it, not lost and not run in parallel.
 
 Acceptance:
 
@@ -124,7 +123,7 @@ Acceptance:
 ## Open questions
 
 - **Product owner:** What an agent may do on its own authority versus propose for a human, starting with the escalation
-  agent: whether it may requeue, stop, or re-route a chunk, or only diagnose. `epic:agent-identity` would answer it
-  with an altitude per agent.
+  agent: whether it may requeue, stop, or re-route a chunk, or only diagnose. `epic:agent-identity` would answer it with
+  an altitude per agent.
 - **Product owner:** Whether blizzard ships the escalation agent and the stall check as built-in roles or as examples a
   tenant copies.

@@ -25,11 +25,11 @@ Acceptance:
 
 ## A fixture holds one kind of thing (product:fixture-modules)
 
-Each fixture says which kind of thing it holds, so a reader knows what it represents from its first lines.
-The kinds are a tenant's shell (its projects, people, forges, sources, and repositories), a codebase (a repository's
-files and history), a backlog (issues with their bodies, threads, and labels), graphs, gardening, runners (each runner
-added to the tenant, with the subscriptions it declares and the brakes it holds), and activity (chunks and everything
-that happens to them).
+Each fixture says which kind of thing it holds, so a reader knows what it represents from its first lines. The kinds are
+a tenant's shell (its projects, people, forges, sources, and repositories), a codebase (a repository's files and
+history), a backlog (issues with their bodies, threads, and labels), graphs, gardening, runners (each runner added to
+the tenant, with the subscriptions it declares and the brakes it holds), and activity (chunks and everything that
+happens to them).
 
 Acceptance:
 
@@ -37,8 +37,8 @@ Acceptance:
 
 ## Copies of a fixture never collide (product:fixture-targets)
 
-The same fixture can be applied to one env many times as separate copies, each told apart by a prefix
-given when it is applied, so a fixture never needs editing to be reused.
+The same fixture can be applied to one env many times as separate copies, each told apart by a prefix given when it is
+applied, so a fixture never needs editing to be reused.
 
 Acceptance:
 
@@ -46,8 +46,8 @@ Acceptance:
 
 ## Runners online or offline (product:runner-presence)
 
-A fixture says which of its runners are online, which are offline, and which never connected, and the
-board shows each as declared.
+A fixture says which of its runners are online, which are offline, and which never connected, and the board shows each
+as declared.
 
 Acceptance:
 
@@ -57,9 +57,9 @@ Acceptance:
 
 ## Filler generated from a few numbers (product:generated-filler)
 
-Where a fixture needs bulk that nobody will read closely, such as a transcript, a long thread, a usage
-history, or a stream of events, it asks for it by shape (a transcript of forty turns, a week of hourly usage) instead
-of spelling it out, and the filler is generated to look like the real thing at a glance.
+Where a fixture needs bulk that nobody will read closely, such as a transcript, a long thread, a usage history, or a
+stream of events, it asks for it by shape (a transcript of forty turns, a week of hourly usage) instead of spelling it
+out, and the filler is generated to look like the real thing at a glance.
 
 Acceptance:
 
@@ -71,9 +71,9 @@ Acceptance:
 
 ## Worlds at stress scale (product:fixture-scale)
 
-An agent can grow a tenant to the size where the fleet's limits show, hundreds of projects or thousands of
-chunks and on to a hundred thousand, by a short script that applies fixtures over and over while changing only a few
-values, such as the prefix, the seed, and a count.
+An agent can grow a tenant to the size where the fleet's limits show, hundreds of projects or thousands of chunks and on
+to a hundred thousand, by a short script that applies fixtures over and over while changing only a few values, such as
+the prefix, the seed, and a count.
 
 Acceptance:
 
@@ -87,9 +87,9 @@ Acceptance:
 
 ## Every env starts from the same world (product:starter-world)
 
-A freshly provisioned feature env already holds the starter world, applied when the env is provisioned, so
-every agent starts from the same believable fleet with its edge cases in place, and an empty board is something an agent
-asks for rather than finds.
+A freshly provisioned feature env already holds the starter world, applied when the env is provisioned, so every agent
+starts from the same believable fleet with its edge cases in place, and an empty board is something an agent asks for
+rather than finds.
 
 Acceptance:
 
@@ -104,8 +104,8 @@ Acceptance:
 
 ## A starter library (product:starter-library)
 
-The library starts with at least one fixture of every kind, so a newcomer to fixtures copies a working
-example rather than starting blank.
+The library starts with at least one fixture of every kind, so a newcomer to fixtures copies a working example rather
+than starting blank.
 
 Acceptance:
 
@@ -165,11 +165,11 @@ Acceptance:
 - Which fixture kind holds findings (a garden run's findings and a review's findings) and the states they move through,
   live, delivered, closed, and reopened, so an engineer can walk the finding verbs against an env without first running
   a real garden pass?
-- Which fixture kind holds a project's delivery line, its flow places and the submissions waiting in them, so a chunk can
-  be shown queued behind another delivery?
+- Which fixture kind holds a project's delivery line, its flow places and the submissions waiting in them, so a chunk
+  can be shown queued behind another delivery?
 - How does a fixture state something that is defined by age rather than by content, such as a runner subscription that
-  has lapsed or gone stale, a lease that has exited, or a heartbeat that has stopped, given that a fixture is the state a
-  moment starts from?
+  has lapsed or gone stale, a lease that has exited, or a heartbeat that has stopped, given that a fixture is the state
+  a moment starts from?
 - How does a fixture give a tenant the identities and settings a check needs to act as someone specific, such as a
   member with no OAuth identity provider, a tenant superuser, a live lease or runner token, or a tenant setting such as
   forge writes on close?

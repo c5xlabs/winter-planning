@@ -31,9 +31,9 @@ names select flag-gated forwarding, so option values cannot activate Rust dispat
 A workspace owns its Workspace pin as `versions.workspace` in `.winter/config.toml`; platform-owned `.winterrc` files
 can live in any directory and supply exact per-role versions, merged from filesystem root through the caller's directory
 with child values overriding only the keys they set, and platform-owned `$XDG_CONFIG_HOME/winter/config.toml` records
-each role's user-selected default under `versions`. This separates Workspace configuration from platform selection:
-Hub and Runner never read `.winter/config.toml`, and `~/.winterrc` participates only when it is on the ancestor path,
-not as the user-wide default file.
+each role's user-selected default under `versions`. This separates Workspace configuration from platform selection: Hub
+and Runner never read `.winter/config.toml`, and `~/.winterrc` participates only when it is on the ancestor path, not as
+the user-wide default file.
 
 ## Component discovery (decision:launcher-shim/component-discovery)
 
