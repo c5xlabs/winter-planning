@@ -43,10 +43,9 @@ which arrives with the first command that prompts. Delivers `product:prune-manag
   directory without `.git` are each retained with their note, under `--force` too.
 - A component test: a standalone directory named by a stale block and holding no `.git` is retained, and its block
   survives the reaggregation that a removal elsewhere triggers.
-- A component test: a block line resolving outside the root is retained as `OutsideRoot`; a symbolic link under
-  `projects/` to a clean clone is retained as `Link`.
-- A component test: with the root not a git repository, a removal elsewhere runs no reaggregation, every exclude block
-  is left as it was, and `--json --force` reports `excludes_updated: false`; removing an undeclared project clone alone
+- A component test: a block line resolving outside the root is retained as `OutsideRoot`.
+- A component test: with the root not a git repository, a removal writes no exclude file and `--json --force` reports
+  `excludes_updated: true`; removing an undeclared project clone alone
   from a git root reports `excludes_updated: true`.
 - A unit test of `remove` over `MemoryFiles`: a candidate whose path, or whose parent, is a symbolic link where the scan
   saw a directory is `Skipped` "changed since the scan", and the link's target is untouched.

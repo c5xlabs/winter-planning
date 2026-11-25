@@ -28,7 +28,6 @@ pub struct Orphan {
 pub struct Scanned { pub parent: PathBuf, pub entry: Entry }   // parent resolved at scan; the entry's own type
 pub enum Entry { Directory, Link, File }  // not following the last component
 pub enum Retained {                       // first that holds wins, in this order; the notes text
-    Link,                                 // "is a symbolic link (remove the link by hand)"
     OutsideRoot,                          // "resolves outside the workspace"
     NotAClone,                            // "not a git clone (delete by hand if intentional)"
     LinkedWorktree,                       // "is a linked worktree (.git is a file)"
@@ -64,18 +63,17 @@ broken_symlink    each entry of <root>/.claude/skills, <root>/.claude/agents, <r
 orphan_agent_copy for each such non-eligible block, each line matching ^([^/]+/[^/]+)/(.+)-\*$ whose first group is a
                   vendor agent directory (.claude/agents, .codex/agents, .opencode/agent): each regular file of
                   <root>/<group 1> whose name starts "<group 2>-", sorted, once
-exclude file      locate(root); NotARepository, a GitFailure, or an unreadable file -> no standalone_clone and no
-                  orphan_agent_copy candidates, Evidence::Unreadable, and a warning naming the cause
+exclude file      locate(root); NotARepository -> no blocks, Evidence::Read; a GitFailure or an unreadable file
+                  -> no standalone_clone and no orphan_agent_copy candidates, Evidence::Unreadable, and a warning
+                  naming the cause
 ```
 
 ### Retention
 
 ```text
 # decision:parallel-workspaces/workspace-bootstrap/prune-retention; registered deviations: the reference treats a
-# standalone path with no .git as safe, checks only the .git presence, linked worktrees, and status, and fails with an
-# error on a linked project entry, which its tree removal refuses
+# standalone path with no .git as safe, checks only the .git presence, linked worktrees, and status
 retained(c) for project_clone and standalone_clone; broken_symlink and orphan_agent_copy are never retained
-  c.path a symbolic link                                  -> Link             # a standalone_clone's path is resolved
   c.path is the root, or not under it                     -> OutsideRoot
   <path>/.git absent                                      -> NotAClone
   <path>/.git a file                                      -> LinkedWorktree
@@ -105,25 +103,23 @@ text (no --json)
      exit 0
   8. without --force: confirm "Remove <n> orphan(s)?", n the safe ones; declined or end of input -> Aborted, exit 1,
      and every orphan is unattempted: nothing is removed and the notice says the run was aborted
-  9. each orphan, in scan order: remove; then 11
- 10. any Removed and Evidence::Read -> reaggregate; its RepoAction or RepoError line through bootstrap::text (reconciliation.md)
- 11. per orphan "  remove <rel>", "  skip   <rel> (<notes>)", "  error  <rel> (<cause>)", rel relative to the root;
-     exit 0, whatever a removal reported. A line that cannot be written stops the removals: the orphans not yet
-     reached are unattempted and left as they are, and the invocation ends with the write's Termination
-     (product:prune-managed-material: removed, retained, and unattempted)
+  9. each orphan, in scan order: remove, then its line "  remove <rel>", "  skip   <rel> (<notes>)", or
+     "  error  <rel> (<cause>)", rel relative to the root. A line that cannot be written stops the removals: the
+     orphans not yet reached are unattempted and left as they are, and the invocation ends with the write's
+     Termination (product:prune-managed-material: removed, retained, and unattempted)
+ 10. any Removed and Evidence::Read -> reaggregate; its RepoAction or RepoError line through bootstrap::text
+     (reconciliation.md); exit 0, whatever a removal reported
 --json (with --dry-run or --force; step 2 refused the rest)
   no prompt, no preview text; the orphans in scan order
   --dry-run -> {"dry_run": true, "orphans": [... action "would_remove" or "skipped"]}; exit 0, also with no orphans
   --force   -> remove each, reaggregate as in 10, its shape C events first (output-formats.md, JSON-mode departures),
                then {"dry_run": false, "orphans": [... action "removed" | "skipped" | "error"], "excludes_updated"};
                exit 0, also with no orphans, where excludes_updated is false
-  the JSON orphan carries no evidence field: a new field is a change of function, and kind with path already name the
-  evidence class; the text preview carries the block
 remove(orphan)                                            # engineering:prune-ownership-evidence
   retained at scan -> Skipped
   recheck, for every kind, now:
            resolve(parent of path) is scanned.parent and lies under resolve(root), and the last
-           component is the same entry: for a clone a directory that is not a link, for a link still a link whose
+           component is the same entry: for a clone the entry type the scan recorded, for a link still a link whose
            target is missing, for a copy still a regular file -> otherwise Skipped, note "changed since the scan"
            for a clone, retained(c) again -> a reason that now holds is Skipped with it
   WriteFiles::remove(path); an io::Error -> Error(<cause>), the path partly removed and left as it is

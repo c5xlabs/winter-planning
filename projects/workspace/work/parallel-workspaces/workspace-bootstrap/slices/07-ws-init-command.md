@@ -16,7 +16,7 @@ refresh half of `product:managed-content-ownership`.
 
 ## Change
 
-- `crates/core/src/bootstrap.rs` holds `reconcile`, `InitEvent`, `Action`, `InitSink`, `RunEnd`, and the event text
+- `crates/core/src/bootstrap.rs` holds `reconcile`, `InitSink`, and the event text
   renderer `text`; the fan-out runs at most 4 repositories at once on `std::thread::scope` and hands events to the sink
   on the calling thread in arrival order.
 - The projects target writes the `winter-workspace/workspace-skills` block after its fan-out.
@@ -45,7 +45,7 @@ refresh half of `product:managed-content-ownership`.
   cloned a project and a standalone.
 - A component test: a workspace with projects alone, or under `adopt_extensions = "none"`, writes the `winter-config`
   block and emits no `winter-extensions` event.
-- A component test running two `ws init` processes of the built binary at once over one workspace: both exit 0 or one
+- An executable test in `crates/cli/tests` running two `ws init` processes of the built binary at once over one workspace: both exit 0 or one
   reports a clone race as that repository's failure; a third run then exits 0, every block and the lock record are
   present once, and no clone is left without a HEAD.
 - `context/verification/matrix.md`'s `workspace:manual-ws-init` includes the interrupt flow: SIGINT during a slow `cmd`

@@ -1,11 +1,8 @@
 # Creation
 
 The `init` command: creating a workspace in the caller's directory from the installed binary, with no framework clone.
-It is a registered deviation, `decision:parallel-workspaces/workspace-bootstrap/creation-ownership`: the reference
-tool's `init` is a launcher command that touches an empty `.winter/config.toml` and runs `ws init`, and the command
-surface lists it as deliberately absent (`decision:parallel-workspaces/component-runtime/launcher-only-surface`); this
-command is the binary's own. The managed blocks are those of [managed-content.md](./managed-content.md); `Termination`,
-`CommandError`, and `ConfigError` are those of
+A registered deviation: `decision:parallel-workspaces/workspace-bootstrap/creation-ownership`. The managed blocks are
+those of [managed-content.md](./managed-content.md); `Termination`, `CommandError`, and `ConfigError` are those of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
 Domain; shape A is that of
 [output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md). Message wording
@@ -77,16 +74,4 @@ text, exit 0:
 a conflict is reported, exit 0, and its file is left as it was:
   AGENTS.md conflict   stderr warning naming the file: a malformed safety block, or not UTF-8; the rules were not placed
   CLAUDE.md conflict   stderr warning: CLAUDE.md does not import AGENTS.md; add a line `@AGENTS.md` to it
-```
-
-## Flows
-
-```text
-empty directory               -> config created, AGENTS.md created (the block alone), CLAUDE.md "@AGENTS.md\n"
-directory with AGENTS.md      -> the block prepended above the existing text, with one blank line between; the rest
-                                 byte for byte
-directory with CLAUDE.md
-  holding "@AGENTS.md"        -> left as it is: present
-  holding other text          -> left as it is: conflict
-directory with .winter/config.toml -> AlreadyInitialized; nothing else read or written
 ```

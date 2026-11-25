@@ -20,7 +20,7 @@ configuration write on a read, and removal of only a target's own block.
   each through the program port with its operation span.
 - `finalize` writes the `winter-config` block whatever the mode, and with any mode but `none` strips each slash-free
   block not eligible and not kept, then writes each eligible block, in one update of the file.
-- Nothing outside tests calls them yet.
+- They are re-exported from `lib.rs`; no command calls them yet.
 
 ## Acceptance
 

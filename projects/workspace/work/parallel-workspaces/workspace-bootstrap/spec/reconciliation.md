@@ -24,11 +24,8 @@ commands/ws/init.rs ── reconcile(ports, env, diagnostics, start, sink) ─�
                                                                             │                    │   4 at once: checkout::run
                                                                             ├─ workspace_exclude::finalize
                                                                             └─ agents_md::refresh
-TARGET and --all reach epic:parallel-workspaces/environment-lifecycle, which adds them to this command file and calls
-`reconcile` for the workspace part of --all. A build holds what its files register (command-surface.md: the tree lists
-what the finished binary has): a build without that epic registers `ws init [--json]`, and TARGET or --all there is
-the usage error any unregistered argument or option is, exit 2. The finished binary keeps the reference scopes,
-decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope
+TARGET and --all are epic:parallel-workspaces/environment-lifecycle's, which adds them to this command file and calls
+`reconcile` for the workspace part of --all; decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope
 ```
 
 Steps that other epics add to a repository or to the run, each after the step named:
@@ -63,12 +60,12 @@ pub enum Action {                                               // the `action` 
 }
 pub enum InitError { Config(Box<ConfigError>), Internal(Box<InternalError>) }   // the run ends before any target
 pub type InitSink<'s> = dyn FnMut(&InitEvent, &mut Diagnostics<'_>) -> Result<(), Termination> + 's;
-pub enum RunEnd { Completed { success: bool }, Stopped(Termination) }          // Stopped: a failed stdout write
+// RunEnd is that of pins/repin.rs, already re-exported at the crate root
 pub fn reconcile(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
     sink: &mut InitSink<'_>) -> Result<RunEnd, InitError>;
 
 // crates/core/src/bootstrap/checkout.rs — one repository's steps, in this order, each after the one before succeeds
-pub(crate) struct Checkout<'r> {
+pub struct Checkout<'r> {                                       // pub, re-exported with run from lib.rs
     pub name: &'r str, pub url: Option<&'r str>, pub location: PathBuf,
     pub git_excludes: Vec<String>,                              // the workspace's git_excludes, then the repository's
     pub cmd: &'r [String], pub nested: bool,                     // nested: a project with `nested` declared
@@ -138,9 +135,6 @@ standalone target                                 # reference: init_service.py:1
     extension      `extension` not false and <root>/projects/<name>/winter-ext.toml a file
     context-only   `extension` not false, `load` not "none", `load` or `entry` declared, and no winter-ext.toml file
     opted out      `extension = false`
-  # product:reconcile-repositories, "omission is explained": the `ws/init` topic and the command's help state what
-  # bare ws init leaves out, feature environments and a standalone target with nothing to reconcile; the output adds
-  # no line for it, as the reference adds none
   TargetStarted "standalone/"
   fan-out over the standalones, in merged order: checkout::run with location standalone_location(root, name, path)
   finalize(mode, eligible, keep: []): eligible := each standalone whose location exists, in merged order, then each
@@ -189,10 +183,6 @@ checkout::run(c) -> Result<(), RepoError or io::Error>; the first Err is the rep
   5. pin          standalones only: materialize(ports, root, repo)
                   Some((kind, commit)) -> RepoAction Pinned "<branch|tag|commit> <commit[..8]>"; None -> nothing
                   Err -> the RepoError event, its rendered PinError
-                  # PinError::Config, a lock that is unreadable, malformed, or of an unsupported version, is how
-                  # product:recorded-input-materialization's "is a configuration error" reads under fan-out: the
-                  # standalone fails with the ConfigError's text, the run exits 1, no record is written, and every
-                  # other repository and its record go on, as the reference's per-repository reconcile does
 confined(location)                                # registered deviation; the reference clones wherever the path leads
   l := resolve(location); r := resolve(root); refused, with the reason, when
     l is r, or l is not under r                                                   "outside the workspace"
@@ -244,7 +234,7 @@ per command, in declared order:
 ```rust
 // crates/core/src/programs.rs — the program port gains streaming, for Program::Shell
 pub(crate) enum Program { Git, Shell }                      // Shell: /bin/sh
-pub(crate) enum Stdin { Null, Inherit }
+pub enum Stdin { Null, Inherit }                            // re-exported with Call
 // Call gains stdin and remove; every existing caller passes Stdin::Null and no names
 fn stream(&self, call: &Call<'_>, line: &mut dyn FnMut(&[u8])) -> io::Result<Exit>;   // stderr joined to stdout
 ```
@@ -319,6 +309,3 @@ ws init                         ws init (again, nothing changed)
 [winter-extensions] workspace excludes updated: lib
 ✓ standalone/ done
 ```
-
-A repeat never clones, never resets a branch except through a pin, and reruns each `cmd`
-(`product:reconcile-repositories`).

@@ -5,14 +5,15 @@ eager safety block of `AGENTS.md` with the `CLAUDE.md` shim. `ws init` ([reconci
 `init` ([creation.md](./creation.md)), and `ws prune` ([prune.md](./prune.md)) call what is here. Every git call goes
 through the program port of
 [child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md); every file
-write goes through the file port's `update`, which takes a lock on the file's directory and replaces the file by rename
-([lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Write
+write goes through the file port's `update` ([lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Write
 integrity). Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `b57b020`.
 Message wording is the binary's own (`decision:functional-parity`).
 
 ## Domain
 
 ```rust
+// every item here is pub and re-exported from lib.rs, as materialize is, so its slice component-tests it before a
+// command calls it
 // crates/core/src/managed_block.rs — pure functions over text; no port. Reference: modules/workspace/internal/managed_block.py
 pub(crate) struct Markers { pub begin: String, pub end: String }
 impl Markers {
@@ -81,9 +82,7 @@ operation spans from a worker                        operation() opens the span 
                                                      The handle is opened and dropped on one thread
 the command span                                     unchanged: conclude runs on the calling thread after every worker
                                                      has joined, and hands the span and the provider to trace-export
-test doubles                                         those that hold a RefCell (support/spans.rs, support/in_process.rs,
-                                                     git_operations.rs, locations.rs, repository_catalog.rs) hold a
-                                                     Mutex; what they record and assert is unchanged
+test doubles                                         those that hold a RefCell hold a Mutex
 context/architecture/structure.md                    gains: bootstrap.rs starts scoped worker threads, which join
                                                      before reconcile returns, the one thread start in crates/core;
                                                      trace-export stays the one thread that outlives its caller

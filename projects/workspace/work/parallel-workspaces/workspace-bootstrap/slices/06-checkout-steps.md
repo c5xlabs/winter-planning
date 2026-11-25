@@ -20,10 +20,11 @@ pin through `materialize` of `epic:parallel-workspaces/reproducible-inputs`; wit
 
 - `crates/core/src/git.rs` gains `clone`, `toplevel`, `origin_url`, and `set_config`, each with its operation span.
 - `crates/core/src/bootstrap/checkout.rs` holds `run`, `confined`, and `exclude_path`; it emits `InitEvent`s through a
-  callback and returns the first failure, so the steps after it do not run.
+  callback and returns the first failure, so the steps after it do not run. `bootstrap.rs` gains `InitEvent` and
+  `Action`.
 - `cmd` runs through `Program::Shell` with `stream`, the environment additions, and, for a nested project, the removals
   the spec lists.
-- Nothing outside tests calls `run` yet.
+- `run` and `Checkout` are re-exported from `lib.rs`; no command calls them yet.
 
 ## Acceptance
 

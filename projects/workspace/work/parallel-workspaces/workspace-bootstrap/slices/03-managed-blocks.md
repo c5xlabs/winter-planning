@@ -12,15 +12,15 @@ Delivers the text half of `product:managed-content-ownership`: content outside a
 
 ## Change
 
-- `crates/core/src/managed_block.rs` holds the functions; nothing calls them yet.
+- `crates/core/src/managed_block.rs` holds the functions, re-exported from `lib.rs`; no command calls them yet.
 
 ## Acceptance
 
-- Unit tests of `replace_or_insert`: an existing block is replaced in place and the lines around it are unchanged; an
+- Component tests of `replace_or_insert`: an existing block is replaced in place and the lines around it are unchanged; an
   absent block is appended after one blank line, or prepended before one, with no blank line added beside an existing
   blank one; a begin without its end is replaced to end of file; the result always ends with "\n".
-- Unit tests of `strip`: the block and the one blank line above it go; content without the begin marker is returned
+- Component tests of `strip`: the block and the one blank line above it go; content without the begin marker is returned
   unchanged.
-- Unit tests of `blocks` and `shape`: blocks are listed in file order with their lines; a begin without end, or two
+- Component tests of `blocks` and `shape`: blocks are listed in file order with their lines; a begin without end, or two
   begins, is `Malformed`.
 - `cargo dev gate slice` exits 0.

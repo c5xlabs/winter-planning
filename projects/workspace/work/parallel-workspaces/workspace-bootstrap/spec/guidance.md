@@ -19,7 +19,7 @@ init                  "Create a workspace here"
   references          setup, setup/walkthrough
 ws/init               "Reconcile source checkouts and standalones"
   states              the targets and their order; the per-repository steps and their order; what a repeat does
-                      and does not redo; the exit code (reconciliation.md)
+                      and does not redo; what bare ws init leaves out; the exit code (reconciliation.md)
   references          ws/prune
 ws/prune              "Remove material no configuration declares"
   states              the four kinds; every retention reason; --dry-run; --force; --json needing one of them; that
@@ -48,8 +48,8 @@ root                  gains references to init and setup; the ws group topic gai
 
 ```text
 sources
-  setup/walkthrough    skills/setup/SKILL.md, steps 1-7 and 10; steps 8 and 9 (service orchestration, extension setup
-                       steps) belong to epic:running-environments/service-orchestration and
+  setup/walkthrough    skills/setup/SKILL.md; its service orchestration and extension setup steps belong to
+                       epic:running-environments/service-orchestration and
                        epic:agent-ready-operation/extension-management, which extend this topic when they land
   setup/contributing   context/winter/setup/contributing.md
   setup/project-setup  context/winter/setup/project-setup.md, sections 1, 2, and 5; sections 3, 4, and 6 come with
