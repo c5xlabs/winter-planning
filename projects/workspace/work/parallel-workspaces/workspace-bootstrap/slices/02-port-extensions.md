@@ -1,5 +1,6 @@
 ---
 name: port-extensions
+external: github:paul-gross/winter#247
 depends-on:
   - module-scaffold
 code:

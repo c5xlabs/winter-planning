@@ -1,5 +1,6 @@
 ---
 name: setup-topics
+external: github:paul-gross/winter#255
 depends-on:
   - init-command
   - ws-init-command

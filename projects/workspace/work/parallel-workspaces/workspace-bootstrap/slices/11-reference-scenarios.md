@@ -1,5 +1,6 @@
 ---
 name: reference-scenarios
+external: github:paul-gross/winter#256
 depends-on:
   - ws-init-command
   - prune-command

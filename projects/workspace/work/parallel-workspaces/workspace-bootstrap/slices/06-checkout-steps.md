@@ -1,5 +1,6 @@
 ---
 name: checkout-steps
+external: github:paul-gross/winter#251
 depends-on:
   - module-scaffold
   - port-extensions

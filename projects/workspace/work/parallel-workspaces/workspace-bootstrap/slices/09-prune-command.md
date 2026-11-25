@@ -1,5 +1,6 @@
 ---
 name: prune-command
+external: github:paul-gross/winter#254
 depends-on:
   - workspace-exclude
   - port-extensions

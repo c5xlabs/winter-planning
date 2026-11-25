@@ -1,5 +1,6 @@
 ---
 name: managed-blocks
+external: github:paul-gross/winter#248
 depends-on:
   - module-scaffold
 ---

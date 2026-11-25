@@ -1,5 +1,6 @@
 ---
 name: agents-md
+external: github:paul-gross/winter#250
 depends-on:
   - managed-blocks
   - module-scaffold

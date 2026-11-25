@@ -2,6 +2,7 @@
 epic: parallel-workspaces/workspace-bootstrap
 refinement: outline
 status: ready
+external: github:paul-gross/winter#245
 ---
 
 # Create and reconcile a workspace without a framework fork

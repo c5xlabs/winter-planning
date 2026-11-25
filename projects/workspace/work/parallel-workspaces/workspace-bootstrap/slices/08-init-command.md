@@ -1,5 +1,6 @@
 ---
 name: init-command
+external: github:paul-gross/winter#253
 depends-on:
   - agents-md
   - module-scaffold

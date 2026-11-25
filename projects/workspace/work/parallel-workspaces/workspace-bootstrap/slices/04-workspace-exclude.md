@@ -1,5 +1,6 @@
 ---
 name: workspace-exclude
+external: github:paul-gross/winter#249
 depends-on:
   - managed-blocks
   - module-scaffold

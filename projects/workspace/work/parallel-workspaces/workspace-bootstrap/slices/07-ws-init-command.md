@@ -1,5 +1,6 @@
 ---
 name: ws-init-command
+external: github:paul-gross/winter#252
 depends-on:
   - checkout-steps
   - workspace-exclude

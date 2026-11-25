@@ -1,5 +1,6 @@
 ---
 name: module-scaffold
+external: github:paul-gross/winter#246
 code:
   - winter-workspace/crates/core/src/termination.rs::RepoMessage
   - winter-workspace/crates/core/src/termination.rs::GitOperation
