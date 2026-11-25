@@ -1,0 +1,26 @@
+# The merge gate — the reusable check suite.
+#
+# `pr.yml` runs it on every pull request; `push.yml` calls it too, so the gate is defined
+# once and never drifts between triggers.
+name: gate
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  markdown:
+    name: dprint + rumdl
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: jdx/mise-action@v2
+        with:
+          version: 2026.9.2
+          install: false
+      - name: dprint check
+        run: mise x dprint@0.55.2 -- dprint check
+      - name: rumdl check
+        run: mise x rumdl@0.2.54 -- rumdl check .
