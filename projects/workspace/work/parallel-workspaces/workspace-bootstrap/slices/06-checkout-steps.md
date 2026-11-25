@@ -27,9 +27,10 @@ pin through `materialize` of `epic:parallel-workspaces/reproducible-inputs`; wit
 
 ## Acceptance
 
-- Component tests with real git and a fixture remote: an absent location is cloned and reported `cloned`; a present
-  clone of the declared URL is `exists`, a clone of an empty remote included; a present directory that is not a work
-  tree top and one whose `origin` differs each fail with their `RepoMessage` and run no later step.
+- Component tests with real git and a fixture remote: an absent location is cloned and reported `cloned`, a project on
+  its `main_branch` when the remote's default HEAD differs; a present clone of the declared URL is `exists`, a clone of
+  an empty remote included; a present directory that is not a work tree top and one whose `origin` differs each fail
+  with their `RepoMessage` and run no later step.
 - Component tests: a standalone whose path is the root, resolves through a symbolic link outside the root, lies under
   `.winter` or `projects`, lies inside another declared standalone, or contains one fails with `UnsafeLocation` and
   creates nothing.

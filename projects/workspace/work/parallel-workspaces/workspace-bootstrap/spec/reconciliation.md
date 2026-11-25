@@ -72,6 +72,7 @@ pub(crate) struct Checkout<'r> {
     pub name: &'r str, pub url: Option<&'r str>, pub location: PathBuf,
     pub git_excludes: Vec<String>,                              // the workspace's git_excludes, then the repository's
     pub cmd: &'r [String], pub nested: bool,                     // nested: a project with `nested` declared
+    pub branch: Option<&'r str>,                                // a project's main_branch, checked out by the clone
     pub standalone: Option<&'r StandaloneRepository>,           // Some for a standalone: the pin step runs
 }
 ```
@@ -94,8 +95,9 @@ UnsafeLocation { name, path, reason },                            // clone-confi
 ```text
 # crates/core/src/git.rs, beside those of standalone-pins.md; the operation span is named as the git subcommand,
 # attribute winter.repo, as standalone-pins.md, Operation spans
-clone(url, dest)          clone -- <url> <dest>         cwd the workspace root; no depth, branch, or recursion: the
-                                                        remote's default HEAD; no timeout and no retry, as the
+clone(url, dest, branch)  clone [--branch <branch>] -- <url> <dest>   cwd the workspace root; no depth or recursion;
+                                                        branch: a project's main_branch, none for a standalone, which
+                                                        gets the remote's default HEAD; no timeout and no retry, as the
                                                         reference's clone_from (gitpython_repository.py:42-51)
 toplevel(path)            rev-parse --show-toplevel     non-zero exit -> None
 origin_url(path)          config --get remote.origin.url   exit 1 -> None
@@ -168,7 +170,7 @@ checkout::run(c) -> Result<(), RepoError or io::Error>; the first Err is the rep
   1. location
      absent: c.url None -> NoUrl
              a standalone: confined(location) fails -> UnsafeLocation   # decision:parallel-workspaces/workspace-bootstrap/clone-confinement
-             create_dir_all(parent); clone(url, location) -> RepoAction Cloned
+             create_dir_all(parent); clone(url, location, c.branch) -> RepoAction Cloned
      present:                                          # decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope;
        toplevel(location) != resolve(location) -> NotARepository        # a registered deviation: the reference
        c.url Some(u) and origin_url(location) != Some(u) -> OriginMismatch   # reports exists without any check
