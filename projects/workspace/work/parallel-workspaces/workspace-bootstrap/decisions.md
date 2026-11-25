@@ -30,7 +30,8 @@ and drops the evidence a later prune needs.
 environment, and `--all` both. A location that already exists is verified before it is used: one that is not the top of
 a git work tree, or whose `origin` URL differs from the declared `url`, is that repository's failure and its later steps
 are skipped, where the reference reports `exists` and carries on; this registered deviation is taken because the later
-steps write identity, excludes, and pins into whatever repository sits there. Concurrent invocations take no
+steps write identity, excludes, and pins into whatever repository sits there. HEAD is not checked, so a clone of an
+empty remote stays valid. Concurrent invocations take no
 workspace-wide lock: file updates are serialized per file, and a clone that races another fails as that repository's
 failure.
 

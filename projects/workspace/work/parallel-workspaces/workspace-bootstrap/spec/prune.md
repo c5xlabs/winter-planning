@@ -23,7 +23,10 @@ pub struct Orphan {
     pub path: PathBuf,                    // absolute, under the root
     pub block: Option<String>,            // the exclude block that named it; None for a project clone
     pub retained: Option<Retained>,       // None: safe to remove
+    pub scanned: Scanned,                 // what the recheck of remove compares against
 }
+pub struct Scanned { pub parent: PathBuf, pub entry: Entry }   // parent resolved at scan; the entry's own type
+pub enum Entry { Directory, Link, File }  // not following the last component
 pub enum Retained {                       // first that holds wins, in this order; the notes text
     Link,                                 // "is a symbolic link (remove the link by hand)"
     OutsideRoot,                          // "resolves outside the workspace"
@@ -100,11 +103,14 @@ text (no --json)
   6. --dry-run -> stop; exit 0
   7. without --force, none safe -> "Nothing to remove (all orphans are blocked). Resolve the notes above and re-run.";
      exit 0
-  8. without --force: confirm "Remove <n> orphan(s)?", n the safe ones; declined or end of input -> Aborted, exit 1
+  8. without --force: confirm "Remove <n> orphan(s)?", n the safe ones; declined or end of input -> Aborted, exit 1,
+     and every orphan is unattempted: nothing is removed and the notice says the run was aborted
   9. each orphan, in scan order: remove; then 11
- 10. any Removed and Evidence::Read -> reaggregate; its RepoAction or RepoError line as reconciliation.md's text gives it
+ 10. any Removed and Evidence::Read -> reaggregate; its RepoAction or RepoError line through bootstrap::text (reconciliation.md)
  11. per orphan "  remove <rel>", "  skip   <rel> (<notes>)", "  error  <rel> (<cause>)", rel relative to the root;
-     exit 0, whatever a removal reported
+     exit 0, whatever a removal reported. A line that cannot be written stops the removals: the orphans not yet
+     reached are unattempted and left as they are, and the invocation ends with the write's Termination
+     (product:prune-managed-material: removed, retained, and unattempted)
 --json (with --dry-run or --force; step 2 refused the rest)
   no prompt, no preview text; the orphans in scan order
   --dry-run -> {"dry_run": true, "orphans": [... action "would_remove" or "skipped"]}; exit 0, also with no orphans
@@ -116,7 +122,7 @@ text (no --json)
 remove(orphan)                                            # engineering:prune-ownership-evidence
   retained at scan -> Skipped
   recheck, for every kind, now:
-           resolve(parent of path) is the resolved parent seen at scan and lies under resolve(root), and the last
+           resolve(parent of path) is scanned.parent and lies under resolve(root), and the last
            component is the same entry: for a clone a directory that is not a link, for a link still a link whose
            target is missing, for a copy still a regular file -> otherwise Skipped, note "changed since the scan"
            for a clone, retained(c) again -> a reason that now holds is Skipped with it

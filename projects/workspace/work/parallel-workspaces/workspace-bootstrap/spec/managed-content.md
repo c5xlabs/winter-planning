@@ -139,6 +139,7 @@ locate_for_write(root)
 | ---------------------------- | --------------------------------------------- | ------------------------------------------------ | ---------------------------------- |
 | `winter-dir/projects`        | `/projects/`                                  | `ws init`, projects target                       | never                              |
 | `winter-workspace/artifacts` | `/.winter/logs/`                              | `ws init`, projects target                       | never                              |
+| `winter-workspace/workspace-skills` | the six vendor skill globs of `prefix` | `ws init`, projects target                    | never                              |
 | `winter-dir/<env>`           | `/<env>/`                                     | `epic:parallel-workspaces/environment-lifecycle` | `ws destroy`, that epic            |
 | `winter-config`              | `.winter/config/**/*.local.*`                 | `finalize`, always, whatever the mode            | never                              |
 | `<name>`, no `/` in it       | `/<relative>/`, then the eligible's `extra`   | `finalize`, per eligible                         | `finalize`, when not eligible      |

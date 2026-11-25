@@ -5,11 +5,8 @@ The Workspace topics this epic adds: one per command it adds, and the `setup` fa
 reachability, and the coverage tests are those of [context-navigation
 spec.md](../../../agent-ready-operation/context-navigation/spec.md), Topic source and Coverage of commands; each topic
 below is one Markdown file under `crates/core/topics/` of `winter-workspace`, at the path its id gives. A topic names
-only commands and options the build holds when it lands, so each lands with, or after, the command it describes, and
-references only topics the build holds: a reference to a topic a later slice adds is added by that slice, as Lands
-gives.
-Reference sources are paths of `winter-workspace` at `b57b020`; a topic restates their procedure for this binary's
-commands and drops what this binary has no command for.
+only commands and options the binary holds. Reference sources are paths of `winter-workspace` at `b57b020`; a topic
+restates their procedure for this binary's commands and drops what this binary has no command for.
 
 ## Data
 
@@ -58,14 +55,4 @@ sources
   setup/project-setup  context/winter/setup/project-setup.md, sections 1, 2, and 5; sections 3, 4, and 6 come with
                        epic:running-environments/resource-provisioning and epic:running-environments/service-orchestration
 size                   the root stays within engineering:entry-size of epic:agent-ready-operation/context-navigation
-```
-
-```text
-lands                  each reference is added with the later of its two topics
-  with init            init, referencing nothing yet; root -> init
-  with ws/init         ws/init, referencing nothing yet; ws -> ws/init
-  with ws/prune        ws/prune -> ws/init; ws/init -> ws/prune; ws -> ws/prune
-  with setup           the four setup topics and their references; init -> setup, setup/walkthrough; root -> setup
-the text of init       until setup lands, its "next" line names `repo add` and `ws init` alone; the setup topic's slice
-                       adds the line naming `winter-workspace context setup` (creation.md, Result)
 ```

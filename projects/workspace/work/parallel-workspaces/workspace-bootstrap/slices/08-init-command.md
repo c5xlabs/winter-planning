@@ -3,6 +3,7 @@ name: init-command
 depends-on:
   - agents-md
   - module-scaffold
+  - ws-init-command
 code:
   - winter-workspace/crates/core/tests/root.rs::init_is_no_command_and_the_root_help_does_not_list_it
   - winter-workspace/crates/core/tests/root.rs::REGISTERED
@@ -21,7 +22,7 @@ launcher-only `init` (`decision:parallel-workspaces/component-runtime/launcher-o
   create-only write of `[versions] workspace = "<version>"`, then `agents_md::place` and `agents_md::shim`.
 - `crates/core/src/commands/init.rs` registers the command, calls `create` with `cx.cwd` and `cx.identity.version`, and
   writes the shape A document or the text of creation.md, Result; a conflict is a warning on stderr and exit 0. Its
-  "next" line names `repo add` and `ws init` alone, as guidance.md, lands, gives until the setup topic exists.
+  "next" line names `repo add` and `ws init` alone until the setup topic exists; `setup-topics` adds the rest.
 - `crates/core/tests/root.rs` drops `init_is_no_command_and_the_root_help_does_not_list_it`, and `REGISTERED` gains
   `init`.
 - `crates/core/topics/init.md`, referencing no topic yet, and referenced from `root`.

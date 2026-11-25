@@ -16,19 +16,22 @@ refresh half of `product:managed-content-ownership`.
 
 ## Change
 
-- `crates/core/src/bootstrap.rs` holds `reconcile`, `InitEvent`, `Action`, `InitSink`, and `RunEnd`; the fan-out runs at
-  most 4 repositories at once on `std::thread::scope` and hands events to the sink on the calling thread in arrival
-  order.
+- `crates/core/src/bootstrap.rs` holds `reconcile`, `InitEvent`, `Action`, `InitSink`, `RunEnd`, and the event text
+  renderer `text`; the fan-out runs at most 4 repositories at once on `std::thread::scope` and hands events to the sink
+  on the calling thread in arrival order.
+- The projects target writes the `winter-workspace/workspace-skills` block after its fan-out.
 - `crates/core/src/commands/ws/init.rs` registers `ws init [--json]`, builds the sink over `output::Results`, writes
-  shape C events or the text rows, and ends 1 when the run reported a failure. TARGET and `--all` are not registered;
-  `epic:parallel-workspaces/environment-lifecycle` adds them.
-- `crates/core/topics/ws/init.md`, referencing no topic yet, and referenced from the `ws` group topic.
+  shape C events or the rows of `bootstrap::text`, and ends 1 when the run reported a failure. TARGET and `--all` are
+  not registered; `epic:parallel-workspaces/environment-lifecycle` adds them.
+- `crates/core/topics/ws/init.md`, referencing no topic yet, since `ws/prune` lands later, and referenced from the
+  `ws` group topic; it states what bare `ws init` leaves out.
 - `context/verification/matrix.md` gains `workspace:manual-ws-init`.
 
 ## Acceptance
 
 - Component tests through `InProcess` with fixture remotes: a first run clones every project and standalone, writes
-  `winter-dir/projects`, `winter-workspace/artifacts`, `winter-config`, and one block per standalone, and emits the
+  `winter-dir/projects`, `winter-workspace/artifacts`, `winter-workspace/workspace-skills` with the workspace prefix,
+  `winter-config`, and one block per standalone, and emits the
   events of reconciliation.md in target order; a second run clones nothing, writes no exclude file, and exits 0.
 - A component test: a failing project does not stop another project or the standalone target; the run exits 1 and the
   failing project's `target_completed` reports `success: false`.

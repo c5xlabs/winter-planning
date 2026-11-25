@@ -17,7 +17,7 @@ epic.
 ## Change
 
 - `crates/core/topics/setup.md` and the three leaves under `crates/core/topics/setup/`; `root` references `setup`,
-  and `init` references `setup` and `setup/walkthrough`, as guidance.md, lands, gives.
+  and `init` references `setup` and `setup/walkthrough`, now that they exist.
 - `init`'s text gains its "next" line naming `winter-workspace context setup` (creation.md, Result).
 
 ## Acceptance

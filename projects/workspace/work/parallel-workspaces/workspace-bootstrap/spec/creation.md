@@ -73,8 +73,7 @@ text, exit 0:
   AGENTS.md: placed the workspace safety rules | updated them | already current
   CLAUDE.md: created | already imports AGENTS.md
   then: next, read `winter-workspace context setup`, or declare repositories with `winter-workspace repo add` and run
-  `winter-workspace ws init`; until the setup topic exists the line names repo add and ws init alone
-  (guidance.md, lands)
+  `winter-workspace ws init`
 a conflict is reported, exit 0, and its file is left as it was:
   AGENTS.md conflict   stderr warning naming the file: a malformed safety block, or not UTF-8; the rules were not placed
   CLAUDE.md conflict   stderr warning: CLAUDE.md does not import AGENTS.md; add a line `@AGENTS.md` to it

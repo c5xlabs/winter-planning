@@ -6,6 +6,8 @@ depends-on:
   - module-scaffold
   - ws-init-command
   - epic:agent-ready-operation/context-navigation
+code:
+  - winter-workspace/crates/core/src/termination.rs::Termination
 ---
 
 # `ws prune` removes only material that cannot hold work
@@ -14,7 +16,9 @@ Adds `prune::scan`, `prune::remove`, `prune::reaggregate`, and the `ws prune [--
 [prune.md](../spec/prune.md), with the `ws/prune` topic of [guidance.md](../spec/guidance.md). Builds the confirmation
 of [runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Confirmation, in
 `crates/core/src/confirm.rs`, which no earlier slice builds; the commands of later epics that prompt, `ws clean` and
-`ws destroy`, call it. Delivers `product:prune-managed-material` and
+`ws destroy`, call it; and adds `Termination::Aborted { interrupted }` of
+[results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
+which arrives with the first command that prompts. Delivers `product:prune-managed-material` and
 `engineering:prune-ownership-evidence` under `decision:parallel-workspaces/workspace-bootstrap/prune-retention`.
 
 ## Change
@@ -25,9 +29,10 @@ of [runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec
   `reaggregate` through `finalize` with the retained blocks kept.
 - `crates/core/src/commands/ws/prune.rs` registers the command, refuses `--json` without `--force` or `--dry-run` with
   `BootstrapError::JsonNeedsForce`, writes the preview with its evidence, prompts unless `--force` or `--dry-run`, and
-  writes the per-orphan lines or the JSON document.
+  writes the per-orphan lines or the JSON document; the reaggregation line comes from `bootstrap::text`.
+- `crates/core/src/termination.rs` gains `Termination::Aborted { interrupted }`, exit 1, with its diagnostic.
 - `crates/core/topics/ws/prune.md`, referencing `ws/init`, and referenced from the `ws` group topic; `ws/init`
-  gains its reference to `ws/prune`, as guidance.md, lands, gives.
+  gains its reference to `ws/prune`, now that both exist.
 - `context/verification/matrix.md` gains `workspace:manual-ws-prune`.
 
 ## Acceptance
@@ -48,4 +53,6 @@ of [runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec
   actions; `--json --force` prints the reaggregation events, then the document with `excludes_updated`.
 - A component test: `--dry-run` runs no `git config` write and removes nothing.
 - A component test: a broken link under `.claude/skills` is removed; an agent copy named by a stale block is removed.
+- A unit test: `Termination::Aborted { interrupted: false }` ends with exit 1 and the notice that the run was aborted;
+  a declined prompt removes nothing.
 - `cargo dev gate slice` exits 0.

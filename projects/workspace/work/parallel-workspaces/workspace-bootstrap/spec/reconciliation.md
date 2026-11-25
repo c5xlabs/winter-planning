@@ -37,7 +37,7 @@ Steps that other epics add to a repository or to the run, each after the step na
 | ------------------------------------------------------------ | ------------------------ | ------------------------------------------------ |
 | Extension projection, retraction, `AGENTS.winter.md`, hooks  | the standalone's pin     | `epic:agent-ready-operation/extension-management` |
 | Extension lines of an eligible exclude block (`extra`)       | `finalize`'s eligible    | `epic:agent-ready-operation/extension-management` |
-| Workspace skills and their `winter-workspace/workspace-skills` block | the projects fan-out | `epic:agent-ready-operation/harness-projection`  |
+| Workspace skill projection into the vendor skill directories | the projects fan-out | `epic:agent-ready-operation/harness-projection`  |
 | Nested workspace reconciliation                              | the repository's `cmd`   | `epic:parallel-workspaces/nested-workspaces`     |
 
 ## Domain
@@ -122,6 +122,11 @@ projects target                                   # reference: init_service.py:1
                                                                 a GitFailure or io::Error -> RepoError repo "winter",
                                                                 "workspace exclude — <cause>", success false
   fan-out over the projects, in merged order: checkout::run with location <root>/projects/<name>
+  write_block("winter-workspace/workspace-skills", [".claude/skills/<p>-*", ".claude/skills/<p>", ".codex/skills/<p>-*",
+    ".codex/skills/<p>", ".opencode/skill/<p>-*", ".opencode/skill/<p>"]), p the workspace `prefix`, written whether
+    or not a skills directory exists, and reported by no event; a GitFailure or io::Error -> RepoError repo
+    "workspace", "workspace skills — <cause>", success false (reference: init_service.py:133,
+    workspace_skill_service.py:101-145). The projection the block covers is harness-projection's
   TargetCompleted "projects/", success
 
 standalone target                                 # reference: init_service.py:139-221
@@ -131,6 +136,9 @@ standalone target                                 # reference: init_service.py:1
     extension      `extension` not false and <root>/projects/<name>/winter-ext.toml a file
     context-only   `extension` not false, `load` not "none", `load` or `entry` declared, and no winter-ext.toml file
     opted out      `extension = false`
+  # product:reconcile-repositories, "omission is explained": the `ws/init` topic and the command's help state what
+  # bare ws init leaves out, feature environments and a standalone target with nothing to reconcile; the output adds
+  # no line for it, as the reference adds none
   TargetStarted "standalone/"
   fan-out over the standalones, in merged order: checkout::run with location standalone_location(root, name, path)
   finalize(mode, eligible, keep: []): eligible := each standalone whose location exists, in merged order, then each
@@ -164,8 +172,7 @@ checkout::run(c) -> Result<(), RepoError or io::Error>; the first Err is the rep
      present:                                          # decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope;
        toplevel(location) != resolve(location) -> NotARepository        # a registered deviation: the reference
        c.url Some(u) and origin_url(location) != Some(u) -> OriginMismatch   # reports exists without any check
-       head(location) fails -> NotARepository             # a clone killed before its first checkout has no HEAD
-       -> RepoAction Exists
+       -> RepoAction Exists       # HEAD is not checked: a clone of an empty remote has none and is a valid clone
        urls compare as exact strings: `…/a` and `…/a.git` differ, as in repo add's duplicate check
   2. identity     the workspace git identity, when one exists: set_config user.name, then user.email; written every run
   3. excludes     entries := c.git_excludes, each trimmed, empty ones dropped
@@ -215,7 +222,9 @@ stdin         inherited from the binary, as the reference's Popen leaves it: Cal
               before its children run. context/architecture/structure.md records the exception
 stdout        one pipe, which the child's stderr shares; read as it arrives and split into lines at "\n", each line
               without its "\n" and decoded as UTF-8 with invalid bytes replaced; a last line without "\n" is a line
-environment   the child environment of child-processes.md, then these set, replacing any value:
+environment   the snapshot's names and values, as the reference's os.environ.copy() holds them: WINTER_LAUNCH_TIME
+              left out and GIT_SSH_COMMAND defaulted, as child-processes.md gives for git, but LANGUAGE and LC_ALL
+              not set to C, so the user's locale reaches the command; then these set, replacing any value:
                 CI=1 TERM=dumb NO_COLOR=1 FORCE_COLOR=0 NPM_CONFIG_PROGRESS=false PNPM_PROGRESS=false
                 PYTHONUNBUFFERED=1 PIP_PROGRESS_BAR=off DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
               for a nested project, before those: every WINTER_* name removed except WINTER_LOG_LEVEL and WINTER_OTEL_*;
@@ -253,10 +262,9 @@ outcome       a repository's failure is reported and never stops another reposit
 shared state  the lock upsert of materialize and every file update go through the file port's lock, so concurrent
               repositories, and concurrent invocations, never lose another's write
 interrupt     SIGINT ends the invocation as the runtime's handler does for a command that does not defer (runtime.md,
-              Interrupts and signals): children in the process group get the signal too; a clone git abandons leaves
-              no directory; a location an interrupted clone leaves without a HEAD fails the next run's step 1 as
-              NotARepository and is left for the engineer; a clone interrupted after its first checkout is not told
-              apart from a complete one
+              Interrupts and signals): children in the process group get the signal too, and a clone git abandons on
+              the signal is removed by git; a clone killed by a signal git cannot handle is not told apart from a
+              complete one, as in the reference, and the next run reports it exists and runs its later steps
 ```
 
 ### Events and text
@@ -283,6 +291,13 @@ agents_md_updated           [<repo>] AGENTS.md safety rules updated at <location
 
 Reference: `modules/workspace/init_reporter.py:35-163`. A text row on stderr is written through
 `diagnostics::notice`, the exception standalone-pins.md, Running `ws update`, makes for a command's own result rows.
+The rendering is the domain's, because `ws init` and `ws prune` both write it:
+
+```rust
+// crates/core/src/bootstrap.rs — context/architecture/changes.md: logic two commands share lives in a domain module
+pub enum TextStream { Stdout, Stderr }
+pub fn text(event: &InitEvent) -> Option<(TextStream, String)>;   // None: a CmdCompleted with returncode 0
+```
 
 ## Flows
 
@@ -292,13 +307,13 @@ Reference: `modules/workspace/init_reporter.py:35-163`. A text row on stderr is 
 ws init                         ws init (again, nothing changed)
 → projects/                     → projects/
 [winter] workspace excludes…    [api] exists at <root>/projects/api      # blocks unchanged: no event
-[api] cloned to <root>/…        ✓ projects/ done
-[api] $ make setup              → standalone/
-[api] …                         [lib] exists at <root>/lib
-✓ projects/ done                [lib] pinned at tag 1a2b3c4d             # held: the lock is not rewritten
-→ standalone/                   ✓ standalone/ done
-[lib] cloned to <root>/lib
-[lib] pinned at tag 1a2b3c4d
+[api] cloned to <root>/…        [api] $ make setup                       # every cmd runs again
+[api] $ make setup              [api] …
+[api] …                         ✓ projects/ done
+✓ projects/ done                → standalone/
+→ standalone/                   [lib] exists at <root>/lib
+[lib] cloned to <root>/lib      [lib] pinned at tag 1a2b3c4d             # held: the lock is not rewritten
+[lib] pinned at tag 1a2b3c4d    ✓ standalone/ done
 [winter-extensions] workspace excludes updated: lib
 ✓ standalone/ done
 ```

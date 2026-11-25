@@ -18,7 +18,8 @@ result.
   tool, each with a fixture workspace whose repositories clone fixture remotes; event order across repositories is
   compared with `fan_out`.
 - Every fixture standalone declares `extension = false`, and no fixture project holds a `winter-ext.toml` or declares
-  `load` or `entry`, so the reference runs no extension projection, `AGENTS.winter.md` render, or hook, which this
+  `load` or `entry`, and no fixture holds a workspace skills directory, so the reference runs no extension projection
+  or skill projection, `AGENTS.winter.md` render, or hook, which this
   binary leaves to `epic:agent-ready-operation/extension-management`; a recording that still shows one is cut down
   until it does not.
 - No production code changes.
