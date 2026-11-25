@@ -45,10 +45,11 @@ managed-content.md, Ports across threads; the program port gains `Program::Shell
 
 - Unit tests of `OsFiles::remove` in a temporary tree: a link to a directory outside the tree is removed and its target
   survives; a directory holding such a link is removed and the target survives; a missing path is Ok.
-- Component tests in `crates/core/tests/programs.rs` of `stream`: a command writing to stdout and stderr hands both lines in order of writing; output without a
-  final newline yields its last line; `exit 3` returns `Code(3)`; `kill -TERM $$` returns the signal.
-- Component tests: a `Call` whose `remove` names a variable set in the snapshot starts a child that does not see it; with
-  `inherit_stdin` false, a `Stdin::Inherit` child reads empty input.
+- Component tests in `crates/core/tests/programs.rs` of `stream`: a command writing to stdout and stderr hands both
+  lines in order of writing; output without a final newline yields its last line; `exit 3` returns `Code(3)`;
+  `kill -TERM $$` returns the signal.
+- Component tests: a `Call` whose `remove` names a variable set in the snapshot starts a child that does not see it;
+  with `inherit_stdin` false, a `Stdin::Inherit` child reads empty input.
 - A unit test of the tracer: an operation span opened on a scoped thread while the command span is open is exported as a
   child of the command span.
 - Every existing test passes.

@@ -5,7 +5,8 @@ eager safety block of `AGENTS.md` with the `CLAUDE.md` shim. `ws init` ([reconci
 `init` ([creation.md](./creation.md)), and `ws prune` ([prune.md](./prune.md)) call what is here. Every git call goes
 through the program port of
 [child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md); every file
-write goes through the file port's `update` ([lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Write
+write goes through the file port's `update`
+([lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Write
 integrity). Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `b57b020`.
 Message wording is the binary's own (`decision:functional-parity`).
 

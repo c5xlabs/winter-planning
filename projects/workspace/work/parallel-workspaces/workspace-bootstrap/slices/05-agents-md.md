@@ -21,13 +21,13 @@ block and the shim, placing `eager_text()` of `epic:agent-ready-operation/contex
 
 ## Acceptance
 
-- Component tests: `place` in an empty directory writes the block alone; on an `AGENTS.md`
-  without the block it prepends the block and one blank line and keeps every other byte; on one with a current block it
-  writes nothing; on one with an outdated block it replaces the block alone; on a malformed block or non-UTF-8 content
-  it writes nothing and reports the conflict.
+- Component tests: `place` in an empty directory writes the block alone; on an `AGENTS.md` without the block it prepends
+  the block and one blank line and keeps every other byte; on one with a current block it writes nothing; on one with an
+  outdated block it replaces the block alone; on a malformed block or non-UTF-8 content it writes nothing and reports
+  the conflict.
 - Component tests: `refresh` is `Absent` with no `AGENTS.md` and with one that holds no begin marker, non-UTF-8 content
   included, and otherwise behaves as `place`.
-- Component tests: `shim` writes `@AGENTS.md\n` when `CLAUDE.md` is absent, leaves a file holding that line as `Present`, and
-  leaves any other file untouched as `Conflict`.
+- Component tests: `shim` writes `@AGENTS.md\n` when `CLAUDE.md` is absent, leaves a file holding that line as
+  `Present`, and leaves any other file untouched as `Conflict`.
 - A component test: the block's body is `eager_text()` line for line.
 - `cargo dev gate slice` exits 0.

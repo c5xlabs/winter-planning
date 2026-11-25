@@ -45,8 +45,7 @@ which arrives with the first command that prompts. Delivers `product:prune-manag
   survives the reaggregation that a removal elsewhere triggers.
 - A component test: a block line resolving outside the root is retained as `OutsideRoot`.
 - A component test: with the root not a git repository, a removal writes no exclude file and `--json --force` reports
-  `excludes_updated: true`; removing an undeclared project clone alone
-  from a git root reports `excludes_updated: true`.
+  `excludes_updated: true`; removing an undeclared project clone alone from a git root reports `excludes_updated: true`.
 - A unit test of `remove` over `MemoryFiles`: a candidate whose path, or whose parent, is a symbolic link where the scan
   saw a directory is `Skipped` "changed since the scan", and the link's target is untouched.
 - Component tests: `--json` alone exits 1 and removes nothing; `--json --dry-run` prints `would_remove` and `skipped`

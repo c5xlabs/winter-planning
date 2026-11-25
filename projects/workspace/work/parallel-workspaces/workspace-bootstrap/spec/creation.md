@@ -1,7 +1,7 @@
 # Creation
 
-The `init` command: creating a workspace in the caller's directory from the installed binary, with no framework clone.
-A registered deviation: `decision:parallel-workspaces/workspace-bootstrap/creation-ownership`. The managed blocks are
+The `init` command: creating a workspace in the caller's directory from the installed binary, with no framework clone. A
+registered deviation: `decision:parallel-workspaces/workspace-bootstrap/creation-ownership`. The managed blocks are
 those of [managed-content.md](./managed-content.md); `Termination`, `CommandError`, and `ConfigError` are those of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
 Domain; shape A is that of

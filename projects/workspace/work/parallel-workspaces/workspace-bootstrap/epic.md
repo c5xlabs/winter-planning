@@ -29,5 +29,5 @@ identifies and removes obsolete managed material without adopting a source fork 
 
 Environment creation belongs to `epic:parallel-workspaces/environment-lifecycle`; extension installation and harness
 projection belong to `epic:agent-ready-operation/extension-management` and
-`epic:agent-ready-operation/harness-projection`. Migration of
-existing framework forks belongs to `epic:rust-adoption/workspace-migration`.
+`epic:agent-ready-operation/harness-projection`. Migration of existing framework forks belongs to
+`epic:rust-adoption/workspace-migration`.

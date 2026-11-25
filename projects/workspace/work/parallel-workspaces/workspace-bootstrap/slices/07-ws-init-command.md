@@ -16,9 +16,9 @@ refresh half of `product:managed-content-ownership`.
 
 ## Change
 
-- `crates/core/src/bootstrap.rs` holds `reconcile`, `InitSink`, and the event text
-  renderer `text`; the fan-out runs at most 4 repositories at once on `std::thread::scope` and hands events to the sink
-  on the calling thread in arrival order.
+- `crates/core/src/bootstrap.rs` holds `reconcile`, `InitSink`, and the event text renderer `text`; the fan-out runs at
+  most 4 repositories at once on `std::thread::scope` and hands events to the sink on the calling thread in arrival
+  order.
 - The projects target writes the `winter-workspace/workspace-skills` block after its fan-out.
 - `crates/core/src/commands/ws/init.rs` registers `ws init [--json]`, builds the sink over `output::Results`, writes
   shape C events or the rows of `bootstrap::text`, and ends 1 when the run reported a failure. TARGET and `--all` are
@@ -45,9 +45,9 @@ refresh half of `product:managed-content-ownership`.
   cloned a project and a standalone.
 - A component test: a workspace with projects alone, or under `adopt_extensions = "none"`, writes the `winter-config`
   block and emits no `winter-extensions` event.
-- An executable test in `crates/cli/tests` running two `ws init` processes of the built binary at once over one workspace: both exit 0 or one
-  reports a clone race as that repository's failure; a third run then exits 0, every block and the lock record are
-  present once, and no clone is left without a HEAD.
+- An executable test in `crates/cli/tests` running two `ws init` processes of the built binary at once over one
+  workspace: both exit 0 or one reports a clone race as that repository's failure; a third run then exits 0, every block
+  and the lock record are present once, and no clone is left without a HEAD.
 - `context/verification/matrix.md`'s `workspace:manual-ws-init` includes the interrupt flow: SIGINT during a slow `cmd`
   ends the run with exit 1 and the aborted notice, and the next run reconciles the workspace.
 - A unit test of the fan-out over a recording `RunPrograms`: never more than 4 repositories in flight, and one

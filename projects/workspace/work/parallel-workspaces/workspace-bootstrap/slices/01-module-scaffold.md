@@ -10,11 +10,11 @@ code:
 # The bootstrap modules, errors, and shared ports type
 
 Lands, in one change, the edits `context/architecture/changes.md` requires first of work built as parallel changes: the
-module files present and empty, the error variants, and the shared `Ports`. These
-are the modules of [managed-content.md](../spec/managed-content.md), Domain,
-[reconciliation.md](../spec/reconciliation.md), Domain, [creation.md](../spec/creation.md), Domain, and
-[prune.md](../spec/prune.md), Domain, with the `RepoMessage` and `GitOperation` variants reconciliation.md lists and
-`BootstrapError` of creation.md. Shaped by `engineering:typed-outcomes`.
+module files present and empty, the error variants, and the shared `Ports`. These are the modules of
+[managed-content.md](../spec/managed-content.md), Domain, [reconciliation.md](../spec/reconciliation.md), Domain,
+[creation.md](../spec/creation.md), Domain, and [prune.md](../spec/prune.md), Domain, with the `RepoMessage` and
+`GitOperation` variants reconciliation.md lists and `BootstrapError` of creation.md. Shaped by
+`engineering:typed-outcomes`.
 
 ## Change
 
