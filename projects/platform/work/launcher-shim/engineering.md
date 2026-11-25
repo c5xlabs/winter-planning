@@ -44,8 +44,8 @@ Acceptance:
   metadata fail before synchronization or bootstrap config creation, even with a warm venv.
 - A stub `uv` and fixture venv entrypoint cover cold and warm starts, each dependency input becoming newer than the sync
   stamp, relocated venvs, synchronization failure, and cancellation during synchronization without orphaned processes.
-- Shared-venv fixtures switch A to B and back with older dependency mtimes, assert the source identity in the stamp,
-  and prove each switch synchronizes before execution. Empty pre-Rust stamps also require synchronization.
+- Shared-venv fixtures switch A to B and back with older dependency mtimes, assert the source identity in the stamp, and
+  prove each switch synchronizes before execution. Empty pre-Rust stamps also require synchronization.
 - Overlapping fixtures cover concurrent warm readers, competing cold launches, and A/B source switches. Synchronization
   requires exclusive ownership; the post-setup shared-lease check prevents execution after an intervening source switch.
 - A fixture entrypoint retains its shared lease across exec while another invocation attempts synchronization; normal
@@ -65,16 +65,16 @@ Acceptance:
 
 ## Isolate legacy launch preparation (engineering:legacy-adapter-boundary)
 
-The legacy adapter owns Python source selection, environment preparation, and temporary bootstrap separately from
-modern component resolution, with filesystem and synchronizer effects behind injected boundaries. Serves
+The legacy adapter owns Python source selection, environment preparation, and temporary bootstrap separately from modern
+component resolution, with filesystem and synchronizer effects behind injected boundaries. Serves
 `product:legacy-workspace-dispatch` and `product:legacy-init` under `decision:singleton-launcher-succession`.
 
 Acceptance:
 
 - Modern dispatch and platform help/version neither locate Python nor invoke `uv`, mutate legacy configuration, or
   prepare a virtualenv.
-- Legacy synchronization uses native argument vectors without a shell; subprocess setup and cancellation preserve
-  signal behavior and terminate and reap any synchronizer children before the launcher exits.
+- Legacy synchronization uses native argument vectors without a shell; subprocess setup and cancellation preserve signal
+  behavior and terminate and reap any synchronizer children before the launcher exits.
 - All launcher effects outside process replacement are limited to the legacy adapter's documented dependency setup and
   init path, including its stable venv lockfile and uv's lockfile, cache, build, and managed-Python effects; no Rust
   release cache, role default, or workspace pin is written.

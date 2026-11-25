@@ -34,8 +34,8 @@ managed-content.md, Ports across threads; the program port gains `Program::Shell
   `crates/core/tests/programs.rs` among them, passes `Stdin::Null` and no names, so every git call behaves as before.
   `remove` names are left out of the child environment before `env` applies.
 - `Program::Shell` runs `/bin/sh -c <command>`; `stream` joins the child's stderr to its stdout pipe and hands the
-  caller each line as it arrives, the last one without "\n" included, and returns the exit: a code, or the signal.
-  Its default body returns an `Unsupported` error, so a `RunPrograms` double that streams nothing needs no change.
+  caller each line as it arrives, the last one without "\n" included, and returns the exit: a code, or the signal. Its
+  default body returns an `Unsupported` error, so a `RunPrograms` double that streams nothing needs no change.
 - `OsPrograms::new` gains `inherit_stdin`, which `run` takes from its caller: `main.rs` passes true, `InProcess` false.
 - `context/architecture/structure.md` records the worker threads of `bootstrap.rs` and the inherited stdin as the
   exceptions managed-content.md and reconciliation.md give.
@@ -49,7 +49,7 @@ managed-content.md, Ports across threads; the program port gains `Program::Shell
   final newline yields its last line; `exit 3` returns `Code(3)`; `kill -TERM $$` returns the signal.
 - Unit tests: a `Call` whose `remove` names a variable set in the snapshot starts a child that does not see it; with
   `inherit_stdin` false, a `Stdin::Inherit` child reads empty input.
-- A unit test of the tracer: an operation span opened on a scoped thread while the command span is open is exported as
-  a child of the command span.
+- A unit test of the tracer: an operation span opened on a scoped thread while the command span is open is exported as a
+  child of the command span.
 - Every existing test passes.
 - `cargo dev gate slice` exits 0.

@@ -135,14 +135,14 @@ locate_for_write(root)
 # GIT_DIR relocation of the workspace is not supported, as in the reference
 ```
 
-| Block                        | Lines                                         | Written by                                       | Stripped by                        |
-| ---------------------------- | --------------------------------------------- | ------------------------------------------------ | ---------------------------------- |
-| `winter-dir/projects`        | `/projects/`                                  | `ws init`, projects target                       | never                              |
-| `winter-workspace/artifacts` | `/.winter/logs/`                              | `ws init`, projects target                       | never                              |
-| `winter-workspace/workspace-skills` | the six vendor skill globs of `prefix` | `ws init`, projects target                    | never                              |
-| `winter-dir/<env>`           | `/<env>/`                                     | `epic:parallel-workspaces/environment-lifecycle` | `ws destroy`, that epic            |
-| `winter-config`              | `.winter/config/**/*.local.*`                 | `finalize`, always, whatever the mode            | never                              |
-| `<name>`, no `/` in it       | `/<relative>/`, then the eligible's `extra`   | `finalize`, per eligible                         | `finalize`, when not eligible      |
+| Block                               | Lines                                       | Written by                                       | Stripped by                   |
+| ----------------------------------- | ------------------------------------------- | ------------------------------------------------ | ----------------------------- |
+| `winter-dir/projects`               | `/projects/`                                | `ws init`, projects target                       | never                         |
+| `winter-workspace/artifacts`        | `/.winter/logs/`                            | `ws init`, projects target                       | never                         |
+| `winter-workspace/workspace-skills` | the six vendor skill globs of `prefix`      | `ws init`, projects target                       | never                         |
+| `winter-dir/<env>`                  | `/<env>/`                                   | `epic:parallel-workspaces/environment-lifecycle` | `ws destroy`, that epic       |
+| `winter-config`                     | `.winter/config/**/*.local.*`               | `finalize`, always, whatever the mode            | never                         |
+| `<name>`, no `/` in it              | `/<relative>/`, then the eligible's `extra` | `finalize`, per eligible                         | `finalize`, when not eligible |
 
 ```text
 write_block(root, name, lines)   # reference: modules/workspace/init_service.py:800-841

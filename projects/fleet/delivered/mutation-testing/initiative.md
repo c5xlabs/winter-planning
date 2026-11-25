@@ -26,6 +26,6 @@ the product can regress with the gate still green. Coverage says a line ran; a k
 pinned.
 
 `epic:mutation-testing/diff-scoped` is advisory and in the delivery path, so the feedback reaches the change that
-introduced the weak test while it is still open. `epic:mutation-testing/corpus-sweep` folds it into gardening.
-A reviewer's hand-picked mutations stay the standing complement to the tooling, and the only path open on the frontend
+introduced the weak test while it is still open. `epic:mutation-testing/corpus-sweep` folds it into gardening. A
+reviewer's hand-picked mutations stay the standing complement to the tooling, and the only path open on the frontend
 (`decision:mutation-testing/shape`).

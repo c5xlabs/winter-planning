@@ -18,10 +18,9 @@ result.
   tool, each with a fixture workspace whose repositories clone fixture remotes; event order across repositories is
   compared with `fan_out`.
 - Every fixture standalone declares `extension = false`, and no fixture project holds a `winter-ext.toml` or declares
-  `load` or `entry`, and no fixture holds a workspace skills directory, so the reference runs no extension projection
-  or skill projection, `AGENTS.winter.md` render, or hook, which this
-  binary leaves to `epic:agent-ready-operation/extension-management`; a recording that still shows one is cut down
-  until it does not.
+  `load` or `entry`, and no fixture holds a workspace skills directory, so the reference runs no extension projection or
+  skill projection, `AGENTS.winter.md` render, or hook, which this binary leaves to
+  `epic:agent-ready-operation/extension-management`; a recording that still shows one is cut down until it does not.
 - No production code changes.
 
 ## Acceptance
@@ -29,7 +28,8 @@ result.
 - `ws-init` scenarios: a first run cloning a project and a pinned standalone; a repeat run; a project with a failing
   `cmd`; a missing `url`; excludes appended once; a standalone removed from the configuration, its block stripped; a
   workspace that is a linked worktree.
-- `ws-init` deviation scenarios, each with `[deviation] decision =
+- `ws-init` deviation scenarios, each with
+  `[deviation] decision =
   "decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope"` or
   `decision:parallel-workspaces/workspace-bootstrap/clone-confinement` and its `expected/`: an existing location with a
   different `origin`; a standalone path through a link out of the root.

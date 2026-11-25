@@ -6,14 +6,14 @@ stands in for, and what a fixture applier could drive today. Read from the `bliz
 
 ## Shared concepts
 
-| Concept         | Where                                  | Shared how                                                                                                                                                       |
-| --------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Serving         | `serve.py`                             | By code: every daemon binds first, so `--port 0` works, and writes its listening file atomically once serving                                                    |
-| Clock           | `clock.py`, `clock_api.py`             | By code: system, fixed, and controlled clocks; a controlled clock (both `BLIZZARD_CLOCK=controlled` and `BLIZZARD_CLOCK_FENCE=1`) mounts `/_clock`. The forge keeps a duplicate Protocol in `forge/domain/clock.py` |
+| Concept         | Where                                                      | Shared how                                                                                                                                                                                                                                                                                                |
+| --------------- | ---------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Serving         | `serve.py`                                                 | By code: every daemon binds first, so `--port 0` works, and writes its listening file atomically once serving                                                                                                                                                                                             |
+| Clock           | `clock.py`, `clock_api.py`                                 | By code: system, fixed, and controlled clocks; a controlled clock (both `BLIZZARD_CLOCK=controlled` and `BLIZZARD_CLOCK_FENCE=1`) mounts `/_clock`. The forge keeps a duplicate Protocol in `forge/domain/clock.py`                                                                                       |
 | Levers          | `levers.py`, `forge/domain/levers.py`, `idp/api/levers.py` | By convention only: the `/_levers` shape (`GET`, `POST /reset`, `POST /{kind}`, `DELETE /{kind}`) is common, but the mock hub and mock runner share `levers.py` while the forge (fifteen state and four action levers, scoped by repo, number, branch, or pattern) and the IdP each carry their own model |
-| Ids             | `ids.py`                               | By code, for the mock hub and mock-data: prefixed ULIDs                                                                                                          |
-| Control planes  | per mock                               | By convention: mock hub `/_seed/*`, `/_levers`, `/_captured`; mock runner `/_drive/*`, `/_levers`; forge `/_repos`, `/_levers`                                   |
-| Bare-repo truth | `fixture_workspace/seed.py: TOY_REPOS` | By seed data only: the forge (`forge/internal/git_backend.py`, GitPython) and the fixture workspace (`fixture_workspace/internal/subprocess_git.py`) each run their own git |
+| Ids             | `ids.py`                                                   | By code, for the mock hub and mock-data: prefixed ULIDs                                                                                                                                                                                                                                                   |
+| Control planes  | per mock                                                   | By convention: mock hub `/_seed/*`, `/_levers`, `/_captured`; mock runner `/_drive/*`, `/_levers`; forge `/_repos`, `/_levers`                                                                                                                                                                            |
+| Bare-repo truth | `fixture_workspace/seed.py: TOY_REPOS`                     | By seed data only: the forge (`forge/internal/git_backend.py`, GitPython) and the fixture workspace (`fixture_workspace/internal/subprocess_git.py`) each run their own git                                                                                                                               |
 
 ## The forge's layers
 
@@ -57,20 +57,19 @@ fidelity gaps:
 - Check-run listing ignores paging.
 - Label `color` is ignored.
 - GraphQL ignores fragments and the comment cap.
-- The web destinations serve pull request and commit pages, not the `tree/{branch}` links the hub builds or issue
-  pages.
+- The web destinations serve pull request and commit pages, not the `tree/{branch}` links the hub builds or issue pages.
 
 ## What a fixture applier could drive today
 
 - **Forge.** `POST /_repos` accepts only the `toy-api` and `toy-web` seeds and refuses an existing repo. Issues,
   comments, labels, and pull requests are created through their vendor routes (with a non-GitHub `user` field), and
   state set by `PATCH`. Creating an issue always takes the next number, creating an existing label is refused, and there
-  is no create-by-number or bulk import, so nothing is upsert-shaped. All issue, pull request, comment, label, check, and
-  lever state is in memory: a forge restart keeps the bare repos and loses the rest.
+  is no create-by-number or bulk import, so nothing is upsert-shaped. All issue, pull request, comment, label, check,
+  and lever state is in memory: a forge restart keeps the bare repos and loses the rest.
 - **Fixture workspace.** `mint`, `destroy`, `reset`, `path`. `mint` refuses an existing workspace and always mints the
   fixed toy repos.
-- **mock-data.** `reset`, the `create` verbs, `scenario board|fleet`. Writes are plain inserts through schema reflection,
-  behind the drift guard, so nothing upserts. `fixture list|apply` raise not-implemented.
+- **mock-data.** `reset`, the `create` verbs, `scenario board|fleet`. Writes are plain inserts through schema
+  reflection, behind the drift guard, so nothing upserts. `fixture list|apply` raise not-implemented.
 - **Mock hub.** Its `/_seed/*` tenants, projects, scopes, and system artifacts are insert-or-replace, in memory.
 
 Reconciliation therefore has no foothold yet in any holder of state. Each needs a way to find what a fixture already

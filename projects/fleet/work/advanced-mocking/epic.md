@@ -17,12 +17,12 @@ mock-data CLI creates and resets state in domain terms, so an agent asks for a c
 for rows, and every mock is a real service with levers that steer it into a named edge state. What it cannot build is a
 whole world.
 
-The two presets that come closest, `scenario board` and `scenario fleet`, are Python. Their shape is fixed in code, so
-a new world means a code change, and they compose nothing: a tenant with one team's gardening routines, another's
-graphs, and a third's backlog is not something either can be asked for. They write only the hub and runner stores, so a
-chunk has no issue behind it and the board shows no title, description, or discussion, and the mock forge, which could
-hold all three, starts every env empty. The text they do write is placeholder. Each one runs once against a clean store,
-so adding to a world means resetting it and starting over.
+The two presets that come closest, `scenario board` and `scenario fleet`, are Python. Their shape is fixed in code, so a
+new world means a code change, and they compose nothing: a tenant with one team's gardening routines, another's graphs,
+and a third's backlog is not something either can be asked for. They write only the hub and runner stores, so a chunk
+has no issue behind it and the board shows no title, description, or discussion, and the mock forge, which could hold
+all three, starts every env empty. The text they do write is placeholder. Each one runs once against a clean store, so
+adding to a world means resetting it and starting over.
 
 That cost lands at a concrete moment. An engineer reworking the runner panel wants a screen that looks like a real
 night: a handful of chunks with readable titles, one stuck on a question worth reading, one bounced on a conflict. The

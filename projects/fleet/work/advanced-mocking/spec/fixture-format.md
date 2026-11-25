@@ -16,39 +16,39 @@ blizzard-mock-data fixture apply <file | dir>...
 
 Nothing is written until steps 0 to 4 pass for every file given.
 
-| Kind      | Holds                                                         | Written to                                                                    |
-| --------- | ------------------------------------------------------------- | ----------------------------------------------------------------------------- |
-| shell     | forges, secrets, sources, repositories, projects, urgencies; people | hub `config apply` and secret API; hub store (people, invitations)     |
-| codebase  | a repository's files and commit history                       | mock forge `POST /_seed/repos`                                                |
-| backlog   | labels, issues and their threads; hub-authored work items     | mock forge `POST /_seed/batch`; hub `POST /api/work-sources/hub/items`        |
-| graphs    | graph definitions                                             | hub `POST /api/graphs`                                                        |
-| gardening | scopes, routines, cadences; garden proposals                  | hub `config apply`; hub store (proposals)                                     |
-| runners   | hosts and runners, their presence, brakes, usage samples      | hub store                                                                     |
-| activity  | chunks and their history; the event log                       | hub store; mock forge (pull requests, branches); runner store (`self` mirror) |
+| Kind      | Holds                                                               | Written to                                                                    |
+| --------- | ------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| shell     | forges, secrets, sources, repositories, projects, urgencies; people | hub `config apply` and secret API; hub store (people, invitations)            |
+| codebase  | a repository's files and commit history                             | mock forge `POST /_seed/repos`                                                |
+| backlog   | labels, issues and their threads; hub-authored work items           | mock forge `POST /_seed/batch`; hub `POST /api/work-sources/hub/items`        |
+| graphs    | graph definitions                                                   | hub `POST /api/graphs`                                                        |
+| gardening | scopes, routines, cadences; garden proposals                        | hub `config apply`; hub store (proposals)                                     |
+| runners   | hosts and runners, their presence, brakes, usage samples            | hub store                                                                     |
+| activity  | chunks and their history; the event log                             | hub store; mock forge (pull requests, branches); runner store (`self` mirror) |
 
 Configuration-shaped records go through the hub's own `config apply`, secret API, graph API, and work-item API
 (engineering:public-paths). The stores are written directly only for these, none of which has a public create path that
 accepts a past state: people and invitations (sign-in mints them), garden proposals (a routine run mints them), hosts
-and runners (registration mints them, always as now), and chunks with their history, leases, decisions, bounces,
-usage, and event rows (the fleet mints them by running).
+and runners (registration mints them, always as now), and chunks with their history, leases, decisions, bounces, usage,
+and event rows (the fleet mints them by running).
 
 ## Domain
 
 Every enum below mirrors a blizzard enum by value. mock-data imports nothing from blizzard, so a contract test reads
 blizzard's enums and fails when the two differ, the way the schema drift guard does for tables.
 
-| Enum here          | Mirrors (blizzard)                                    | Values                                                                 |
-| ------------------ | ----------------------------------------------------- | ---------------------------------------------------------------------- |
-| `Status`           | `foundation/chunk_status.py: ChunkStatus`             | the nine derived statuses                                              |
-| `EscalationCause`  | `foundation/escalation_causes.py`                     | `retries-exhausted`, `spend-cap`, `bounce-cap`, `forge-auth`, … (18)   |
-| `Lever`            | `foundation/declared_lever.py: DeclaredLever`         | `floor`, `pace`, `utilization`, `budget`, `schedule`                   |
-| `ClosureKind`      | `foundation/garden_proposals.py`                      | `passed`, `accepted`                                                   |
-| `ItemOutcome`      | `foundation/garden_proposals.py`                      | `minted`, `declined`                                                   |
-| `Role`             | `auth_core: Role`                                     | `guest`, `contributor`, `admin`: a subset; the test checks each exists |
-| `MissReason`       | `foundation/subscription_miss.py: SampleMissReason`   | `credential_lapsed`, `credential_unreadable`, `endpoint_unreachable`, … |
-| `Priority`         | `WorkItemPriority`                                    | `low`, `normal`, `high`                                                |
-| `LandingPolicy`    | `foundation/landing_policy.py`                        | `merge-on-checks`, `fast-forward`, `park`                              |
-| `EventKind`        | `foundation/event_log.py: EventLogKind`               | every kind, each with the severity blizzard maps it to                 |
+| Enum here         | Mirrors (blizzard)                                  | Values                                                                  |
+| ----------------- | --------------------------------------------------- | ----------------------------------------------------------------------- |
+| `Status`          | `foundation/chunk_status.py: ChunkStatus`           | the nine derived statuses                                               |
+| `EscalationCause` | `foundation/escalation_causes.py`                   | `retries-exhausted`, `spend-cap`, `bounce-cap`, `forge-auth`, … (18)    |
+| `Lever`           | `foundation/declared_lever.py: DeclaredLever`       | `floor`, `pace`, `utilization`, `budget`, `schedule`                    |
+| `ClosureKind`     | `foundation/garden_proposals.py`                    | `passed`, `accepted`                                                    |
+| `ItemOutcome`     | `foundation/garden_proposals.py`                    | `minted`, `declined`                                                    |
+| `Role`            | `auth_core: Role`                                   | `guest`, `contributor`, `admin`: a subset; the test checks each exists  |
+| `MissReason`      | `foundation/subscription_miss.py: SampleMissReason` | `credential_lapsed`, `credential_unreadable`, `endpoint_unreachable`, … |
+| `Priority`        | `WorkItemPriority`                                  | `low`, `normal`, `high`                                                 |
+| `LandingPolicy`   | `foundation/landing_policy.py`                      | `merge-on-checks`, `fast-forward`, `park`                               |
+| `EventKind`       | `foundation/event_log.py: EventLogKind`             | every kind, each with the severity blizzard maps it to                  |
 
 ```python
 Key = str                                    # [a-z0-9][a-z0-9-]*, unique within its kind in the env
@@ -216,16 +216,15 @@ Checks made in step 3, beyond the models:
   `gates`. A packaged graph whose node is renamed therefore refuses the fixture rather than seeding a chunk at a node
   that does not exist.
 - A pull request's state agrees with the chunk's status and node: a merged pull request belongs to a chunk at or past
-  its land node; an open one to a chunk at its land node, with checks `pending`. Failed checks are shown as a bounce
-  in a chunk's history, never held on an open pull request, because the hub's land node answers a failed check at
-  once.
+  its land node; an open one to a chunk at its land node, with checks `pending`. Failed checks are shown as a bounce in
+  a chunk's history, never held on an open pull request, because the hub's land node answers a failed check at once.
 - A chunk adopting a hub item declares the graph and project the hub mints it on (`default-delivery`, the item's
   `project`) and the item's urgency; a difference is refused.
 - A `self` chunk's runner is the env's own; `transcript` and `takeover` are accepted on `self` chunks only, since only
   the env's runner serves them.
 
-The models export a JSON Schema, published beside the library with a guide to writing fixtures, so an editor or an
-agent validates a fixture while writing it.
+The models export a JSON Schema, published beside the library with a guide to writing fixtures, so an editor or an agent
+validates a fixture while writing it.
 
 ### Keys and references
 
@@ -242,27 +241,26 @@ A reference resolves against the fixtures in the same apply first, then against 
 
 `--prefix p17-` rewrites, in every file of the apply, these fields and every reference to them:
 
-| Kind      | Rewritten                                                                                       |
-| --------- | ----------------------------------------------------------------------------------------------- |
+| Kind      | Rewritten                                                                                                                                                                                                               |
+| --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | shell     | slugs of sources, repositories, projects, urgencies, and secrets; a repository's `repo` and its source's `locator` name; person `key`, `username`, and the local part of `email`; invitation `key` and email local part |
-| codebase  | `repo.name`                                                                                     |
-| backlog   | issue and hub-item `key`                                                                        |
-| graphs    | graph `name` (packaged names are never rewritten)                                               |
-| gardening | slugs of scopes, routines, cadences; proposal `key`                                             |
-| runners   | host and runner `key` and `name`; subscription slugs                                            |
-| activity  | chunk `key`                                                                                     |
+| codebase  | `repo.name`                                                                                                                                                                                                             |
+| backlog   | issue and hub-item `key`                                                                                                                                                                                                |
+| graphs    | graph `name` (packaged names are never rewritten)                                                                                                                                                                       |
+| gardening | slugs of scopes, routines, cadences; proposal `key`                                                                                                                                                                     |
+| runners   | host and runner `key` and `name`; subscription slugs                                                                                                                                                                    |
+| activity  | chunk `key`                                                                                                                                                                                                             |
 
 `urgency_order` and `settings` belong to the tenant, not to a record, so they have no key. An apply appends the
 fixture's new urgencies to the end of the tenant's live order, in the fixture's order, and sends the whole live order;
 it never reorders urgencies it did not create. `settings` is sent only by an apply with no prefix and only when the
-fixture adopts the urgency it names; otherwise a declared setting that differs from the export is reported
-unreconciled.
+fixture adopts the urgency it names; otherwise a declared setting that differs from the export is reported unreconciled.
 
 Forges, `api_base`, repository `owner`, and the reserved `self` are never rewritten, so every copy shares the env's one
-mock forge and its one runner (product:fixture-targets). A prefixed repository therefore names its own forge
-repository, `blizzard/p17-toy-api`, which its prefixed source reads; when no codebase fixture in the apply creates it,
-the apply creates it with one initial commit. Issues, labels, pull requests, and artifacts name a repository by slug,
-so they follow it.
+mock forge and its one runner (product:fixture-targets). A prefixed repository therefore names its own forge repository,
+`blizzard/p17-toy-api`, which its prefixed source reads; when no codebase fixture in the apply creates it, the apply
+creates it with one initial commit. Issues, labels, pull requests, and artifacts name a repository by slug, so they
+follow it.
 
 ### Tenants
 
@@ -275,8 +273,8 @@ a rerun; every later call of the apply names it in the `X-Blizzard-Tenant` heade
 
 ### Variables
 
-A string may hold `${NAME}`, replaced at parse time with the env variable of that name as `winter env <name>` reports
-it (`BZ_FORGE_PORT`, `BZ_BASE_BRANCH`, …). An unset name refuses the fixture at its line. Nothing else is expanded.
+A string may hold `${NAME}`, replaced at parse time with the env variable of that name as `winter env <name>` reports it
+(`BZ_FORGE_PORT`, `BZ_BASE_BRANCH`, …). An unset name refuses the fixture at its line. Nothing else is expanded.
 
 ### Time
 
@@ -298,10 +296,10 @@ presence: never-connected      # added, never registered
 ```
 
 The hub reads a runner online while its `last_seen_at` is within the offline cutoff, today the constant `STALE_AFTER`
-(five minutes, `blizzard:src/blizzard/hub/domain/runners/registration.py`).
-`product:config/sweep/constants-promoted` makes it a hub setting; a feature env's hub configuration sets it to four
-hours, which is what makes `online` last (product:runner-presence). Until that lands, `online` reads online for five
-minutes after an apply and `offline` is unaffected.
+(five minutes, `blizzard:src/blizzard/hub/domain/runners/registration.py`). `product:config/sweep/constants-promoted`
+makes it a hub setting; a feature env's hub configuration sets it to four hours, which is what makes `online` last
+(product:runner-presence). Until that lands, `online` reads online for five minutes after an apply and `offline` is
+unaffected.
 
 A seeded runner never polls, so nothing it is declared to hold advances: its ready chunks stay ready, and its running
 chunks keep their leases as seeded. The hub never releases a chunk from a runner on its own: a route is released only by
@@ -311,11 +309,11 @@ its own included, which reads online for up to four hours after it stops. A usag
 after its `at` (`EXTERNAL_USAGE_STALE_AFTER`), so a seeded subscription shows its utilization as stale after that.
 
 The hub, not a runner, takes a chunk's turns at a node with `executor: hub`, every two seconds. A delivering chunk
-therefore advances on its own: the apply arms the mock forge's `checks_pending` lever on each of its open pull
-requests, scoped by repository and number and with no expiry. The lever reads the pull request as `mergeable_state:
-blocked`, which the land node answers with `pending`, so it polls in place. It does so
-until the node's `poll_timeout` (three hours on `bas-dwf`), then answers `failure` and the chunk bounces as a real one
-would.
+therefore advances on its own: the apply arms the mock forge's `checks_pending` lever on each of its open pull requests,
+scoped by repository and number and with no expiry. The lever reads the pull request as `mergeable_state:
+blocked`,
+which the land node answers with `pending`, so it polls in place. It does so until the node's `poll_timeout` (three
+hours on `bas-dwf`), then answers `failure` and the chunk bounces as a real one would.
 
 ### Generated filler
 
@@ -355,12 +353,13 @@ blizzard-mock-data reset --env <name>               # extended: also the forge's
 ```
 
 - `--env` resolves every target from `winter env <name>`. A directory is applied as every `*.yaml` in it.
-- `--hub-db` and `--runner-db` name the stores' database URLs and `--hub-api` the hub's HTTP address. The existing
-  verbs keep their own flags; these names are chosen not to collide with their `--hub-url`, which is a database URL.
+- `--hub-db` and `--runner-db` name the stores' database URLs and `--hub-api` the hub's HTTP address. The existing verbs
+  keep their own flags; these names are chosen not to collide with their `--hub-url`, which is a database URL.
 - Step 0 refuses any hub or forge address that is not the env's own loopback port and any store outside the env's
   runtime directories (engineering:env-only-targets).
 - A feature env's hub runs with `auth.mode = "none"`, so the apply calls its API with no credential, as `hub-host.sh`'s
-  `config apply` does today, and holds `config:edit`, `graph:edit`, and `chunk:control` by that mode. Step 0 calls `GET
+  `config apply` does today, and holds `config:edit`, `graph:edit`, and `chunk:control` by that mode. Step 0 calls
+  `GET
   /api/me` with no credential and refuses a hub that answers 401, which also keeps the hosted hub out of reach.
 
 ### Report
@@ -379,8 +378,8 @@ blizzard-mock-data reset --env <name>               # extended: also the forge's
 A record whose key the env already holds is compared on every field the fixture declares, generated text as the apply
 would generate it. Any difference is reported unreconciled, naming the field, and nothing is written for it
 (product:fixture-reconcile). Config records are compared against `GET /api/config/export`, a graph against the tenant's
-effective graph of that name, a repository against its commit history. Exit 0 when `unreconciled` is empty, 3 when it
-is not, 2 on a refusal before any write.
+effective graph of that name, a repository against its commit history. Exit 0 when `unreconciled` is empty, 3 when it is
+not, 2 on a refusal before any write.
 
 ### Mock forge seed routes
 
@@ -441,8 +440,8 @@ sequenceDiagram
   again. An apply cut short at any point is finished by running it again.
 - **Tenant defaults.** Every new tenant holds a project `default` and an urgency `standard`, which is also its
   `default_urgency`. A shell fixture that declares either adopts it: the first apply sends the declared fields as an
-  edit through `config apply` and records the key, after which it is compared like any other. These two, and the
-  chunk a hub item mints, which an apply finishes creating, are the only records an apply writes over.
+  edit through `config apply` and records the key, after which it is compared like any other. These two, and the chunk a
+  hub item mints, which an apply finishes creating, are the only records an apply writes over.
 - **People sign in as themselves.** Each person in a shell fixture is also registered with the mock IdP through
   `POST /_levers/identities`, with `subject` the hash of the person's key, their `username` as `handle`, and their
   email, and the hub user's identity link is written with the same subject. Signing in to the env's board with that
@@ -463,16 +462,16 @@ sequenceDiagram
   chunk's is closed `not_planned`, a convention of the fixtures, since blizzard closes nothing on a stop. Step 3 refuses
   an open issue behind either. The chunk's work ref names the work source whose `locator` is the issue's repository's
   `owner/repo`. Issues no chunk names stay uningested.
-- **Delivery.** The hub finds what to land through a chunk's `git_commit` artifacts, each `branch:<sha>`; a chunk
-  with none lands as having no code. So for every pull request of a delivering or done chunk the apply writes a
-  `git_commit` artifact whose data is `<branch>:<head_sha>`, with its forge and repository, using the `head_sha` the
-  forge returned, so the land node reads the pull request's head as the one it submitted. A repository whose pull
-  request is merged also gets its `delivery_repo_landed` row and merged marker, and a done chunk its `delivery_landed`
-  row. The forge holds the open pull requests' checks pending, as in Presence.
+- **Delivery.** The hub finds what to land through a chunk's `git_commit` artifacts, each `branch:<sha>`; a chunk with
+  none lands as having no code. So for every pull request of a delivering or done chunk the apply writes a `git_commit`
+  artifact whose data is `<branch>:<head_sha>`, with its forge and repository, using the `head_sha` the forge returned,
+  so the land node reads the pull request's head as the one it submitted. A repository whose pull request is merged also
+  gets its `delivery_repo_landed` row and merged marker, and a done chunk its `delivery_landed` row. The forge holds the
+  open pull requests' checks pending, as in Presence.
 - **Hub-item adoption is part of creation.** The hub item's key is recorded when the hub confirms it, with the minted
-  chunk's id. The adopting chunk's key is recorded only in the store transaction that writes its declared state. A
-  rerun that finds the hub item's key without the chunk's finds the minted chunk through it and writes the state then,
-  so an apply cut short between the two is finished by running it again.
+  chunk's id. The adopting chunk's key is recorded only in the store transaction that writes its declared state. A rerun
+  that finds the hub item's key without the chunk's finds the minted chunk through it and writes the state then, so an
+  apply cut short between the two is finished by running it again.
 - A failure in one writer stops the apply. Writes already made stay, with their ledger rows, and the next apply skips
   them.
 - A bounce row's envelope, which the store requires, is written as the land node's answer for its cause, with the
@@ -481,8 +480,8 @@ sequenceDiagram
   `scenario fleet` does today.
 - **Batching.** Rows reach a store in multi-row inserts of at most the store's parameter limit, inside one transaction
   per store; what the env already holds is read with one query per table; the schema is checked once per table; the
-  forge takes each batch in one request; counters a write must advance, such as a runner's outbox sequence, are
-  reserved for the whole batch at once (engineering:bulk-apply).
+  forge takes each batch in one request; counters a write must advance, such as a runner's outbox sequence, are reserved
+  for the whole batch at once (engineering:bulk-apply).
 
 ## Data
 

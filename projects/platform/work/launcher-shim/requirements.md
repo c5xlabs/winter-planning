@@ -41,8 +41,8 @@ Acceptance:
 
 ## Respect the selected version (product:respect-component-version)
 
-A person can work in directories that select different component versions without one changing the other's command,
-and can run hub and runner versions without adopting Workspace configuration. Selection follows
+A person can work in directories that select different component versions without one changing the other's command, and
+can run hub and runner versions without adopting Workspace configuration. Selection follows
 `decision:launcher-shim/version-scope`; the pin, inherited-selection, and user-default records are settled by
 `decision:launcher-shim/version-selection`.
 
