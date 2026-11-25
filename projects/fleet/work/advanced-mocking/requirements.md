@@ -159,3 +159,17 @@ Acceptance:
 
 - Every edge state `scenario board` and `scenario fleet` build, `--stress` included, is in the starter world.
 - Once it is, the `scenario` verbs are removed.
+
+## Open questions
+
+- Which fixture kind holds findings (a garden run's findings and a review's findings) and the states they move through,
+  live, delivered, closed, and reopened, so an engineer can walk the finding verbs against an env without first running
+  a real garden pass?
+- Which fixture kind holds a project's delivery line, its flow places and the submissions waiting in them, so a chunk can
+  be shown queued behind another delivery?
+- How does a fixture state something that is defined by age rather than by content, such as a runner subscription that
+  has lapsed or gone stale, a lease that has exited, or a heartbeat that has stopped, given that a fixture is the state a
+  moment starts from?
+- How does a fixture give a tenant the identities and settings a check needs to act as someone specific, such as a
+  member with no OAuth identity provider, a tenant superuser, a live lease or runner token, or a tenant setting such as
+  forge writes on close?
