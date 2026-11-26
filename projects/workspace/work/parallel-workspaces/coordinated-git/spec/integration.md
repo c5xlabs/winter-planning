@@ -16,11 +16,11 @@ stdin keeps `git merge` and `git rebase` from opening an editor. Reference locat
 ```rust
 // crates/core/src/integration.rs — product:integrate-selected-repositories,
 // decision:parallel-workspaces/coordinated-git/integration-conflicts, engineering:integration-recovery-evidence
-pub(crate) enum Fallback { None, Merge, Rebase, NoFf }   // ff-only; --merge; pull --rebase; merge --no-ff
+pub enum Fallback { None, Merge, Rebase, NoFf }   // ff-only; --merge; pull --rebase; merge --no-ff
 
 /// How one integration ended. The first five are the reference's; the rest are this epic's split of what the
 /// reference reports as Diverged, each a registered deviation under integration-conflicts.
-pub(crate) enum Integrated {
+pub enum Integrated {
     UpToDate,                              // "up_to_date"
     FastForwarded { commits: u64 },        // "fast_forwarded"
     Merged { commits: u64 },               // "merged"
@@ -34,10 +34,10 @@ pub(crate) enum Integrated {
                                            // (Save), or the saved changes could not be re-applied (Restore)
     AbortFailed { error: Box<RepoError> }, // "abort_failed": a conflicted merge or rebase whose --abort failed
 }
-pub(crate) enum AutostashStep { Save, Restore }   // "save" | "restore"; the text line names it
+pub enum AutostashStep { Save, Restore }   // "save" | "restore"; the text line names it
 // engineering:integration-recovery-evidence: error is the RepoError of the git call, GitFailure { Integrate, repo },
 // carrying git's stderr; on Restore the text line adds that the changes remain in the stash
-pub(crate) fn integrate(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, diagnostics: &mut Diagnostics<'_>,
+pub fn integrate(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, diagnostics: &mut Diagnostics<'_>,
     repo: &str, path: &Path, target: &str, fallback: Fallback, autostash: bool) -> Result<Integrated, GitFailure>;
 
 // The IntegrateCheckout of standalone-pins.md is this function with Fallback from its PullMode
@@ -46,6 +46,13 @@ pub(crate) fn integrate(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, 
 
 // termination.rs — GitOperation gains Integrate ("integration"), Abort ("abort of a merge or rebase")
 ```
+
+Visibility: `Fallback`, `Integrated`, `AutostashStep`, and `integrate` are `pub` inside their private module and
+re-exported by name from `lib.rs`, the module's names on a `pub use` line of their own, with every type their signatures
+name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands them tests
+them before a command reaches them (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Only domain entries call `integrate` (`ws pull`, `ws merge`, and `advance`), so
+`integration` is a name no command file may hold (changes.md, A command).
 
 ## Interfaces
 

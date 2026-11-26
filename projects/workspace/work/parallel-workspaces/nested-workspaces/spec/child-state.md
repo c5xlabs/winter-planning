@@ -14,11 +14,11 @@ Message wording is the binary's own (`decision:functional-parity`).
 ```rust
 // crates/core/src/nested/state.rs — product:nested-work-inspection, engineering:nested-loss-evidence
 // reference: modules/workspace/models/domain_model.py:73-118, modules/workspace/nested_status.py
-pub(crate) struct NestedState {
+pub struct NestedState {
     pub envs: Vec<NestedEnv>,              // the child's environments, in its document's order
     pub checkouts: Vec<String>,            // child source checkouts and standalones holding local work, labelled
 }
-pub(crate) struct NestedEnv {
+pub struct NestedEnv {
     pub name: String,
     pub dirty: Vec<String>,                // repo names
     pub unpushed: Vec<String>,             // "<repo> (<reason>, ...)"
@@ -28,19 +28,26 @@ impl NestedState {
     pub fn dirty(&self) -> bool;                       // any env with a dirty repo
     pub fn unpushed(&self) -> Vec<String>;             // "<env>/<entry>" for every env entry, then checkouts
 }
-pub(crate) fn parse(document: &serde_json::Value, present: &[String]) -> Result<NestedState, ShapeFault>;
+pub fn parse(document: &serde_json::Value, present: &[String]) -> Result<NestedState, ShapeFault>;
     // present: the standalones the child declares whose location exists (Derivation, unseen standalone)
-pub(crate) fn reported_root(document: &serde_json::Value) -> Result<Option<&str>, ShapeFault>;
-pub(crate) struct ShapeFault(pub String);          // "<field path> is <value>; expected <kind>"
+pub fn reported_root(document: &serde_json::Value) -> Result<Option<&str>, ShapeFault>;
+pub struct ShapeFault(pub String);          // "<field path> is <value>; expected <kind>"
 
 // the `nested` member of a ws status worktree row (../../coordinated-git/spec/status.md, Domain, WorktreeRow)
-pub(crate) struct NestedMember {
+pub struct NestedMember {
     pub env_count: Option<usize>,          // None when error is set
     pub dirty: bool,
     pub unpushed: bool,
     pub error: Option<String>,             // the rendered RepoError of Nesting::state
 }
 ```
+
+Visibility: `NestedState`, `NestedEnv`, `ShapeFault`, `NestedMember`, `parse`, and `reported_root` are `pub` inside
+their private module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with
+every type their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the
+slice that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing
+unused without an `allow` (`context/standards/rust.md`). A name that would collide at the crate root, such as `parse`,
+is re-exported under a name of its own, as `run_checkout` is. Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

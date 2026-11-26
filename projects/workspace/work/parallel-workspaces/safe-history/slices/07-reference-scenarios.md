@@ -28,6 +28,11 @@ and expected result. Every fixture is a disposable workspace with fixture remote
 - `ws-reset` scenarios: `--soft`, `--mixed`, and `--hard --force` across two worktrees; a refused ambiguous sha; a
   missing ref; `--dry-run`.
 - `ws-clean` scenarios: `--dry-run`; `--force` with an ignored file kept; nothing to clean.
+- Drift scenarios `scenarios/ws-checkout/drift`, `scenarios/ws-reset/drift`, and `scenarios/ws-clean/drift`, each over a
+  fixture whose `projects/` holds a directory no entry declares, after the pattern of `scenarios/repo-list/drift`: the
+  drift notice on stderr before the command's result, as
+  [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md) gives each
+  writer's slice to add.
 - Deviation scenarios, each with its decision and `expected/`: the previous commit of each moved worktree and a blocking
   untracked file refused under `decision:parallel-workspaces/safe-history/pointer-recovery`; a checkout and a reset
   stopped part-way, and a clean stopped part-way, with their failed and unattempted targets, under

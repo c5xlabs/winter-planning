@@ -12,14 +12,14 @@ calls. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
 
 ```rust
 // crates/core/src/fan_out.rs — engineering:bounded-fan-out
-pub(crate) const REMOTE_TASKS: usize = 4;   // reference: modules/workspace/internal/git_ops_service.py:21-24
-pub(crate) const STATUS_PROBES: usize = 8;  // reference: modules/workspace/env_status_service.py:25-32
+pub const REMOTE_TASKS: usize = 4;   // reference: modules/workspace/internal/git_ops_service.py:21-24
+pub const STATUS_PROBES: usize = 8;  // reference: modules/workspace/env_status_service.py:25-32
 
 /// One unit of work. Tasks of one group run one after another on one worker; groups run at once up to the bound.
-pub(crate) struct Group<T> { pub key: String, pub tasks: Vec<T> }
+pub struct Group<T> { pub key: String, pub tasks: Vec<T> }
 
 /// What a worker sends the coordinating thread, in the order it happens.
-pub(crate) enum Message<R> {
+pub enum Message<R> {
     Line(Stream, String),   // a complete diagnostic line the worker's Diagnostics wrote; Stream::Err only
     Done(usize, R),         // the result of task <index>, where index is its position in the flattened input
 }
@@ -27,13 +27,21 @@ pub(crate) enum Message<R> {
 /// Runs `work` for every task of every group with at most `bound` groups in flight, on std::thread::scope
 /// workers. `on_message` runs on the calling thread, which owns stdout and stderr: it writes each line and each
 /// event as it arrives. Returns the results in input order, whatever the completion order.
-pub(crate) fn fan_out<T: Sync, R: Send>(
+pub fn fan_out<T: Sync, R: Send>(
     bound: usize,
     groups: Vec<Group<T>>,
     work: &(dyn Fn(&T, &mut Diagnostics<'_>) -> R + Sync),
     on_message: &mut dyn FnMut(&Message<R>) -> Result<(), Termination>,
 ) -> Result<Vec<R>, Termination>;
 ```
+
+Visibility: `REMOTE_TASKS`, `STATUS_PROBES`, `Group`, `Message`, and `fan_out` are `pub` inside their private module and
+re-exported by name from `lib.rs`, the module's names on a `pub use` line of their own, with every type their signatures
+name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands them tests
+them before a command reaches them (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). `fan_out` is no entry: only domain entries call it, so `fan_out` is a name no command
+file may hold (changes.md, A command), and its `Err` is the `Termination` an entry's `on_message` gave, handed back to
+that entry.
 
 ## Interfaces
 

@@ -46,5 +46,5 @@ is `engineering:bounded-fan-out`'s.
 
 ## Out of scope
 
-- `--strict` and `--no-provision-teardown` are registered by the epics that own the phases they read:
-  `epic:running-environments/resource-provisioning` and `epic:agent-ready-operation/executable-extensions`.
+- `--strict` and `--no-provision-teardown`, and their `Options` fields, are registered by the owners
+  [destroy.md](../spec/destroy.md), System, names.

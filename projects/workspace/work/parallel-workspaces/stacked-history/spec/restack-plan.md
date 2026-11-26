@@ -16,8 +16,11 @@ the worktree `<root>/<env>/<repo>`. Reference locations are paths under `tools/w
 ```rust
 // crates/core/src/restack.rs — product:declare-stack-order, product:review-replay-boundaries,
 // decision:parallel-workspaces/stacked-history/boundary-policy
-pub(crate) struct Chain { pub envs: Vec<String>, pub base: String, pub cut: Option<String> }  // envs top of stack first
-pub(crate) enum Refusal {
+pub struct Chain { pub envs: Vec<String>, pub base: String, pub cut: Option<String> }  // envs top of stack first
+/// The ws restack rules of command-surface.md, Combination rules, in its order, before anything is read: tokens are
+/// ENV... BASE as parsed (at least one, the parser's own rule); the first violation is the one returned.
+pub fn chain(tokens: &[String], cut: Option<String>) -> Result<Chain, ChainError>;
+pub enum Refusal {
     MissingRef,               // "refused-missing-ref"
     Dirty,                    // "refused-dirty"
     RebaseInProgress,         // "refused-rebase-in-progress"
@@ -26,21 +29,47 @@ pub(crate) enum Refusal {
     UnknownBoundary,          // "refused-unknown-boundary"
     CutNotAncestor,           // "refused-cut-not-ancestor"
 }
-pub(crate) struct PlanRefusal {
+pub struct PlanRefusal {
     pub result: Refusal, pub env: String, pub predecessor: String,
     pub repos: Vec<String>,           // sorted; empty for a repeat and for the env or BASE MissingRef
     pub element: Option<String>,      // MissingRef: the env, BASE as typed, or "--cut"; InvertedOrder: the repeated cut
 }
-pub(crate) enum Source { ForkPoint, Cut }              // "fork-point" | "cut"
-pub(crate) struct LinkRepo { pub repo_name: String, pub boundary: Option<Sha>, pub source: Option<Source> }
-pub(crate) struct Link { pub env: String, pub predecessor: String, pub repos: Vec<LinkRepo> }
-pub(crate) enum Plan { Refused(Vec<PlanRefusal>), Links(Vec<Link>) }  // Links bottom link first
-pub(crate) fn plan(ports: &Ports<'_>, workspace: &Workspace, chain: &Chain) -> Result<Plan, Termination>;
+pub enum Source { ForkPoint, Cut }              // "fork-point" | "cut"
+pub struct LinkRepo { pub repo_name: String, pub boundary: Option<Sha>, pub source: Option<Source> }
+pub struct Link { pub env: String, pub predecessor: String, pub repos: Vec<LinkRepo> }
+pub enum Plan { Refused(Vec<PlanRefusal>), Links(Vec<Link>) }  // Links bottom link first
+pub fn plan(ports: &Ports<'_>, workspace: &Workspace, chain: &Chain) -> Result<Plan, RestackError>;
+
+// the module's own errors (changes.md, An error); lib.rs re-exports both with the types their variants carry
+pub enum ChainError {                 // a command error, exit 1, nothing read; reference: modules/workspace/command.py
+    OneToken,                         // "restack requires at least one ENV and a trailing BASE"          (:704)
+    EmptyElement,                     // "Empty chain element is not allowed"                             (:116)
+    GlobElement { element: String },  // "Invalid chain element '<element>' — restack takes literal env names, not
+                                      //  globs"                                                           (:118)
+    ScopedElement { element: String },// "Invalid chain element '<element>' — restack has no '<env>/<repo>' scoping"
+                                      //                                                                   (:120)
+    EmptyBase,                        // "Empty BASE is not allowed"                                       (:709)
+}
+// termination.rs — CommandError gains Chain(#[from] ChainError), rendered transparently
+pub enum RestackError {               // plan's failure; the run ends before any write
+    RefToken(RefTokenError),          // Refusals, step 1a (ref-tokens.md)
+    Repo(Box<RepoError>),             // Reads: a repo error of dirty or branch
+    Internal(Box<InternalError>),     // Reads: a git that cannot be started
+}
+// the command file maps: ChainError -> Command(Chain); RestackError::RefToken -> Command(RefToken),
+// Repo -> Repo, Internal -> Internal, each exit 1, the box handed on as it is
 // termination.rs — GitOperation gains Rebase ("rebase"), the operation of the rebase's repo error
 // (restack-execution.md); branch's repo error is TrackingRead of ../../coordinated-git/spec/push.md
 // spans: restack.rs names "git merge-base" and restack/execute.rs "git rebase", beside git.rs's "git rev-parse"
 // and "git status"; each other call's span is "git <subcommand>"
 ```
+
+Visibility: `chain`, `Chain`, `ChainError`, `plan`, `Plan`, `Refusal`, `PlanRefusal`, `Source`, `LinkRepo`, `Link`,
+`RestackError`, and the reads `tip`, `ancestor`, `fork`, `rebasing`, and `branch` of Reads below are `pub` inside their
+private module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every
+type their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice
+that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused
+without an `allow` (`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 
@@ -65,7 +94,8 @@ branch(wt)    git symbolic-ref --quiet HEAD stripped of refs/heads/; exit 1 -> d
               repo error of the call, TrackingRead
 spans         each call opens the span "git <subcommand>" with winter.repo, as repository-catalog's
               location-listing.md, tracing, gives
-a git that cannot be started is InternalError; dirty and branch reading a repo error end the run with it, exit 1
+a git that cannot be started is RestackError::Internal; dirty and branch reading a repo error end the run with it as
+              RestackError::Repo, exit 1
 ```
 
 ### Refusals
@@ -76,7 +106,8 @@ a git that cannot be started is InternalError; dirty and branch reading a repo e
                  InvertedOrder, repos [], element None; else --cut equal to an env or BASE: the bottom link,
                  InvertedOrder, element the cut. A repeat is the only refusal reported; nothing is read
 1a. tokens       for every non-pinned repo, in configuration order: expand(BASE) and, with --cut, expand(cut)
-                 (ref-tokens.md); a RefTokenError ends the run as its command error, exit 1, before any git call
+                 (ref-tokens.md); a RefTokenError ends the run as RestackError::RefToken, its command error, exit 1,
+                 before any git call
                  # product:parallel-workspaces/ref-tokens; registered deviation,
                  # decision:parallel-workspaces/stacked-history/token-expansion: the reference expands them during
                  # its reads, and the cut only in participating repos
@@ -111,6 +142,7 @@ frozen        boundaries are read once, here; execution reads new bases afresh (
 ### Result
 
 ```text
+# built by commands/ws/restack.rs from the domain's values, documents and text alike (changes.md, A command)
 --json, one document, no discriminator field (output-formats.md)
   refused   {"refusals": [{"result", "env", "predecessor", "repos": [...], "element": str|null}...]}; exit 1
   --dry-run {"links": [{"env", "predecessor", "repos": [{"repo_name", "boundary": sha|null, "source":

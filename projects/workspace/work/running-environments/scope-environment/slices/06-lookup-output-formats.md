@@ -6,19 +6,19 @@ depends-on:
 
 # Reading a lookup's output
 
-Adds the parse and filter of [value-lookups.md](../spec/value-lookups.md), Formats: a finished lookup's stdout read as
-`raw`, `dotenv`, or `json` into named values, then filtered by the `_` and `WINTER_` prefixes and the entry's `exports`.
-Pure: it reads bytes and starts nothing. Delivers the format and allow-list bullets of
-`product:external-value-resolution` and the parse-error bullet of `product:private-runtime-values`, under
+Adds `read_output` of [value-lookups.md](../spec/value-lookups.md), Domain, the parse and filter of its Formats: a
+finished lookup's stdout read as `raw`, `dotenv`, or `json` into named values, then filtered by the `_` and `WINTER_`
+prefixes and the entry's `exports`. Pure: it reads bytes and starts nothing. Delivers the format and allow-list bullets
+of `product:external-value-resolution` and the parse-error bullet of `product:private-runtime-values`, under
 `decision:running-environments/scope-environment/resolution-compatibility`, which keeps the reference's dotenv parsing
 and not its Python JSON spellings.
 
 ## Change
 
-- `scope_env/lookup.rs` gains the parse of each format and the filter, failing as `NotUtf8` or `Output(OutputFault)`; no
-  fault carries an output line or value.
+- `scope_env/lookup.rs` gains `read_output`, the parse of each format and the filter, failing as `NotUtf8` or
+  `Output(OutputFault)`; no fault carries an output line or value.
 - A JSON number keeps the text the program wrote; `crates/core/Cargo.toml` gains what `serde_json` needs for that.
-- No caller yet.
+- `read_output` is re-exported by name from `lib.rs` for its tests (value-lookups.md, Domain); no command calls it yet.
 
 ## Acceptance
 

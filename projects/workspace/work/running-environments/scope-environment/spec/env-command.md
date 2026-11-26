@@ -21,11 +21,16 @@ order
        unknown name          EnvError::UnknownScope, also when a directory of that name exists
        recorded index fault  EnvError::RecordedIndex
        resolution, lookup    EnvError::Resolution; a lookup failure carries its details (value-lookups.md)
-       interrupted lookup    LookupFailure::Interrupted is not Termination::Env: it ends as Termination::Interrupted,
-                             exit 130, nothing written (value-lookups.md, The child); env --resolve joins the
-                             service paths in the 130 row of results-and-exit-codes.md
+       interrupted lookup    EnvError::Interrupted is not Termination::Env: it ends as
+                             Termination::Aborted { interrupted: true }, the aborted notice, exit 1, nothing on
+                             stdout, as results-and-exit-codes.md gives an interrupt outside the service paths and the
+                             reference's click Abort does (cli.py:434-436); the lookup's group is killed first
+                             (value-lookups.md, The child)
   steps 1 to 3 are one domain entry of scope_env, which the command file calls and whose failure it maps
-  (context/architecture/changes.md, A command: a command file names neither config_load nor state_registry)
+  (context/architecture/changes.md, A command: a command file names neither config_load nor state_registry); the
+  entry fails with EnvCommandError { Config(Box<ConfigError>), Env(Box<EnvError>) }, of scope_env.rs and re-exported
+  from lib.rs, which the command file maps: Config -> Termination::Config, Env(Interrupted) ->
+  Termination::Aborted { interrupted: true }, any other Env -> Termination::Env
   4. every line is built in memory, then written to stdout in one write and flushed; exit 0
      a failed write ends as Termination::BrokenPipe or the write's error (runtime.md)
 stdout on failure   nothing: steps 1-3 write no byte to stdout, so `eval "$(winter env x)"` under sh -eu sees an

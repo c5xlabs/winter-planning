@@ -10,23 +10,29 @@ of [restack-plan.md](./restack-plan.md). Reference locations are paths under `to
 ```rust
 // crates/core/src/restack/execute.rs — product:replay-dependent-work, product:resume-stack-rewrite,
 // decision:parallel-workspaces/stacked-history/resume-policy
-pub(crate) enum Outcome { UpToDate, Rebased }           // "up-to-date" | "rebased"
-pub(crate) struct Completed { pub env: String, pub repo_name: String, pub result: Outcome }
-pub(crate) struct Conflict {
+pub enum Outcome { UpToDate, Rebased }           // "up-to-date" | "rebased"
+pub struct Completed { pub env: String, pub repo_name: String, pub result: Outcome }
+pub struct Conflict {
     pub env: String, pub predecessor: String, pub repo_name: String,
     pub replayed_commit: Sha, pub conflicted_paths: Vec<String>,
 }
-pub(crate) struct Failure { pub env: String, pub repo_name: String, pub message: String }
-pub(crate) struct Report {
+pub struct Failure { pub env: String, pub repo_name: String, pub message: String }
+pub struct Report {
     pub completed: Vec<Completed>,
     pub stop: Option<Stop>,           // None: the whole plan ran
     pub remaining: Vec<Link>,         // from the link the run stopped on, to the top; empty when complete
 }
-pub(crate) enum Stop { Conflict(Conflict), Failure(Failure) }
-pub(crate) fn execute(ports: &Ports<'_>, workspace: &Workspace, links: &[Link]) -> Report;
+pub enum Stop { Conflict(Conflict), Failure(Failure) }
+pub fn execute(ports: &Ports<'_>, workspace: &Workspace, links: &[Link]) -> Report;
 // no state is written anywhere for a later run: a re-run plans from Git alone
 // the rebase's repo error is GitOperation::Rebase, which restack-plan.md's Domain adds; its span "git rebase"
 ```
+
+Visibility: `execute`, `Report`, `Stop`, `Completed`, `Outcome`, `Conflict`, and `Failure` are `pub` inside their
+private module and re-exported by name from `lib.rs`, on a `pub use` line of their own, with every type their signatures
+name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands them tests
+them before a command calls them (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 
@@ -70,6 +76,7 @@ as the reference does
 ### Result
 
 ```text
+# built by commands/ws/restack.rs from the domain's values, documents and text alike (changes.md, A command)
 --json, one document, written at the end (shape A)
   {"links": [{"env", "predecessor", "repos": [{"repo_name", "boundary", "source", "outcome"}...]}...],
    "completed": [{"env", "repo_name", "result"}...],

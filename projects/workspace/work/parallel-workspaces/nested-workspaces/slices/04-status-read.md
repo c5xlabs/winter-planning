@@ -27,7 +27,8 @@ disk, as [child-state.md](../spec/child-state.md), Derivation, unseen standalone
 - `present` reads the child's `.winter/config.toml` and `.winter/config.local.toml` merged as configuration-model.md,
   Layering, gives, and checks each standalone's location of location-listing.md under the child root; either file not
   valid TOML is `NestedConfigUnreadable`.
-- No command calls it yet.
+- `Nesting`, with `new`, `state`, and `ensure_verified`, is re-exported by name from `lib.rs` for its component tests
+  ([invocation.md](../spec/invocation.md), Domain); no command calls it yet.
 
 ## Acceptance
 

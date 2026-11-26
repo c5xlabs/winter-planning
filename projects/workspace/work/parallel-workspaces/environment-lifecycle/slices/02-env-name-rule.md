@@ -20,7 +20,8 @@ a registered deviation. The commands apply it in `ws-init-env`, `ws-init-all`, a
   gains the crates that provide both.
 - `Reserved::of` takes the first component of each loaded standalone's path, else of its resolved name, and always
   reserves `workspace` and `projects`.
-- No command calls it yet.
+- `check` and `Reserved` are re-exported by name from `lib.rs` for its tests ([env-names.md](../spec/env-names.md),
+  Domain); no command calls them yet.
 
 ## Acceptance
 

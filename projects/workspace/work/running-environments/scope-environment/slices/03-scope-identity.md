@@ -23,7 +23,8 @@ nothing here allocates, probes, or records. Delivers the identity bullets of `pr
   `WINTER_WORKSPACE_PORT_BASE`, and `WINTER_SERVICE_PREFIX`, are built in that order from an `Identity`; the five names
   are one list that `run-lookup` removes from a lookup's environment and the Launch environment of
   [consumers.md](../spec/consumers.md) names.
-- No command calls it yet.
+- `identity`, `WORKSPACE_SCOPE`, `Scope`, and `Identity` are re-exported by name from `lib.rs` for its tests
+  ([scope-identity.md](../spec/scope-identity.md), Domain); no command calls them yet.
 
 ## Acceptance
 

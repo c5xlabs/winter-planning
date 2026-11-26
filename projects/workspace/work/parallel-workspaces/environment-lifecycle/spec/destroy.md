@@ -31,6 +31,17 @@ Phases that other epics own, at the position the per-target order below gives th
 | Provision teardown run and its dry-run plan              | 5, 7       | `epic:running-environments/resource-provisioning`  |
 | `on_env_destroy` hooks, run as invocation-contract.md    | 8          | `epic:agent-ready-operation/executable-extensions` |
 
+The options those phases read are registered by their owners, each adding its field to `Options`; this epic registers
+`--force`, `--dry-run`, and `--json` alone:
+
+| Option                    | Registered by, with its `Options` field                                         | Also read by                                                                                                                               |
+| ------------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `--strict`                | `epic:agent-ready-operation/executable-extensions`, `Options.strict`            | `epic:running-environments/resource-provisioning`, provision teardown; `epic:parallel-workspaces/nested-workspaces`, forwarded to children |
+| `--no-provision-teardown` | `epic:running-environments/resource-provisioning`, `Options.provision_teardown` | `epic:parallel-workspaces/nested-workspaces`, forwarded to children                                                                        |
+
+Until an option's owner lands, a destroy behaves as one without that option: no `--strict`, and provision teardown on.
+The owner that adds a field also sets the matching field of `Forwarded` (teardown.md, Forwarded) from it.
+
 The nested phases are [teardown.md](../../nested-workspaces/spec/teardown.md); invocation-contract.md is
 [../../../agent-ready-operation/executable-extensions/spec/invocation-contract.md](../../../agent-ready-operation/executable-extensions/spec/invocation-contract.md).
 
@@ -39,15 +50,17 @@ The nested phases are [teardown.md](../../nested-workspaces/spec/teardown.md); i
 ```rust
 // crates/core/src/env_destroy.rs — product:destroy-environments, product:environment-recovery
 // decision:parallel-workspaces/environment-lifecycle/teardown-policy
-pub(crate) struct Options { pub force: bool, pub strict: bool, pub dry_run: bool, pub provision_teardown: bool }
+pub struct Options { pub force: bool, pub dry_run: bool }   // the owners of System's options add their fields
 pub(crate) fn select(ports: &Ports<'_>, workspace: &Workspace, registry: &[(String, i64)], patterns: &[String])
     -> Result<Vec<String>, CommandError>;
-pub(crate) fn destroy(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace,
-    name: &str, options: Options, sink: &mut InitSink<'_>) -> Result<bool, Termination>;
-    // Ok(success of the target); Err only for a sink that cannot write
+// RunEnd is that of pins/repin.rs, already re-exported at the crate root, as reconciliation.md's reconcile answers it
+pub fn destroy(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace,
+    name: &str, options: Options, sink: &mut InitSink<'_>) -> RunEnd;
+    // Completed { success } of the target; Stopped(the sink's ending) for a sink that cannot write; it has no failure
+    // of its own: every other fault is an event of the target
 
 // what the env directory holds, read once before any effect; engineering:teardown-evidence-completeness
-pub(crate) struct Inventory {
+pub struct Inventory {
     // the projects whose <root>/<env>/<name> passes owned (Per target, step 2), in merged order
     pub declared: Vec<(ProjectRepository, PathBuf)>,
 }
@@ -91,6 +104,13 @@ pub enum ProvisionCause { Config(String), Status(String) }   // "config error: <
 // GitOperation gains WorktreeRemove
 ```
 
+Visibility: `Options`, `Inventory`, and `destroy` are `pub` inside their private module and re-exported by name from
+`lib.rs`, on a `pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A
+domain module, of `winter-workspace`), so the slice that lands each tests it before a command calls it
+(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
+`worktree_remove` is `pub` and re-exported on the `pub use git::` line, as the built operations of `git.rs` are.
+Everything else here stays `pub(crate)`.
+
 ## Interfaces
 
 ### Selection
@@ -120,7 +140,8 @@ order, before any prompt, git call, or write
   8. destroy(name) for each name, in order, one at a time; every one attempted whatever an earlier one reported
      # decision:parallel-workspaces/partial-execution: attempt all, exit 1; target_started and target_completed
      # name each completed and failed target, and a stop on an unwritable stdout leaves the rest unattempted
-  exit 1 when any destroy returned false; else 0
+  exit 1 when any destroy completed without success; else 0; a Stopped destroy ends the invocation with its ending,
+  and the rest are not attempted
 lock-and-state.md = ../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md
 location-listing.md = ../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md
 ```

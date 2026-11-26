@@ -19,7 +19,12 @@ locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspac
 ```rust
 // crates/core/src/refresh.rs — product:integrate-selected-repositories,
 // decision:parallel-workspaces/coordinated-git/fetch-freshness
-pub(crate) enum Scope { Project, Standalone, All }        // default; --standalone; --all
+pub(crate) enum Scope { Project, Standalone, All }        // default; --standalone; --all; also ws merge's, ws push's
+
+/// The tracking operand of the active branch at `path`, with no commit check: "<R>/<M less a leading refs/heads/>"
+/// of branch.<head>.remote R and branch.<head>.merge M; None when HEAD is detached or either is unset (ws pull,
+/// step 4). ws pull adds the commit check; ws push and ws status read it as it is.
+pub fn tracking_operand(ports: &Ports<'_>, path: &Path) -> Result<Option<String>, GitFailure>;
 
 /// The refresh of one project through its source checkout, <root>/projects/<repo>.
 pub(crate) struct SourceSync {
@@ -68,6 +73,12 @@ pub(crate) enum RefreshError { Config(Box<ConfigError>), Selection(SelectionErro
 // termination.rs — GitOperation gains SourceSync ("source checkout sync")
 ```
 
+Visibility: `tracking_operand` is `pub` inside its private module and re-exported by name from `lib.rs` on a `pub use`
+line of the module's own (`context/architecture/changes.md`, A domain module, of `winter-workspace`), since it lands
+with `ws fetch`, which does not call it, so its slice tests it before `ws pull`, `ws push`, and `ws status` do
+(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
+Everything else here stays `pub(crate)`.
+
 ## Interfaces
 
 ### Source sync
@@ -111,12 +122,12 @@ order
   1-3 as ws fetch
   4. targets := each selected worktree, upstream decided at its turn:
        pinned      origin/<main_branch>
-       non-pinned  its own upstream, read after the refresh:
+       non-pinned  its own upstream, read after the refresh by tracking_operand:
                      h := git symbolic-ref --quiet --short HEAD; exit 1 -> no upstream
                      R := git config --get branch.<h>.remote, M := git config --get branch.<h>.merge; either
                      exit 1 -> no upstream
-                     operand := "<R>/<M less a leading refs/heads/>"; it must name a commit
-                     (git rev-parse --verify --quiet <operand>^{commit}), else no upstream
+                     operand := "<R>/<M less a leading refs/heads/>"; then the commit check: it must name a
+                     commit (git rev-parse --verify --quiet <operand>^{commit}), else no upstream
                      # a configured but unfetched upstream, and a local upstream R = ".", read as no upstream
                    no upstream -> Synced no_upstream, nothing integrated
   5. no target and no standalone -> no event; text "Nothing to pull", dim; --json writes nothing; exit 0
@@ -125,7 +136,7 @@ order
          refs already local; a warning -> source_checkout_warning; then each target in selection order:
          integrate(path, upstream, fallback, autostash) -> repo_synced
        per standalone: fetch(path); a failure -> refresh_failed, and the standalone still integrates on local refs
-         no ref declared: the operand of its active branch as above, without the commit check; no branch or no
+         no ref declared: tracking_operand of its active branch, without the commit check; no branch or no
                           R and M -> no_upstream; else integrate, where an operand naming no commit ends
                           missing_ref (WRR:762-773 integrates it unchecked and reports diverged)
          ref declared:    advance(...) of standalone-pins.md with this leaf's integrate as IntegrateCheckout;

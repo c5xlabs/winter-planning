@@ -5,6 +5,7 @@ depends-on:
   - ref-tokens
   - fan-out
   - integration
+  - ws-fetch
 ---
 
 # The `ws merge` command
@@ -20,6 +21,7 @@ Delivers the arbitrary-ref bullets of `product:integrate-selected-repositories` 
 
 ## Change
 
+- `merge` takes `Scope` of `ws-fetch` ([refresh.md](../spec/refresh.md), Domain).
 - `crates/core/src/merge.rs` holds `PinnedScope`, `MergeMode`, `MergeEvent`, `MergeResult`, `merge`, and `MergeError`; a
   missing source ref is `skipped-missing-ref`, a held standalone `held_pin`.
 - `crates/core/src/commands/ws/merge.rs` registers the command with `--standalone`, `--all`, `--ff-only`, `--merge`,
@@ -35,6 +37,8 @@ Delivers the arbitrary-ref bullets of `product:integrate-selected-repositories` 
 - Component tests: a ref missing in one repository is `skipped-missing-ref` there and merged elsewhere; `--no-ff`
   creates a merge commit; a conflicting merge is aborted and `diverged`.
 - A component test: `--only-pinned` acts on pinned worktrees alone and `--exclude-pinned` on the rest.
+- A component test: `--standalone` with an absent standalone warns it, names it in a `target_missing` event under
+  `--json`, and starts no git process in it.
 - A component test: with `--standalone`, a standalone held at a tag is `held_pin` and its HEAD does not move, and a
   branch-pinned one is merged with its lock record unchanged.
 - `cargo dev gate slice` exits 0.

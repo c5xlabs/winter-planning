@@ -18,7 +18,8 @@ that `epic:parallel-workspaces/workspace-bootstrap` adds.
 - `crates/core/src/git.rs` gains `push_default` and `set_push_default_upstream`, each a `git config` call through the
   program port with the span `git config`; a non-zero exit other than `push_default`'s exit 1 is
   `GitFailure::Repo { Config, repo }`.
-- No command calls them yet.
+- Both are re-exported by name from `lib.rs` for its tests ([push-default.md](../spec/push-default.md), Domain); no
+  command calls them yet.
 
 ## Acceptance
 

@@ -23,7 +23,8 @@ Delivers `product:environment-worktrees`, the creation half of `product:stable-e
 
 - `crates/core/src/env_create.rs` holds `reconcile_env`: allocate before the env directory exists, then the directory,
   the `winter-dir/<env>` self-exclude block, the source check, inference over the existing non-pinned worktrees, and
-  `worktree::run` per ready project, at most 4 at once, in reconciliation.md's fan-out.
+  `worktree::run` per ready project, at most 4 at once, in reconciliation.md's fan-out; it answers `RunEnd`, the
+  target's success, or the ending of a sink that could not write, which the command returns.
 - The `moved` callback of `state_registry::allocate` emits the `index_moved` action before the write; an allocation
   error fails the target with nothing created; a directory failure keeps the recorded index.
 - `bootstrap.rs`'s `Action` gains `IndexMoved`.

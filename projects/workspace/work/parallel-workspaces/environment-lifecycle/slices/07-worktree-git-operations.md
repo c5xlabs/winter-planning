@@ -17,10 +17,11 @@ share. Serves `product:environment-worktrees` and the store and registration che
 ## Change
 
 - `crates/core/src/git.rs` gains the five operations, each failing as `GitFailure` with its `GitOperation`.
-- `crates/core/src/env_create/worktree.rs` gains `head_branch`, `setting`, `tracking`, and `set_upstream`, `pub(crate)`
-  so `ws list` reads them; `set_upstream` writes `branch.<head>.remote` and `branch.<head>.merge` directly, so a
+- `crates/core/src/env_create/worktree.rs` gains `head_branch`, `setting`, `tracking`, and `set_upstream`, which
+  `ws list` also reads; `set_upstream` writes `branch.<head>.remote` and `branch.<head>.merge` directly, so a
   never-pushed branch can be the upstream.
-- No command calls them yet.
+- The five operations and the four tracking functions are re-exported by name from `lib.rs` for its tests
+  ([init.md](../spec/init.md), Domain); no command calls them yet.
 
 ## Acceptance
 

@@ -19,7 +19,9 @@ deviations.
 - `crates/core/src/env_index.rs` gains `Allocation`, `allocate`, `RegistryFinding`, `Reserved`, `findings`, and
   `EnvIndexError`, beside the built `lookup`, whose answer is unchanged.
 - `allocate` probes the hash band as lock-and-state.md gives it, from the registry passed in, and records nothing.
-- No command calls either yet.
+- `Allocation`, `allocate` (as `allocate_index`), `RegistryFinding`, `Reserved` (as `ReservedSlot`), `findings`, and
+  `EnvIndexError` are re-exported by name from `lib.rs` for its tests ([allocation.md](../spec/allocation.md), Domain);
+  no command calls them yet.
 
 ## Acceptance
 

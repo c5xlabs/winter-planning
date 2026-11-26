@@ -13,13 +13,18 @@ worktree reconciliation of `ws init` here ([init.md](./init.md)), `ws connect` o
 ```rust
 // crates/core/src/git.rs — product:parallel-workspaces/upstream-push-default
 /// The effective push.default the checkout at `path` reads, every scope merged; None when unset.
-pub(crate) fn push_default(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, repo: &str, path: &Path)
+pub fn push_default(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, repo: &str, path: &Path)
     -> Result<Option<String>, GitFailure>;
 /// Writes push.default=upstream to the repository configuration of the checkout at `path`.
-pub(crate) fn set_push_default_upstream(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, repo: &str,
+pub fn set_push_default_upstream(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, repo: &str,
     path: &Path) -> Result<(), GitFailure>;
 // both are GitOperation::Config, span "git config"
 ```
+
+Visibility: `push_default` and `set_push_default_upstream` are `pub` and re-exported by name from `lib.rs` on the
+`pub use git::` line, as the built operations of `git.rs` are (`context/architecture/changes.md`, A domain module, of
+`winter-workspace`), so the slice that lands each tests it before a command calls it (`context/standards/testing.md`)
+and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
 
 ## Interfaces
 

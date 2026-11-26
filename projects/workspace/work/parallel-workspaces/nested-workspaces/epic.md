@@ -33,3 +33,10 @@ Nothing runtime-shaped is left to another epic. The child's runtime is retired b
 `ws destroy` runs the child's provision teardown and stops its env services, and its `service down workspace` stops its
 workspace services, so this epic needs neither the service-orchestration nor the provisioning capability of the outer
 workspace. Provider behaviour inside the child stays with the child's own providers.
+
+Forwarding `--strict` and `--no-provision-teardown` to each child's `ws destroy`
+(`product:nested-teardown-preservation`) is left to the epics that register those options on `ws destroy` and add their
+`Options` fields: `epic:agent-ready-operation/executable-extensions` sets `Forwarded.strict` and
+`epic:running-environments/resource-provisioning` sets `Forwarded.provision_teardown` of
+[teardown.md](./spec/teardown.md), Forwarded, as their engineering.md files record. Until each lands, this epic forwards
+what a destroy without that option means.

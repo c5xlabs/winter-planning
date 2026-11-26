@@ -23,7 +23,7 @@ under `decision:parallel-workspaces/environment-lifecycle/teardown-policy` and
 ## Change
 
 - `crates/core/src/env_destroy.rs` holds `Options` with `force`, `Inventory`, and `destroy`, which emits `InitEvent`s
-  through an `InitSink` and answers the target's success.
+  through an `InitSink` and answers `RunEnd`: the target's success, or the ending of a sink that could not write.
 - An env directory resolving outside the root fails `UnsafeLocation` with nothing removed; a missing one with a record
   is stripped, released, and reported `env_missing`.
 - A declared location must pass `owned` at inventory and again just before its removal; anything else in the env
@@ -33,7 +33,8 @@ under `decision:parallel-workspaces/environment-lifecycle/teardown-policy` and
 - A failed removal stops the target with `WorktreesKept`, keeping the directory, the exclude block, and the index.
 - `git.rs` gains `worktree_remove`; `WriteFiles` gains `remove_empty_dir`, which `OsFiles` implements with
   `std::fs::remove_dir`; `bootstrap.rs`'s `Action` gains `WorktreeRemoved`, `EnvRemoved`, `EnvMissing`, and `EnvKept`.
-- No command calls `destroy` yet.
+- `Options`, `Inventory`, `destroy`, and `worktree_remove` are re-exported by name from `lib.rs` for its tests
+  ([destroy.md](../spec/destroy.md), Domain); no command calls `destroy` yet.
 
 ## Acceptance
 
@@ -62,5 +63,6 @@ under `decision:parallel-workspaces/environment-lifecycle/teardown-policy` and
 - The nested audit, losses, and teardown (steps 3 and 6, and the child entries of step 4) belong to
   `epic:parallel-workspaces/nested-workspaces`; provision teardown (step 7, and `--no-provision-teardown`) to
   `epic:running-environments/resource-provisioning`; the `on_env_destroy` hooks (step 8) to
-  `epic:agent-ready-operation/executable-extensions`. `--strict` reads only those two phases and lands with them.
+  `epic:agent-ready-operation/executable-extensions`; `--strict` and `--no-provision-teardown`, with their `Options`
+  fields, are registered as [destroy.md](../spec/destroy.md), System, gives.
 - The preview of step 5 lands with `teardown-preview`.

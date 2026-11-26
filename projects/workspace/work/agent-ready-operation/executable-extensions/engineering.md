@@ -38,6 +38,19 @@ Hook dispatch records phase prerequisites, attempts, skips, and results independ
 results. Automatic retries are prohibited until the hook's repeatability contract permits them, and strict teardown
 cannot erase already-completed earlier effects from its report. Serves `product:lifecycle-contributions`.
 
+This epic registers `--strict` on `ws destroy` and adds `Options.strict` to
+[destroy.md](../../parallel-workspaces/environment-lifecycle/spec/destroy.md), Domain, as its System table assigns; its
+`on_env_destroy` phase reads it, and the same change sets `Forwarded.strict` of
+[teardown.md](../../parallel-workspaces/nested-workspaces/spec/teardown.md), Forwarded, from it, so each nested child's
+`ws destroy` receives the option, which nested-workspaces leaves to the option's owner.
+
+Acceptance:
+
+- With `--strict`, a failed `on_env_destroy` hook ends the target with `StrictAbort` naming the hook phase and keeps the
+  env's worktrees; without it, the failure is reported and the teardown continues.
+- A `ws destroy --force --strict` of an env holding a nested child starts the child's `winter ws destroy <env>` with
+  `--force` and `--strict`, and one without `--strict` starts it without.
+
 ## Isolated conformance effects (engineering:conformance-isolation)
 
 Conformance execution defaults to non-mutating probes or isolated stand-ins; invoking real provider action words with a

@@ -23,15 +23,17 @@ written as `engineering:toml-library` and `decision:toml-parity` give.
   as the built `read_in_order` does, so a refusal there is `AllocateError::State` and nothing is written.
 - `allocate` calls its `moved(from, to)` callback inside the edit, before the edited document is returned, for a `Moved`
   answer alone; `Recorded` returns no document, so the file is not rewritten.
-- A new or moved entry is written into the parsed document with every other key and entry kept; an inline or non-table
-  `env_index` comes back as a standard table.
-- No command calls either yet.
+- A new or moved entry, and a release, are edits of the current text as a `toml_edit::DocumentMut`, keeping every other
+  key, entry, and comment in its order; an inline or non-table `env_index` comes back as a standard table.
+- `allocate` (as `allocate_env`), `release`, and `AllocateError` are re-exported by name from `lib.rs` for its tests
+  ([allocation.md](../spec/allocation.md), Domain); no command calls them yet.
 
 ## Acceptance
 
 - Component tests over a temporary workspace: `New` adds the name last with the other entries and every other top-level
-  key kept; `Recorded` leaves the file's bytes unchanged; an inline `env_index` is written back as a standard table
-  holding its entries and the new name; a missing state file is created holding the one entry.
+  key kept; a comment and another top-level key of the old file survive both an `allocate` and a `release`; `Recorded`
+  leaves the file's bytes unchanged; an inline `env_index` is written back as a standard table holding its entries and
+  the new name; a missing state file is created holding the one entry.
 - A component test: for `Moved`, the callback runs once with `(from, to)` while the file still holds `from`, and the
   file holds `to` once `allocate` returns.
 - Component tests: a state file that is not UTF-8 or not TOML ends `AllocateError::State` with `FileRead` naming the

@@ -22,12 +22,15 @@ deviations.
 
 ## Change
 
-- `crates/core/src/history/clean.rs` gains the report types, `preview`, and `clean`: a preview failure ends the command
-  before anything is removed; `remove` visits every target, also one the preview showed empty, and a failed call or
-  strict parse stops the run with the paths recognised and the targets not reached.
+- `crates/core/src/history/clean.rs` gains the report types, `preview`, and `clean`, and the run writes the drift
+  warning of clean.md, Running, step 2, through `drift::detect` and `drift::notice_line` before selection; a preview
+  failure is `CleanError` and ends the command before anything is removed; `remove` visits every target, also one the
+  preview showed empty, and a failed call or strict parse stops the run with the paths recognised and the targets not
+  reached.
 - `crates/core/src/commands/ws/clean.rs` registers the command with `--force`, `--dry-run`, and `--json`; `--json`
-  without `--force` or `--dry-run` is `HistoryError::JsonNeedsForce` before any git call; it writes the preview and
-  confirms otherwise, even for one worktree, then the `target_missing` events and shape C events or the text.
+  without `--force` or `--dry-run` is `HistoryError::JsonNeedsForce` before any git call; it maps a `CleanError` to its
+  `Termination` as clean.md, Domain, gives, and writes the preview and confirms otherwise, even for one worktree, then
+  the `target_missing` events and shape C events or the text.
 - `crates/core/topics/ws/clean.md`, referenced from the `ws` group topic: clean removes untracked files from the
   worktrees its patterns select, never ignored files or a pinned worktree, cannot be undone, and is not the top-level
   `clean` of `epic:running-environments/resource-provisioning`.
@@ -49,4 +52,7 @@ deviations.
   paths removed, `failure` names it and the third as unattempted, the third keeps its untracked files, and the command
   exits 1; the text says the listed paths are gone for good.
 - A component test: a pinned worktree the pattern matches keeps its untracked files.
+- A component test: over a workspace with a drifted project, the drift notice of
+  [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md) is written on
+  stderr before the result, also under `--json`, through `drift::detect` and `drift::notice_line`.
 - `cargo dev gate slice` exits 0.

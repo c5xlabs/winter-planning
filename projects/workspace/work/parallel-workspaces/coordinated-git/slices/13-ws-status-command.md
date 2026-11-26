@@ -34,6 +34,8 @@ tracking of `product:worktree-upstream-control`, under `decision:command-vocabul
   `(not fetched)` in text.
 - A component test: a clean, fully pushed workspace exits 0; a dirty matched worktree exits as results-and-exit-codes.md
   gives; an unknown literal environment exits 2 with nothing on stdout.
+- A component test, per the `ws status` block of results-and-exit-codes.md: with PATTERNS matching a clean worktree, an
+  orphan and a dirty source checkout leave the exit at 0; without PATTERNS, the same workspace exits 1.
 - A component test: `--fetch` with the remote gone reports the failed refresh and exits 1; without `--fetch` no
   `git fetch` runs, as a recording program port shows.
 - `cargo dev gate slice` exits 0.

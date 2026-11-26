@@ -161,7 +161,8 @@ cwd:    workspace root
 stdin:  inherited from the binary; a provider can read the terminal
 env:    the binary's environment, plus the base five, plus the table below; for an action whose row carries the scope
         trio, the binary's environment first loses the names of the remove list of the Launch environment of
-        ../../scope-environment/spec/consumers.md, so a caller's stale scope identity never reaches the provider
+        ../../scope-environment/spec/consumers.md, as its launch_environment answers them, so a caller's stale scope
+        identity never reaches the provider
         (decision:running-environments/scope-environment/inherited-environment)
         GIT_TERMINAL_PROMPT is not set by the binary; a value already in its environment is inherited
 ```

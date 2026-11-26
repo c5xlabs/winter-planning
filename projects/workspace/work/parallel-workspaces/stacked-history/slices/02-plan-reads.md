@@ -18,13 +18,13 @@ read's repo error is `TrackingRead` of [push.md](../../coordinated-git/spec/push
 
 ## Change
 
-- `crates/core/src/restack.rs` gains `tip`, `ancestor`, `fork`, `rebasing`, and `branch`, `pub(crate)` so
-  `restack/execute.rs` reads through them; `tip` reads a fully qualified ref, so `refs/heads/<env>` never resolves to a
-  same-named tag.
+- `crates/core/src/restack.rs` gains `tip`, `ancestor`, `fork`, `rebasing`, and `branch`, which `restack/execute.rs`
+  also reads through; `tip` reads a fully qualified ref, so `refs/heads/<env>` never resolves to a same-named tag.
 - A missing worktree, or a directory that is no repository, reads as `None` or false in `tip`, `ancestor`, and `fork`;
   `branch` answers `None` on exit 1 and `GitFailure::Repo` with `TrackingRead` on any other exit.
 - `restack.rs` names the `git merge-base` span its `ancestor` and `fork` calls open.
-- No command calls them yet.
+- `tip`, `ancestor`, `fork`, `rebasing`, and `branch` are re-exported by name from `lib.rs` for its tests
+  ([restack-plan.md](../spec/restack-plan.md), Domain); no command calls them yet.
 
 ## Acceptance
 

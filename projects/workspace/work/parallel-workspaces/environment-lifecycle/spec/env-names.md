@@ -11,12 +11,12 @@ paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2
 ```rust
 // crates/core/src/env_name.rs — pure: it reads nothing and runs nothing. product:environment-targets
 // engineering:worktree-effect-confinement: a name that passes is one directory directly under the root
-pub(crate) fn check(name: &str, reserved: &Reserved) -> Result<(), EnvNameError>;
+pub fn check(name: &str, reserved: &Reserved) -> Result<(), EnvNameError>;
 
 // the first components no environment may take, from the loaded configuration
-pub(crate) struct Reserved { pub standalones: Vec<String> }
+pub struct Reserved { pub standalones: Vec<String> }
 impl Reserved {
-    pub(crate) fn of(config: &WorkspaceConfig) -> Self;   // below, Reserved names
+    pub fn of(config: &WorkspaceConfig) -> Self;   // below, Reserved names
 }
 
 // crates/core/src/termination.rs — CommandError gains EnvName(#[from] EnvNameError)
@@ -49,6 +49,12 @@ pub enum ReservedLocation {
     Standalone { name: String, path: String },   // the first component of that standalone's location
 }
 ```
+
+Visibility: `check` and `Reserved` with `Reserved::of` are `pub` inside their private module and re-exported by name
+from `lib.rs`, on a `pub use` line of their own, with `EnvNameError`, `BranchFault`, and `ReservedLocation`
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`).
 
 ## Interfaces
 

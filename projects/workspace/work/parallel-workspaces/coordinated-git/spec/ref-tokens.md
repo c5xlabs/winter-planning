@@ -12,9 +12,10 @@ expands and when. Reference locations are paths under `tools/winter-cli/src/wint
 // crates/core/src/ref_tokens.rs — product:parallel-workspaces/ref-tokens; pure: no git, no file, no network
 pub(crate) const ALIASES: [&str; 3] = ["main", "master", "default"];
 
-pub(crate) fn expand(r#ref: &str, repo: &str, main_branch: &str) -> Result<String, RefTokenError>;
+pub fn expand(r#ref: &str, repo: &str, main_branch: &str) -> Result<String, RefTokenError>;
 
-// crates/core/src/termination.rs — CommandError gains RefToken(#[from] RefTokenError), exit 1
+// the module's own error (changes.md, An error), in ref_tokens.rs; termination.rs's CommandError gains
+// RefToken(#[from] RefTokenError), exit 1, and lib.rs re-exports RefTokenError
 #[derive(Debug, thiserror::Error)]
 pub enum RefTokenError {
     // "unknown ref token '{<token>}' in <ref!r>; accepted aliases: {main}, {master}, {default}"
@@ -23,6 +24,12 @@ pub enum RefTokenError {
     NoMainBranch { repo: String, token: String, r#ref: String },
 }
 ```
+
+Visibility: `expand` and `RefTokenError` are `pub` inside their private module and re-exported by name from `lib.rs`,
+the module's names on a `pub use` line of their own (`context/architecture/changes.md`, A domain module, of
+`winter-workspace`), so the slice that lands `expand` tests it before a command calls it
+(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
+Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

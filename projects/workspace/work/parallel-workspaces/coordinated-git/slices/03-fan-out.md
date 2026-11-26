@@ -18,7 +18,8 @@ Delivers `engineering:bounded-fan-out` for those commands and the failure isolat
   owns a `Diagnostics` writing into a buffer that sends each complete line as `Message::Line`.
 - Results come back in input order, whatever the completion order; an `Err` from `on_message` lets running tasks finish,
   starts no new one, and returns that `Termination`; a worker panic is `InternalError::Panic` after the others finish.
-- No command calls it yet.
+- `REMOTE_TASKS`, `STATUS_PROBES`, `Group`, `Message`, and `fan_out` are re-exported by name from `lib.rs` for its tests
+  ([fan-out.md](../spec/fan-out.md), Domain); no command calls them yet.
 
 ## Acceptance
 

@@ -32,6 +32,10 @@ the earlier slices use a stand-in. Delivers the end-to-end evidence of `product:
   `ws destroy alpha --force` destroys the innermost envs, then the child's, then the outer's.
 - A child env whose teardown fails, as with a worktree's `index.lock` held, keeps the outer env under `--force`, and a
   re-run after the lock is gone completes it.
+- A child that binds `service` and whose `winter service down workspace` fails — within this milestone the child's
+  `winter` has no `service` command, and once one exists a bound provider with no program on `PATH` fails — keeps the
+  outer env, its worktree, directory, exclude block, and index under `--force`, and the result names the child and the
+  failed service stop.
 - Run with `WINTER_NESTED_CHAIN` holding the outer root, as a misresolved child would be, `ws status` and
   `ws init alpha` refuse every nested project with `OwnRootOnChain` and start no child command, so no sibling nested
   project is reached.

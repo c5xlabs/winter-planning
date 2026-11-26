@@ -15,31 +15,31 @@ under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Mes
 ```rust
 // crates/core/src/env_index.rs — gains, beside lookup; pure. product:stable-environment-allocation
 // decision:parallel-workspaces/environment-lifecycle/allocation-policy
-pub(crate) enum Allocation {
+pub enum Allocation {
     Recorded { index: i64 },                         // the registry already records this index for the name
     New { index: i64 },                              // the name gets this index; the registry records it
     Moved { from: i64, to: i64 },                    // an alias recorded at another index takes its position
 }
-pub(crate) fn allocate(name: &str, aliases: &[String], envs_per_workspace: u32,
+pub fn allocate(name: &str, aliases: &[String], envs_per_workspace: u32,
     registry: &[(String, i64)]) -> Result<Allocation, EnvIndexError>;   // entries in file order, as findings
 
-pub(crate) enum RegistryFinding {                    // the warning text names every field
+pub enum RegistryFinding {                    // the warning text names every field
     OutOfRange { name: String, index: i64 },         // index <= 0 or index > M
     ReservedSlot { name: String, index: i64, slot: Reserved },   // a name that is no alias, recorded in 1 ..= N + 1
     AliasMoved { name: String, recorded: i64, position: i64 },   // an alias recorded off its position
     Shared { index: i64, names: Vec<String> },       // two or more names recorded at one index, in file order
 }
-pub(crate) enum Reserved { Alias { alias: String }, Buffer }
-pub(crate) fn findings(aliases: &[String], envs_per_workspace: u32, registry: &[(String, i64)]) -> Vec<RegistryFinding>;
+pub enum Reserved { Alias { alias: String }, Buffer }
+pub fn findings(aliases: &[String], envs_per_workspace: u32, registry: &[(String, i64)]) -> Vec<RegistryFinding>;
 
 // crates/core/src/state_registry.rs — gains; each is one update of write-path.md on <root>/.winter/state.toml
 // engineering:allocation-integrity: the read, the decision, and the write happen under the one .winter/ lock
-pub(crate) fn allocate(files: &dyn WriteFiles, root: &Path, name: &str, aliases: &[String],
+pub fn allocate(files: &dyn WriteFiles, root: &Path, name: &str, aliases: &[String],
     envs_per_workspace: u32, moved: &mut dyn FnMut(i64, i64)) -> Result<Allocation, AllocateError>;
                                                      // moved(from, to): called for Moved, before the write
-pub(crate) fn release(files: &dyn WriteFiles, root: &Path, name: &str) -> Result<Option<i64>, ConfigError>;
+pub fn release(files: &dyn WriteFiles, root: &Path, name: &str) -> Result<Option<i64>, ConfigError>;
                                                      // Some(index): the name was recorded and is removed
-pub(crate) enum AllocateError { Index(EnvIndexError), State(ConfigError) }
+pub enum AllocateError { Index(EnvIndexError), State(ConfigError) }
 ```
 
 ```rust
@@ -49,6 +49,15 @@ RecordedReserved { name: String, index: i64, slot: Reserved },   // "the slot of
 #[error("alias {name} takes index {index}, which the registry records for {holder}")]
 AliasSlotHeld { name: String, index: i64, holder: String },
 ```
+
+Visibility: `Allocation`, `allocate`, `RegistryFinding`, `Reserved`, and `findings` of `env_index.rs`, with
+`EnvIndexError`, and `allocate`, `release`, and `AllocateError` of `state_registry.rs`, are `pub` inside their private
+modules and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every type
+their signatures name; the two `allocate`s are re-exported as `allocate_index` and `allocate_env`, and `env_index`'s
+`Reserved` as `ReservedSlot`, since env-names.md's `Reserved` holds that name at the crate root
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 
@@ -88,13 +97,13 @@ state_registry::allocate(files, root, name, ...)
       env_index::allocate(...) Err -> AllocateError::Index, nothing written
       Recorded -> no write (edit returns None)
       Moved -> moved(from, to) first, inside the edit, so the caller reports the move before the file changes
-      New or Moved -> the parsed document with env_index[name] = index, serialised with the toml crate
-        (engineering:toml-library): every other top-level key and every other entry kept, a missing or non-table
-        env_index replaced by a table, its other entries in their order and the new name last; an inline env_index
-        is written back as a standard table holding its entries and the new name
+      New or Moved -> current parsed as a toml_edit::DocumentMut and edited in place (engineering:toml-library),
+        env_index[name] = index: every other top-level key, every other entry, and the comments kept, in their order;
+        a missing or non-table env_index replaced by a standard table; a new name last, a moved one in its place;
+        an inline env_index is made a standard table holding its entries and the new name
         # registered deviation: decision:parallel-workspaces/workspace-configuration/inline-registry-table; the
         # reference drops an inline table's entries
-        # meaning, not bytes, as decision:toml-parity: comments and layout of the old file are not kept
+        # meaning, not bytes, as decision:toml-parity: the edit keeps what toml_edit keeps, and no test compares bytes
   an io::Error of update -> AllocateError::State(ConfigError::FileWrite naming the file)
   # two invocations allocating at once serialise on the lock; the second sees the first's record, so it probes past it
 ```
@@ -104,8 +113,9 @@ state_registry::allocate(files, root, name, ...)
 ```text
 # reference: modules/workspace/internal/toml_env_index_registry.py:58-64
 release(files, root, name)
-  update(state file, edit): parse as above; name not recorded -> no write, Ok(None); else the document without that
-  entry -> Ok(Some(index)); an emptied env_index stays an empty [env_index] table
+  update(state file, edit): parse as above; name not recorded -> no write, Ok(None); else the same
+  toml_edit::DocumentMut with that entry removed, everything else kept as Allocate keeps it -> Ok(Some(index)); an
+  emptied env_index stays an empty [env_index] table
   # lock-and-state.md, Open questions, asks what the reference leaves; the binary's empty table reads the same
 called only once the env's worktrees are removed: destroy.md, Per target   # teardown-policy
 ```

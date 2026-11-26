@@ -19,13 +19,18 @@ wording is the binary's own (`decision:functional-parity`).
 ```rust
 // crates/core/src/nested/delegate.rs — product:nested-runtime-allocation, product:nested-local-inheritance
 // decision:parallel-workspaces/nested-workspaces/delegation-policy; reference: modules/workspace/nested_overlay.py
-pub(crate) struct Slice { pub size: i64, pub base: i64 }
-pub(crate) fn slice(ports_per_env: i64, nested_count: usize, position: usize, env_port_base: i64) -> Slice;
-pub(crate) fn delegated(base: i64, prefix: &str, envs: Option<i64>) -> Vec<(&'static str, toml::Value)>;
-pub(crate) fn inherited(outer_local: &toml::Table, names: &[String]) -> Vec<(String, toml::Value)>;
-pub(crate) fn footprint(committed: &toml::Table, local_after: &toml::Table) -> i64;
+pub struct Slice { pub size: i64, pub base: i64 }
+pub fn slice(ports_per_env: i64, nested_count: usize, position: usize, env_port_base: i64) -> Slice;
+pub fn delegated(base: i64, prefix: &str, envs: Option<i64>) -> Vec<(&'static str, toml::Value)>;
+pub fn inherited(outer_local: &toml::Table, names: &[String]) -> Vec<(String, toml::Value)>;
+pub fn footprint(committed: &toml::Table, local_after: &toml::Table) -> i64;
 pub(crate) fn reconcile(nesting: &Nesting<'_>, workspace: &Workspace, project: &ProjectRepository, root: &Path,
     env: &str, sink: &mut dyn FnMut(InitEvent)) -> Result<(), RepoError>;
+
+// crates/core/src/config_edit.rs — the "Upsert local keys" writer of configuration-model.md, Writers, beside the built
+// writers; Err: the document is not valid TOML (The nested step, step 3); Ok(None): the edited text is unchanged
+pub fn upsert_local_keys(document: &str, values: &[(String, toml::Value)])
+    -> Result<Option<String>, toml_edit::TomlError>;
 ```
 
 ```rust
@@ -38,6 +43,12 @@ NestedOverlayWritten,    // "nested_overlay_written"   detail below
 DelegationRefused { repo, env, used, available, per_env, outer_ports_per_env, slices, raise_to, envs_fit: Option<i64> },
 NestedCommandFailed { command, returncode },   // "nested `<command>` exited with code <returncode>"
 ```
+
+Visibility: `Slice`, `slice`, `delegated`, `inherited`, `footprint`, and `upsert_local_keys` are `pub` inside their
+private module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every
+type their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice
+that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused
+without an `allow` (`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

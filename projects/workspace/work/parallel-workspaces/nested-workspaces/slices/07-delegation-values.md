@@ -18,7 +18,8 @@ rules of `product:nested-runtime-allocation` and the key selection of `product:n
   configuration-model.md, Derived values, passed in as `env_port_base`.
 - `inherited` reads only keys of the outer local table passed in, never `project_repository` or `standalone_repository`,
   and copies each value whole.
-- No caller yet.
+- `Slice`, `slice`, `delegated`, `inherited`, and `footprint` are re-exported by name from `lib.rs` for its tests
+  ([delegation.md](../spec/delegation.md), Domain); no command calls them yet.
 
 ## Acceptance
 

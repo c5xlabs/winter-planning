@@ -16,9 +16,10 @@ the leader of a new process group and a timeout kills the whole group; and `Call
 the interrupt for its duration and kills the group once one is pending. It builds on the `Program::Shell`, `Stdin`, and
 `remove` that `epic:parallel-workspaces/workspace-bootstrap` adds. Delivers the process-group and timeout mechanism of
 `engineering:bounded-value-commands`, under `decision:running-environments/scope-environment/lookup-execution-policy`,
-whose group kill is a registered deviation, and extends
-[runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Interrupts and signals, with
-this deferral beside the service paths.
+whose group kill, on the deadline and on an interrupt, is a registered deviation. The deferral is that deviation's
+means, which value-lookups.md, The child, adds beside the service paths of the frozen
+[runtime.md](../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md), Interrupts and signals,
+without editing it; what a user sees of an interrupt stays the reference's.
 
 ## Change
 
@@ -31,6 +32,9 @@ this deferral beside the service paths.
 - With `interrupts`, the call defers before the start and releases after the reap; it waits in slices of at most 100 ms,
   and once `pending()` is true it kills the group, reaps, and returns; the caller reads `pending()` after the release,
   as runtime.md asks of every command that defers.
+- `context/architecture/changes.md`, A command, gains that a program-port call given `interrupts` defers and releases
+  around its child on the command's behalf, which is how a command defers around a child in its own process group, and
+  that the command still reads `pending()` after the call and ends the invocation when it is true.
 
 ## Acceptance
 

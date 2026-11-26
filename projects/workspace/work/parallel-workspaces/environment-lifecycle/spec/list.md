@@ -24,7 +24,10 @@ pub(crate) struct Listed {
     pub distinct_remote_count: u32,
 }
 pub(crate) fn list(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace)
-    -> Result<Vec<Listed>, Termination>;
+    -> Result<Vec<Listed>, EnvListError>;
+// the module's own failure, pub and re-exported from lib.rs with the types it carries; the command file maps each
+// variant, as it is, to Termination::Config, Termination::Repo, and Termination::Internal
+pub enum EnvListError { Config(Box<ConfigError>), Repo(Box<RepoError>), Internal(Box<InternalError>) }
 ```
 
 ## Interfaces
@@ -40,8 +43,8 @@ order
   3. the registry read; a refusal is its ConfigError, exit 1, nothing on stdout
   4. the registry findings of allocation.md, as warnings       # product:environment-state-recovery
   5. environments::present (location-listing.md), in its order: ascending index, ties in candidate order
-  6. per environment, the branches below; a GitFailure ends the command as its Termination (Repo or Internal),
-     exit 1, nothing on stdout
+  6. per environment, the branches below; a GitFailure is EnvListError::Repo, or Internal for a git that cannot be
+     started, and ends the command, exit 1, nothing on stdout
   7. the result; exit 0
 branches(env)                                     # one value per project that is not pinned, in merged order
   l := <root>/<env>/<project>; <l>/.git absent -> None

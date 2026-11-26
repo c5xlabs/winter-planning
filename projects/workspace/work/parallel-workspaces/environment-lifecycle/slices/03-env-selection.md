@@ -19,7 +19,8 @@ builds on. Delivers the environment half of `product:target-patterns` and the gl
   halves, refuses the first literal half that names no environment, then lists by the rule.
 - The environments present are `environments::present` as built; globs are `pattern_match::is_glob` and `fnmatchcase` as
   built.
-- No command calls it yet.
+- `EnvRule`, `known_env`, `reach`, and `ReachError` are re-exported by name from `lib.rs` for its tests
+  ([env-selection.md](../spec/env-selection.md), Domain); no command calls them yet.
 
 ## Acceptance
 

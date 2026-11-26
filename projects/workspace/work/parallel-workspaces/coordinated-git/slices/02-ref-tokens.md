@@ -16,7 +16,8 @@ call after this epic. Delivers `product:parallel-workspaces/ref-tokens` and its 
 - `crates/core/src/ref_tokens.rs` holds `ALIASES` and `expand`: tokens scanned left to right as the reference's
   `(?<!@)\{([^{}]*)\}`, each alias replaced by the main branch, the first unknown token or an empty main branch refused,
   every other character kept, and the result not scanned again.
-- No command calls it yet.
+- `expand` is re-exported by name from `lib.rs` for its tests ([ref-tokens.md](../spec/ref-tokens.md), Domain); no
+  command calls it yet.
 
 ## Acceptance
 

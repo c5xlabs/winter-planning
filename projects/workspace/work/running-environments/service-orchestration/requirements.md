@@ -47,6 +47,14 @@ Acceptance:
 - Restart leaves unrelated services running, states whether it reloads runtime values, and does not imply readiness
   verification that has not occurred.
 - Provider shutdown errors, missing prerequisites, and cancellation cannot be presented as verified cleanup success.
+- Startup computes each scope's environment once for each `up` or `start` fan-out and reuses it for every call of that
+  scope, so a lookup shared by several scopes runs for each; a scope whose environment cannot be computed is not
+  launched and is reported as a failed target. `restart` passes no scope values; a provider that needs fresh values
+  obtains them with `winter env SCOPE --resolve`. The computation and its refusal are
+  `epic:running-environments/scope-environment`'s (`product:external-value-resolution`,
+  `product:complete-launch-environment`).
+- Every provider call that carries a scope receives the launch environment that
+  `epic:running-environments/scope-environment` defines, so caller values never supply another scope's identity.
 
 ## Observe state and readiness honestly (product:truthful-service-readiness)
 

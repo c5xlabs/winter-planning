@@ -12,18 +12,20 @@ binary's own (`decision:functional-parity`).
 
 ```rust
 // crates/core/src/scope_env/lookup.rs — engineering:bounded-value-commands, engineering:value-provenance
-pub(crate) struct LookupRequest<'a> {
+pub struct LookupRequest<'a> {
     pub band: &'a str,                      // "env.workspace.vars", "env.feature.vars", "env.<name>.vars"
     pub key: &'a str,
     pub entry: &'a EnvCommand,              // command as declared, format, shell, exports
     pub visible: &'a [(String, String)],    // the entry's visible variables (resolution.md, Visibility)
 }
-pub(crate) fn run_lookup(
+pub fn run_lookup(
     programs: &dyn RunPrograms,
     interrupts: &Interrupts,
     root: &Path,
     request: &LookupRequest<'_>,
 ) -> Result<Vec<(String, String)>, LookupError>;   // filtered output, in output order
+/// A finished lookup's stdout read in the entry's format, then filtered (Formats); pure, starts nothing.
+pub fn read_output(entry: &EnvCommand, key: &str, stdout: &[u8]) -> Result<Vec<(String, String)>, LookupFailure>;
 
 #[derive(Debug, thiserror::Error)]
 pub struct LookupError {
@@ -41,7 +43,8 @@ pub enum LookupFailure {
     Timeout,                                // exit -9
     NotUtf8,                                // stdout is not UTF-8
     Output(OutputFault),                    // exit 0, output not of the declared format
-    Interrupted,                            // ends the invocation as Termination::Interrupted, exit 130
+    Interrupted,                            // an interrupt was pending when the call returned; compute answers it
+                                            // as EnvError::Interrupted (consumers.md)
 }
 pub enum OutputFault {
     DotenvLine { line: usize },             // 1-based; the line's text is never carried
@@ -57,6 +60,15 @@ pub enum Group { Inherit, Own }             // Call.group; every existing call i
 pub struct Call<'a> { /* … as child-processes.md and reconciliation.md give it */ pub group: Group,
                       pub interrupts: Option<&'a Interrupts> }   // Some only with Group::Own
 ```
+
+Visibility: `run_lookup`, `read_output`, and `LookupRequest` are `pub` inside their private module and re-exported by
+name from `lib.rs`, the names of `scope_env/lookup.rs` on a `pub use` line of their own, with every type their
+signatures name: `LookupError`, `LookupFailure`, and `OutputFault`; the program port's `Exit`, `Program`, and `Call` are
+already `pub`, as standalone-pins.md, Domain, makes them, and `Group` joins them (`context/architecture/changes.md`, A
+domain module, of `winter-workspace`), so the slice that lands each tests it before a command calls it
+(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
+Everything else here stays `pub(crate)`. standalone-pins.md is
+[../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md](../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md).
 
 ## Interfaces
 
@@ -96,10 +108,15 @@ group     Group::Own: the child leads a new process group (setpgid(0, 0) before 
           sends SIGKILL to the whole group and reaps the child -> Timeout
           registered deviation, decision:running-environments/scope-environment/lookup-execution-policy: the
           reference kills the direct child only, and a shell entry's grandchildren outlive it
-interrupt the call defers the interrupt for its duration (runtime.md, Interrupts and signals, gains this deferral
-          beside the service paths); the adapter waits in slices of at most 100 ms and, once pending() is true,
-          sends SIGKILL to the group, reaps the child, releases, and answers Interrupted
-          (a child in its own group no longer receives the terminal's SIGINT)
+interrupt the call defers the interrupt for its duration; the adapter waits in slices of at most 100 ms and, once
+          pending() is true, sends SIGKILL to the group, reaps the child, releases, and answers Interrupted
+          a child in its own group no longer receives the terminal's SIGINT, so without the deferral the handler's
+          _exit would leave the lookup running; the deferral is the means of the group kill of
+          decision:running-environments/scope-environment/lookup-execution-policy, and the invocation still ends as
+          the reference's does: aborted, the aborted notice, exit 1 (consumers.md, Failure by consumer). The frozen
+          runtime.md, which lists the service paths as the only deferrals, is not edited: this leaf adds the lookup
+          call beside them, and changes nothing a user sees of an interrupt
+          runtime.md = ../../../../delivered/parallel-workspaces/component-runtime/spec/runtime.md
 output    stdout and stderr captured whole; stderr of a lookup that succeeds is discarded
 ```
 

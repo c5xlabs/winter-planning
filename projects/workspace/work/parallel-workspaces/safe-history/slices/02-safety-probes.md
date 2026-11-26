@@ -21,7 +21,8 @@ against the destination. Delivers `engineering:moved-ref-preservation` and the f
 - `dirty` calls `git::dirty` as built; `safety_ref` of `Branch::Named(env)` reads that branch's own upstream, so
   checkout can measure an env branch HEAD is not on.
 - A non-zero exit of `git rev-list --count` is the repo error of the call, never a count of zero.
-- No command calls them yet.
+- The six probes and `Branch` are re-exported by name from `lib.rs` for its tests
+  ([safety-probes.md](../spec/safety-probes.md), Domain); no command calls them yet.
 
 ## Acceptance
 
@@ -32,7 +33,7 @@ against the destination. Delivers `engineering:moved-ref-preservation` and the f
   `safety_ref(Named(env))` answers `env`'s own upstream while HEAD is on another branch.
 - Component tests: `unpushed` counts the commits on the moving ref and not on the safety ref; with no `origin/<main>` it
   is `GitFailure::Repo` with `AbandonmentProbe`, not 0.
-- Component tests: `active_branch` answers the branch name, and `None` for a detached and for an unborn HEAD; `commit`
-  answers the sha of `HEAD` and `None` for an unborn one; `has_ref` is true for a tag, a remote-tracking ref, and a
-  commit id, and false for an absent ref.
+- Component tests: `active_branch` answers the branch name, also for an unborn HEAD, and `None` for a detached one;
+  `commit` answers the sha of `HEAD` and `None` for an unborn one; `has_ref` is true for a tag, a remote-tracking ref,
+  and a commit id, and false for an absent ref.
 - `cargo dev gate slice` exits 0.

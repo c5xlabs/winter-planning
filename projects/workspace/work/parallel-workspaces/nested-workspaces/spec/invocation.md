@@ -25,10 +25,14 @@ pub(crate) enum Program { Git, Shell, Winter }
 
 ```rust
 // crates/core/src/nested.rs — engineering:nested-invocation-contract, engineering:child-authority-confinement
-pub(crate) const CHAIN: &str = "WINTER_NESTED_CHAIN";
+pub const CHAIN: &str = "WINTER_NESTED_CHAIN";
+pub fn chain(snapshot: &ProcessEnv) -> Vec<PathBuf>;   // chain, Child environment
+/// The environment of a nested CLI call (Child environment): scrubbed's remove and env, then WINTER_NESTED_CHAIN of
+/// chain(snapshot) and own_root, then, with tracing on, TRACEPARENT and TRACESTATE of the span active at the call.
+pub fn child_environment(snapshot: &ProcessEnv, own_root: &Path, tracer: &dyn CommandTracer) -> Scrub;
 
 /// One per invocation, shared by every nested call it makes and across the threads of a fan-out.
-pub(crate) struct Nesting<'p> {
+pub struct Nesting<'p> {
     ports: &'p Ports<'p>,
     snapshot: &'p ProcessEnv,
     own_root: PathBuf,                     // this invocation's workspace root, resolved
@@ -37,28 +41,30 @@ pub(crate) struct Nesting<'p> {
 }
 
 impl Nesting<'_> {
-    pub(crate) fn new<'p>(ports: &'p Ports<'p>, snapshot: &'p ProcessEnv, own_root: &Path) -> Nesting<'p>;
+    pub fn new<'p>(ports: &'p Ports<'p>, snapshot: &'p ProcessEnv, own_root: &Path) -> Nesting<'p>;
     /// Preflight, then a status read that verifies `root`, then the child's declared standalones present on disk;
     /// returns what it holds (child-state.md).
-    pub(crate) fn state(&self, root: &Path) -> Result<NestedState, RepoError>;
+    pub fn state(&self, root: &Path) -> Result<NestedState, RepoError>;
     /// Preflight, then a status read only when `root` is not yet verified in this process.
-    pub(crate) fn ensure_verified(&self, root: &Path) -> Result<(), RepoError>;
+    pub fn ensure_verified(&self, root: &Path) -> Result<(), RepoError>;
     /// ensure_verified, then `winter <args>` in `root`, streamed; the returncode as reconciliation.md gives it.
-    pub(crate) fn run(&self, root: &Path, args: &[&OsStr], line: &mut dyn FnMut(&str)) -> Result<i32, RepoError>;
+    pub fn run(&self, root: &Path, args: &[&OsStr], line: &mut dyn FnMut(&str)) -> Result<i32, RepoError>;
     /// Whether `root`'s committed config merged with its local overlay binds a service provider (teardown.md).
-    pub(crate) fn binds_service(&self, root: &Path) -> Result<bool, RepoError>;
+    pub fn binds_service(&self, root: &Path) -> Result<bool, RepoError>;
 }
 
 /// The snapshot minus the outer workspace's variables, as `remove` names and `env` overlay entries for a Call.
 /// Also the environment of a nested project's `cmd` (reconciliation.md, Commands), which gets no chain.
 pub(crate) fn scrubbed(snapshot: &ProcessEnv) -> Scrub;
-pub(crate) struct Scrub { pub remove: Vec<OsString>, pub env: Vec<(OsString, OsString)> }
+pub struct Scrub { pub remove: Vec<OsString>, pub env: Vec<(OsString, OsString)> }
 ```
 
-`scrubbed` and `Scrub` land first with `epic:parallel-workspaces/workspace-bootstrap`, whose `cmd` of a nested project
-applies them (reconciliation.md, Commands), in `crates/core/src/nested.rs` as this Domain places them; this leaf owns
-their contract, given by `remove` and `env` of Child environment below without `WINTER_NESTED_CHAIN`. This epic builds
-the rest of the leaf on them and adds no second scrub.
+`scrubbed` and `Scrub` are this leaf's contract, given by `remove` and `env` of Child environment below without
+`WINTER_NESTED_CHAIN`. `epic:parallel-workspaces/workspace-bootstrap` landed the scrub first, for the `cmd` of a nested
+project (reconciliation.md, Commands), as the private `command_environment` and `CommandEnvironment` of
+`crates/core/src/bootstrap/checkout.rs`, whose PATH filter compares each entry's bytes with `<VIRTUAL_ENV>/bin` and does
+not normalise. This epic moves it to `nested::scrubbed` and `Scrub` in `crates/core/src/nested.rs`, with the lexical
+normalise of Child environment, and `checkout` calls it there for a nested project's `cmd`; no second scrub remains.
 
 ```rust
 // crates/core/src/termination.rs — RepoMessage gains; each RepoError carries cwd = the nested root
@@ -77,6 +83,14 @@ NestedRootMismatch { root, reported: Option<String> },   // "winter in <root> re
 NestedConfigUnreadable { path, cause },   // the child's config.toml or config.local.toml is not valid TOML
 NestedNotStarted { command, root, cause },   // "`<command>` could not start in <root>"
 ```
+
+Visibility: `CHAIN`, `chain`, `child_environment`, `Scrub`, `Nesting`, and `Nesting`'s `new`, `state`,
+`ensure_verified`, `run`, and `binds_service` are `pub` inside their private module and re-exported by name from
+`lib.rs`, each module's names on a `pub use` line of their own, with every type their signatures name
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). `Program` is re-exported already. Everything else here stays `pub(crate)`: `scrubbed` has
+its caller in `checkout` from the change that moves it.
 
 ## Interfaces
 

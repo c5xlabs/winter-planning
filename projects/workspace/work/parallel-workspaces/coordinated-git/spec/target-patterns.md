@@ -19,14 +19,14 @@ worktree probe. Other specs link this leaf for selection and never restate it. R
 // Pure but for the file reads of `select`; starts no program.
 
 /// One parsed `<env>/<repo>` pattern; a bare `<env>` is held as `<env>/*`.
-pub(crate) struct Pattern { pub env: String, pub repo: String }
+pub struct Pattern { pub env: String, pub repo: String }
 
 // EnvRule, known_env, and SelectionError::UnknownEnv are env-selection.md's; the Rule column below names each
 // command's EnvRule.
 
 /// A worktree a command acts on. Built for every loaded project entry of each reached environment, in merged
 /// order, that some pattern matches; two patterns matching one worktree give one Selected.
-pub(crate) struct Selected {
+pub struct Selected {
     pub env: String,           // the environment's name
     pub repo: String,          // the entry's resolved name
     pub path: PathBuf,         // <root>/<env>/<repo>, joined, never resolved
@@ -36,24 +36,37 @@ pub(crate) struct Selected {
 }
 
 /// Why a matched worktree is not acted on.
-pub(crate) enum Missing { Absent, NotARepository }
+pub enum Missing { Absent, NotARepository }
 
-pub(crate) struct Selection {
+pub struct Selection {
     pub envs: Vec<String>,                  // the reached environments, in rule order, matched or not
     pub worktrees: Vec<Selected>,           // env order, then merged project order
     pub missing: Vec<(Selected, Missing)>,  // matched worktrees left out; each warned once, in the same order
 }
 
-pub(crate) fn parse(pattern: &str) -> Result<Pattern, SelectionError>;
-pub(crate) fn matches(pattern: &Pattern, env: &str, repo: &str) -> bool;
-pub(crate) fn select(files: &dyn ReadFiles, diagnostics: &mut Diagnostics<'_>, root: &Path,
+pub fn parse(pattern: &str) -> Result<Pattern, SelectionError>;
+pub fn matches(pattern: &Pattern, env: &str, repo: &str) -> bool;
+pub fn select(files: &dyn ReadFiles, diagnostics: &mut Diagnostics<'_>, root: &Path,
     config: &WorkspaceConfig, registry: &[(String, i64)], patterns: &[Pattern], rule: EnvRule)
     -> Result<Selection, SelectError>;
-pub(crate) enum SelectError { Selection(SelectionError), Internal(InternalError) }
+pub enum SelectError { Selection(SelectionError), Internal(InternalError) }
+
+/// The standalones --standalone and --all reach: every declared standalone, in merged order, each tested once as
+/// Refusals and warnings, standalones, gives; a missing one is warned there and is in `missing`, never in `present`.
+pub struct Standalones { pub present: Vec<(String, PathBuf)>, pub missing: Vec<(String, Missing)> }   // name, path
+pub fn standalones(files: &dyn ReadFiles, diagnostics: &mut Diagnostics<'_>, root: &Path, config: &WorkspaceConfig)
+    -> Standalones;
 
 // crates/core/src/termination.rs — SelectionError gains, beside EmptyPattern and NotBareName:
 NotEnvRepo { pattern: String }      // more than one "/": "invalid pattern <p!r>: expected <env>/<repo> (one '/' max)"
 ```
+
+Visibility: `Pattern`, `Selected`, `Missing`, `Selection`, `SelectError`, `Standalones`, `parse`, `matches`, `select`,
+and `standalones` are `pub` inside their private module and re-exported by name from `lib.rs`, the module's names on a
+`pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A domain module,
+of `winter-workspace`), so the slice that lands them tests them before a command calls them
+(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
+`epic:parallel-workspaces/safe-history`'s probes, which are `pub` too, name `Selected`.
 
 ## Interfaces
 
@@ -107,7 +120,12 @@ missing       each selected worktree, in selection order, is tested once:
 no target     selection never infers a target from the working directory; with no PATTERNS a command takes the
               default its own leaf states, or refuses as Combination rules says
 standalones   patterns never select a standalone: --standalone and --all reach every declared standalone, in merged
-              order, each tested as above with the label standalone/<name> and the fix `winter ws init`
+              order, through `standalones`, each tested once as above with the label standalone/<name> and the fix
+              `winter ws init`:
+                "warning: standalone/<name> — missing on disk (run `winter ws init`)"
+                "warning: standalone/<name> — not a git repository"
+              a missing standalone is in Standalones.missing, named in the result as Missing targets in results
+              gives, and no command starts git in it; ws status reads its standalones through `standalones` too
 ```
 
 | Command         | No PATTERNS                   | Rule    | Leaf                                    |

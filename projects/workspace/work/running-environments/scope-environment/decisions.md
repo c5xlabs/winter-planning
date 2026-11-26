@@ -36,7 +36,8 @@ error.
 Lookups follow the reference: computed once per scope per `up` or `start` fan-out with no cache across scopes or runs,
 never run by inspection, status, or stop, each with a fixed 30-second deadline, closed stdin, and the workspace root as
 working directory. As a registered deviation, a timed-out lookup's whole process group is killed, because the reference
-killed only the direct child and left shell-started processes orphaned.
+killed only the direct child and left shell-started processes orphaned; an interrupted lookup's group is killed the same
+way, and the invocation still ends as the reference's interrupt does, aborted with exit 1.
 
 ## Resolution compatibility (decision:running-environments/scope-environment/resolution-compatibility)
 

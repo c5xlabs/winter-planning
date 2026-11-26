@@ -30,9 +30,10 @@ registered deviation.
   request's `visible` variables, a fixed 30 s timeout, `Group::Own`, and the invocation's `Interrupts`.
 - Its ending: a failed start is `Start` with the operating system's message alone; a non-zero exit or a signal is `Exit`
   with stderr trimmed; the timeout is `Timeout`; `pending()` after the call is `Interrupted`; exit 0 is read by the
-  format and filtered. A succeeding lookup's stderr is discarded.
+  format and filtered by `read_output`. A succeeding lookup's stderr is discarded.
 - A lookup opens no span and writes no log record; `LookupError` carries the declared command, never the rendered one.
-- No caller yet but tests.
+- `run_lookup` is re-exported by name from `lib.rs` for its tests ([value-lookups.md](../spec/value-lookups.md),
+  Domain); no command calls it yet.
 
 ## Acceptance
 

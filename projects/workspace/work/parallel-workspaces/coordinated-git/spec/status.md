@@ -26,35 +26,45 @@ carries it. Reference locations are paths under `tools/winter-cli/src/winter_cli
 
 ```rust
 // crates/core/src/status.rs — product:inspect-workspace-git, product:worktree-upstream-control
-pub(crate) struct WorktreeRow {
+pub struct WorktreeRow {
     pub repo: String, pub branch: Option<String>, pub upstream: Option<String>,
     pub ahead: u64, pub behind: u64,                         // against origin/<main_branch>
     pub tracking_ahead: u64, pub tracking_behind: u64, pub tracking_ref_present: bool,
     pub staged: u64, pub unstaged: u64, pub untracked: u64, pub dirty: u64,
     pub last_commit_subject: Option<String>, pub pinned: bool, pub main_branch: String,
-    pub nested: Option<NestedMember>,                        // child-state.md
+    pub nested: Option<NestedMember>,                        // child-state.md; reserved: nested-workspaces adds it
 }
-pub(crate) struct EnvRow { pub name: String, pub index: i64, pub port_base: i64,
+/// One worktree probe (Environments, worktree probe, steps 1-3), at `path`; `unborn` marks a branch with no commit
+/// yet for the text, since the row has no field for it.
+pub struct Probed { pub row: WorktreeRow, pub unborn: bool }
+pub fn probe(ports: &Ports<'_>, repo: &str, path: &Path, main_branch: &str, pinned: bool) -> Result<Probed, GitFailure>;
+pub struct EnvRow { pub name: String, pub index: i64, pub port_base: i64,
     pub feature_branch: Option<String>, pub worktrees: Vec<WorktreeRow> }   // extensions: always {}
-pub(crate) struct CheckoutRow { pub repo: String, pub branch: Option<String>, pub behind_origin: u64,
+pub struct CheckoutRow { pub repo: String, pub branch: Option<String>, pub behind_origin: u64,
     pub ahead_origin: u64, pub dirty: u64, pub local_only_commits: u64, pub stashes: u64 }
-pub(crate) struct ProjectRow { pub checkout: CheckoutRow, pub drift: Vec<String> }
-pub(crate) struct Snapshot {
+pub struct ProjectRow { pub checkout: CheckoutRow, pub drift: Vec<String> }
+pub struct Snapshot {
     pub environments: Vec<EnvRow>, pub projects: Vec<ProjectRow>, pub standalones: Vec<CheckoutRow>,
     pub workspace: WorkspaceLevel, pub dashboard: (DashboardLayout, DashboardLayout),
     pub unseen: Unseen,                                      // what the document cannot show: for the exit code
 }
-pub(crate) struct Unseen { pub missing_worktrees: usize, pub missing_standalones: usize, pub failed_standalones: usize,
+pub struct Unseen { pub missing_worktrees: usize, pub missing_standalones: usize, pub failed_standalones: usize,
     pub failed_refreshes: usize }
 
-pub(crate) fn collect(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern])
+pub fn collect(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern])
     -> Result<Snapshot, StatusCollectionError>;
-pub(crate) fn exit_code(snapshot: &Snapshot, scoped: bool) -> u8;
+pub fn exit_code(snapshot: &Snapshot, scoped: bool) -> u8;
 
 // termination.rs — Termination gains StatusCollection(Box<StatusCollectionError>), exit 2, as
 // results-and-exit-codes.md, Domain, defines it; GitOperation gains LocalWorkProbe ("local-work probe"),
 // TrackingAheadBehindProbe ("tracking ahead/behind probe")
 ```
+
+Visibility: `WorktreeRow`, `Probed`, `probe`, `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `collect`,
+and `exit_code` are `pub` inside their private module and re-exported by name from `lib.rs`, the module's names on a
+`pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A domain module,
+of `winter-workspace`), so the slices that land them test them before a command calls them
+(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
 
 ## Interfaces
 
@@ -128,12 +138,13 @@ standalones  each declared standalone, in merged order, at its location:
                branch         git symbolic-ref --quiet --short HEAD, null on exit 1
                dirty          distinct staged and unstaged paths plus untracked files, as location-listing.md's
                               workspace probe, steps 2-5, counts them
-               ahead, behind  against the tracking operand of its active branch (refresh.md, no commit check):
+               ahead, behind  against tracking_operand of its active branch (refresh.md, Domain), no commit check:
                               git rev-list --count <T>..HEAD and HEAD..<T>; no T -> 0, 0
                local work     as projects
              a failure of any of these -> a warning naming the standalone and the cause, no row, and
              Unseen.failed_standalones; the other standalones and the command go on
-             absent or no repository -> warned as target-patterns.md gives, no row, Unseen.missing_standalones
+             absent or no repository -> warned by `standalones` of target-patterns.md, no row,
+             Unseen.missing_standalones
              # registered deviation, target-selection: the reference writes a row of zeros for it
 workspace    root_path      the workspace root, as discovered
              extensions     the resolved names of the standalones that are extensions, in merged order; config only

@@ -45,21 +45,23 @@ the nested step is [delegation.md](../../nested-workspaces/spec/delegation.md).
 ```rust
 // crates/core/src/env_create.rs — product:environment-worktrees, product:environment-recovery
 // engineering:lifecycle-step-isolation
+// RunEnd is that of pins/repin.rs, already re-exported at the crate root, as reconciliation.md's reconcile answers it
 pub(crate) fn reconcile_env(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>,
-    workspace: &Workspace, name: &str, sink: &mut InitSink<'_>) -> Result<bool, Termination>;
-    // Ok(success of the target); Err only for a sink that cannot write (reconciliation.md, Fan-out)
+    workspace: &Workspace, name: &str, sink: &mut InitSink<'_>) -> RunEnd;
+    // Completed { success } of the target; Stopped(the sink's ending) for a sink that cannot write
+    // (reconciliation.md, Fan-out); it has no failure of its own: every other fault is an event of the target
 pub(crate) fn discover(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace)
     -> Result<Vec<String>, GitFailure>;
 
 // crates/core/src/env_create/worktree.rs — one project's worktree in one env, steps in order
-pub(crate) struct EnvWorktree<'r> {
+pub struct EnvWorktree<'r> {
     pub project: &'r ProjectRepository,
     pub source: PathBuf,              // <root>/projects/<name>
     pub location: PathBuf,            // <root>/<env>/<name>
     pub env: &'r str,                 // also the branch name
     pub inferred: Option<&'r str>,    // "<remote>/<branch>", from infer below
 }
-pub(crate) fn run(ports: &Ports<'_>, workspace: &Workspace, w: &EnvWorktree<'_>,
+pub fn run(ports: &Ports<'_>, workspace: &Workspace, w: &EnvWorktree<'_>,
     sink: &mut dyn FnMut(InitEvent)) -> bool;
 ```
 
@@ -82,6 +84,14 @@ BadUpstream { name, upstream },         // "expected '<remote>/<branch>', got <u
 // GitOperation gains BranchExists, WorktreeAdd, WorktreeList, CommonDir, Tracking, SetUpstream
 ```
 
+Visibility: `EnvWorktree` and `run` of `env_create/worktree.rs`, and its tracking reads and write `head_branch`,
+`setting`, `tracking`, and `set_upstream` (Git operations below), are `pub` inside their private module and re-exported
+by name from `lib.rs`, each module's names on a `pub use` line of their own, with every type their signatures name
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). The git operations below are `pub` and re-exported, as the built ones of `git.rs` are.
+Everything else here stays `pub(crate)`.
+
 ## Interfaces
 
 ### Git operations
@@ -101,7 +111,7 @@ common_dir(path)              rev-parse --path-format=absolute --git-common-dir 
 ```
 
 ```text
-# crates/core/src/env_create/worktree.rs, pub(crate), also read by list.md: a worktree's tracking. Unlike
+# crates/core/src/env_create/worktree.rs, pub (Domain, Visibility), also read by list.md: a worktree's tracking. Unlike
 # tracking.md's head, a detached HEAD is no branch here: ws init refuses to wire it (reference:
 # internal/gitpython_repository.py:140-188); tracking.md = ../../coordinated-git/spec/tracking.md
 head_branch(path)             symbolic-ref --quiet --short HEAD            exit 1 -> None (detached)
@@ -126,7 +136,7 @@ order
   2. command-surface.md's ws init rules, then env_name::check(TARGET) (env-names.md); a refusal is exit 1 with
      nothing read from git and nothing written
   3. the env index registry read (lock-and-state.md); a refusal is its ConfigError, exit 1, nothing written
-  4. reconcile_env(TARGET); exit 1 when it returns false, else 0
+  4. reconcile_env(TARGET); Completed { success: false } -> exit 1, true -> 0; Stopped -> its ending
 lock-and-state.md = ../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md
 ```
 
@@ -228,7 +238,8 @@ order
   3. the registry findings of allocation.md, as warnings
   4. discover; a GitFailure -> its Termination (Repo or Internal), exit 1, after the events of 2
   5. reconcile_env for each discovered name, in order, every one attempted whatever an earlier one reported
-  exit 1 when the workspace part failed or any reconcile_env returned false; else 0
+  exit 1 when the workspace part failed or any reconcile_env completed without success; else 0; a Stopped run of
+  either ends the invocation with its ending, and no later environment is attempted
 ```
 
 ### Discovery for `--all`

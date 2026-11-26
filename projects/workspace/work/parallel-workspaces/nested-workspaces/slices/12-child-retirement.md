@@ -20,8 +20,10 @@ deviations; children run serially as `engineering:bounded-fan-out` binds a comma
 
 - `crates/core/src/nested/teardown.rs` gains `Forwarded`, `retire_envs`, and `stop_services`; `bootstrap.rs`'s `Action`
   gains `NestedEnvDestroyed` and `NestedServicesStopped`, with their text.
-- `env_destroy::destroy` builds `Forwarded` from `Options` as teardown.md gives, with `strict` false and
-  `provision_teardown` true while `Options` has neither field, and runs step 6 before step 7.
+- `env_destroy::destroy` builds `Forwarded` from `Options` as teardown.md, Forwarded, gives for `force`, and runs step 6
+  before step 7. `Options` holds no `strict` or `provision_teardown` until their owners add them (destroy.md, System),
+  so until then `Forwarded` holds `strict` false and `provision_teardown` true: what a destroy without `--strict` or
+  `--no-provision-teardown` means.
 - A phase 2 failure emits its abort on the env and runs neither phase 3 nor any later step; a phase 3 failure does the
   same for the steps after it.
 - `crates/core/topics/ws/destroy.md` says that a nested workspace's envs and workspace services are retired first and
@@ -47,6 +49,8 @@ deviations; children run serially as `engineering:bounded-fan-out` binds a comma
 
 ## Out of scope
 
-- Registering `--strict` and `--no-provision-teardown` on `ws destroy` belongs to
-  `epic:running-environments/resource-provisioning` and `epic:agent-ready-operation/executable-extensions`, which set
-  `Forwarded` from the fields they add.
+- Registering `--strict` and `--no-provision-teardown` on `ws destroy`, adding their `Options` fields, and setting
+  `Forwarded.strict` and `Forwarded.provision_teardown` from them belong to the owners destroy.md, System, names:
+  `epic:agent-ready-operation/executable-extensions` for `--strict` and
+  `epic:running-environments/resource-provisioning` for `--no-provision-teardown`, whose engineering.md files record the
+  obligation.

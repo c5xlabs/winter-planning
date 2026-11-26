@@ -3,6 +3,7 @@ name: ws-push
 depends-on:
   - target-patterns
   - worktree-probe
+  - ws-fetch
 ---
 
 # The `ws push` command
@@ -21,9 +22,9 @@ calls. Delivers `product:push-worktree-destinations`, the push bullets of `produ
 
 - `crates/core/src/push.rs` holds `PinnedScope`, `PushStatus`, `LocalFastForward`, `PushOutcome`, `EnvPush`,
   `EnvSkipped`, `PushReport`, `push`, and `PushError`: the destination read from configuration only,
-  `git push -u
-  origin HEAD:refs/heads/<B>` for a non-pinned worktree and `git push origin` for a pinned one and a
-  standalone.
+  `git push -u origin HEAD:refs/heads/<B>` for a non-pinned worktree and `git push origin` for a pinned one and a
+  standalone; `push` takes `Scope`, and a pinned worktree and a standalone count their commits against
+  `tracking_operand`, each of `ws-fetch` ([refresh.md](../spec/refresh.md), Domain).
 - The local fast-forward uses `update-ref` with the old value when no worktree holds the branch, and `merge --ff-only`
   in a clean holder; any failure there is a skip reason and the row stays `pushed`.
 - `crates/core/src/commands/ws/push.rs` registers the command with `--standalone`, `--all`, `--include-pinned`, and
@@ -41,6 +42,8 @@ calls. Delivers `product:push-worktree-destinations`, the push bullets of `produ
 - Component tests of the local copy: a source branch that matched the old remote tip advances by `update-ref`; one that
   had its own commit is skipped "not in sync"; a dirty holder is skipped "dirty"; each leaves the row `pushed`.
 - A component test: a standalone held at a tag is `held_pin` and does not fail the run.
+- A component test: `--standalone` with an absent standalone warns it, names it in the document's `missing`, and starts
+  no git process in it.
 - A component test: a push to a remote that never answers, as a `GIT_SSH_COMMAND` that sleeps, ends `failed` within the
   Remote calls deadline under a short `WINTER_GIT_TIMEOUT_S`.
 - `cargo dev gate slice` exits 0.

@@ -20,7 +20,8 @@ Delivers the mutating half of `engineering:child-authority-confinement` and the 
   timeout; it answers the returncode, minus the signal number for a signal, or `NestedNotStarted`.
 - `binds_service` reads the child's two configuration files as `status-read` does and answers whether `capabilities`
   binds a non-empty `service`, as a string or within an array.
-- No command calls them yet.
+- `run` and `binds_service` are reached through `Nesting`, re-exported from `lib.rs` by `status-read`, for its tests
+  ([invocation.md](../spec/invocation.md), Domain); no command calls them yet.
 
 ## Acceptance
 

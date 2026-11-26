@@ -58,4 +58,7 @@ whose previous commit, `failed`, and `unattempted` are registered deviations.
   second `failed` with Git's cause, the third `unattempted` and unchanged, and the command exits 1.
 - A component test: a pinned worktree the pattern matches does not move; an absent worktree is a `target_missing` event
   before `reset_started`.
+- A component test: over a workspace with a drifted project, the drift notice of
+  [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md) is written on
+  stderr before the result, also under `--json`, through `drift::detect` and `drift::notice_line`.
 - `cargo dev gate slice` exits 0.

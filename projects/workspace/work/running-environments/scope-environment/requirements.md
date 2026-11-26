@@ -69,9 +69,9 @@ Acceptance:
 
 - Single-value output and multi-value dotenv or flat JSON imports remain available, with an output-key allow-list.
 - Anonymous import labels are not exported; command output cannot replace Winter-managed variables.
-- Lookups run once per scope for each `up` or `start` fan-out; a lookup shared by several scopes runs for each.
-  `restart` passes no scope values; a provider that needs fresh values obtains them with `winter env SCOPE --resolve`,
-  which runs lookups each time. Inspection, status, and stopping never run them.
+- Each computation of a scope that runs lookups runs them again, keeping no result across computations, scopes, or
+  invocations; `winter env SCOPE --resolve` runs them each time. Inspection, status, and stopping never run them. How
+  often a service operation computes a scope is `epic:running-environments/service-orchestration`'s.
 - Failure, invalid output, missing executable, or timeout names the entry and fails the requested resolution rather than
   launching with an omitted or placeholder value.
 - Each lookup runs from the workspace root with closed stdin and a 30-second deadline; a timed-out lookup leaves no
@@ -85,7 +85,9 @@ An agent learns that a required environment could not be computed before a workl
 
 Acceptance:
 
-- A failed required value or template computation prevents the affected launch; a diagnostic alone is not success.
+- A failed required value or template computation fails the scope's computation for a launch, never yielding a partial
+  set of values; a diagnostic alone is not success. Not launching that scope is
+  `epic:running-environments/service-orchestration`'s.
 - Teardown and inspection retain independently known target identity even when optional runtime values cannot resolve;
   degraded observation is identified, not represented as verified readiness.
 - Caller values do not silently supply another scope's Winter identity or an explicitly unresolved required key.

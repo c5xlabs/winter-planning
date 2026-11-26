@@ -43,8 +43,22 @@ pub(crate) struct CheckoutReport { pub env: String, pub feature_branch: String, 
     pub repos: Vec<RepoCheckout>,
     pub missing: Vec<(Selected, Missing)> }   // target-patterns.md, Missing targets in results
 pub(crate) fn checkout(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace,
-                       env: &str, feature_branch: &str, force: bool, new: bool) -> Result<CheckoutReport, Termination>;
+                       env: &str, feature_branch: &str, force: bool, new: bool) -> Result<CheckoutReport, CheckoutError>;
+// the failures that end the command before any effect (Running, steps 3-5); a failure after a pointer moved is a
+// failed repo in the report, never an Err. The command file maps: EnvName -> Termination::Command(EnvName),
+// Selection -> Command(Selection), RefToken -> Command(RefToken), Repo -> Repo, Internal -> Internal, each box as it is
+pub enum CheckoutError {
+    EnvName(EnvNameError),             // ENV fails env_name::check (env-names.md)
+    Selection(SelectionError),         // UnknownEnv (env-selection.md)
+    RefToken(RefTokenError),           // an unknown token (ref-tokens.md)
+    Repo(Box<RepoError>),              // a probe's repo error
+    Internal(Box<InternalError>),      // a git that cannot be started, or a candidate directory that cannot be listed
+}
 ```
+
+`CheckoutError` is `pub` and re-exported by name from `lib.rs` with the types its variants carry
+(`context/architecture/changes.md`, An error, of `winter-workspace`); the other names here land with the command that
+first calls them and stay `pub(crate)`.
 
 ## Interfaces
 

@@ -101,7 +101,7 @@ non-pinned         B := destination(wt); None -> no_upstream, error "no upstream
                               exits 0, else git rev-list --count origin/<main_branch>..HEAD; a failure counts 0
                               with a warning
                    git push -u origin HEAD:refs/heads/<B>
-pinned             T := the tracking operand of its active branch (refresh.md, ws pull, step 4, no commit check)
+pinned             T := tracking_operand of its active branch (refresh.md, Domain), no commit check
                    commits := git rev-list --count <T>..HEAD, or 0 with no T
                    git push origin
                    # decision:parallel-workspaces/coordinated-git/remote-policy: origin is the only remote
@@ -135,7 +135,7 @@ per standalone, in merged order:
                           # registered deviation, pinned-skips: the reference finds no upstream on the detached
                           # HEAD and fails the run
   a ref that does not resolve -> failed, error the rendered resolve error
-  T := the tracking operand of its active branch, no commit check; none
+  T := tracking_operand of its active branch (refresh.md), no commit check; none
                           -> no_upstream, error "no upstream — set one with `git branch --set-upstream-to`"
   ahead := git rev-list --count <T>..HEAD; non-zero exit -> failed, RepoError GitFailure { TrackingAheadProbe }
   ahead == 0              -> up_to_date (registered deviation, pinned-skips: the reference leaves it out)

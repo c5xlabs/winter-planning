@@ -15,12 +15,15 @@ and ignored-file bullets of `product:remove-untracked-content`.
 
 ## Change
 
-- `crates/core/src/history/clean.rs` gains `list` and `remove`, each one call through the program port with the span
-  `git clean` and the environment `LC_ALL=C`, `LANGUAGE=C`, `LC_MESSAGES=C`; a failure is the repo error with `Clean`.
+- `crates/core/src/history/clean.rs` gains `list`, `remove`, `Removed`, `parse`, and `Parse` of clean.md, Domain; `list`
+  and `remove` are each one call through the program port with the span `git clean` and the environment `LC_ALL=C`,
+  `LANGUAGE=C`, `LC_MESSAGES=C`; a failure is the repo error with `Clean`.
 - The parse keeps each recognised path exactly as Git prints it, quoting included, a directory with its trailing `/`;
   under the strict parse an output with no path and a line it cannot place is a parse failure carrying that diagnosis.
-- A worktree path that is no repository is the repo error "<path> is not a git worktree".
-- No command calls them yet.
+- A worktree path that is no repository is the repo error `NotAGitWorktree`, and a strict parse failure the repo error
+  `UnrecognisedClean`.
+- `list`, `remove`, `Removed`, `parse`, and `Parse` are re-exported by name from `lib.rs` for its tests
+  ([clean.md](../spec/clean.md), Domain); no command calls them yet.
 
 ## Acceptance
 

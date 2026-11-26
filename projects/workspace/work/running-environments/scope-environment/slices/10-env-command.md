@@ -2,18 +2,19 @@
 name: env-command
 depends-on:
   - compute-print
+  - epic:parallel-workspaces/workspace-bootstrap
 code:
   - winter-workspace/crates/core/src/trace.rs::CommandTracer
   - winter-workspace/crates/cli/src/trace.rs::Tracer
-  - winter-workspace/crates/core/topics/root.md
 ---
 
 # The `winter env` command
 
 Adds `winter env SCOPE [--resolve]` of [env-command.md](../spec/env-command.md): the domain entry for the load, the
 registry read, and `compute` with `Consumer::Print`; the lines and their quoting written in one write; nothing on stdout
-and one diagnostic on stderr on failure; exit 130 for an interrupted lookup; and the `winter.env` attribute of the
-command span. Its row is that of
+and one diagnostic on stderr on failure; an interrupted lookup aborted with exit 1, as the reference does, through the
+`Termination::Aborted` of `epic:parallel-workspaces/workspace-bootstrap`; and the `winter.env` attribute of the command
+span. Its row is that of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), Commands, and
 its stdout the `env` row of
 [output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md), which
@@ -23,9 +24,10 @@ bullet of `product:private-runtime-values`, and the identity bullets of `product
 
 ## Change
 
-- `scope_env.rs` gains the domain entry for steps 1 to 3; `crates/core/src/commands/env.rs` registers `env SCOPE` with
-  `--resolve`, maps a `ConfigError` to `Termination::Config`, an `EnvError` to `Termination::Env`, and
-  `LookupFailure::Interrupted` to `Termination::Interrupted`, and writes the lines through `output::text`.
+- `scope_env.rs` gains the domain entry for steps 1 to 3, failing with `EnvCommandError`;
+  `crates/core/src/commands/env.rs` registers `env SCOPE` with `--resolve`, maps `Config` to `Termination::Config`,
+  `Env(Interrupted)` to `Termination::Aborted { interrupted: true }`, and any other `Env` to `Termination::Env`, as
+  env-command.md, Interfaces, gives, and writes the lines through `output::text`.
 - `quote` follows Python's `shlex.quote` as the spec's Lines give it; nothing else escapes a value.
 - `CommandTracer` gains the call that sets one attribute on the command span; the binary's `Tracer` sets it and
   `NoTrace` ignores it; `env` sets `winter.env` by the spec's rule.
@@ -47,8 +49,8 @@ bullet of `product:private-runtime-values`, and the identity bullets of `product
 - An executable test in `crates/cli/tests`: under `sh -eu`, `eval "$(winter env alpha --resolve)"` sets each variable to
   its value byte for byte, values holding `'`, `$`, a space, and a newline included; for an unknown scope the shell sees
   an empty string and status 1.
-- An executable test: a `--resolve` lookup running `sleep 60` given SIGINT exits 130 with nothing on stdout, and its
-  process is gone.
+- An executable test: a `--resolve` lookup running `sleep 60` given SIGINT exits 1 with the aborted notice on stderr and
+  nothing on stdout, and its process group is gone.
 - A component test: the run writes no file under the workspace, as a recording file port shows.
 - A tracer test: `env alpha/x` sets `winter.env` to `alpha`; `env workspace` and `env /x` set none.
 - `cargo dev gate slice` exits 0.

@@ -7,30 +7,41 @@ depends-on:
 
 # The restack plan
 
-Adds `Chain`, `Refusal`, `PlanRefusal`, `Source`, `LinkRepo`, `Link`, `Plan`, and `plan` of
+Adds `chain`, `Chain`, `Refusal`, `PlanRefusal`, `Source`, `LinkRepo`, `Link`, `Plan`, and `plan` of
 [restack-plan.md](../spec/restack-plan.md), Domain, Refusals, and Plan: the chain split into links top first, BASE and
 `--cut` expanded for every non-pinned repository through `ref_tokens::expand` of
 [ref-tokens.md](../../coordinated-git/spec/ref-tokens.md), which `epic:parallel-workspaces/coordinated-git` builds, then
-every link read, refused all-or-nothing in the spec's order, or frozen with its boundaries and reversed bottom first.
-Delivers the chain and refusal bullets of `product:declare-stack-order`, the boundary, safety, and cut bullets of
-`product:review-replay-boundaries`, and `engineering:stack-boundary-integrity`, under
+every link read, refused all-or-nothing in the spec's order, or frozen with its boundaries and reversed bottom first;
+and the chain's combination rules of
+[command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), checked by
+`chain` before anything is read. Delivers the chain and refusal bullets of `product:declare-stack-order`, the boundary,
+safety, and cut bullets of `product:review-replay-boundaries`, and `engineering:stack-boundary-integrity`, under
 `decision:parallel-workspaces/stacked-history/boundary-policy` and
 `decision:parallel-workspaces/stacked-history/token-expansion`, whose eager expansion is a registered deviation.
 
 ## Change
 
+- `crates/core/src/restack.rs` gains `chain`, which checks one token, each ENV's literal chain-name shape, and an empty
+  BASE in that order and answers the first `ChainError`.
 - `crates/core/src/restack.rs` gains the plan's types and `plan`: a repeat is the only refusal and reads nothing; a
-  `RefTokenError` ends the run as its command error before any git call; then reads, missing refs, and per link the
-  safety, boundary, and inversion refusals, every refusal listed.
+  `RefTokenError` ends the run as `RestackError::RefToken` before any git call; then reads, missing refs, and per link
+  the safety, boundary, and inversion refusals, every refusal listed.
 - An unrefused plan holds every non-pinned repository per link in configuration order, a skipped one with boundary and
   source `None`; `--cut` is the bottom link's boundary only.
-- `plan` writes nothing; no command calls it yet.
+- `plan` writes nothing; a repo error of `dirty` or `branch` ends it as `RestackError::Repo`, and a git that cannot be
+  started as `RestackError::Internal`.
+- `chain`, `plan`, and the plan's types are re-exported by name from `lib.rs` for its tests
+  ([restack-plan.md](../spec/restack-plan.md), Domain); no command calls them yet.
 
 ## Acceptance
 
+- Unit tests of `chain`: one token is `OneToken`; an ENV `a*`, `a?`, or `a[`, an ENV `a/b`, and an empty ENV are
+  `GlobElement`, `ScopedElement`, and `EmptyElement`, naming the element; an empty BASE is `EmptyBase`; with a bad ENV
+  and an empty BASE, the ENV's error is the one returned; `upper lower main` with `--cut` gives the `Chain` of the spec,
+  envs top first.
 - Unit tests over a recording program port: a repeated env, and `--cut` equal to BASE, are each the one `InvertedOrder`
   refusal, with the spec's link, `repos` and `element`, and no git call ran.
-- Unit tests: BASE `{mian}` ends with `CommandError::RefToken` before any git call; BASE `{main}` with a non-pinned
+- Unit tests: BASE `{mian}` ends with `RestackError::RefToken` before any git call; BASE `{main}` with a non-pinned
   repository whose `main_branch` is empty refuses the same way, though that repository has none of the chain's branches.
 - Component tests with real git: an env no repository has is `MissingRef` with `repos` `[]` and the env as `element`; a
   BASE no participating repository has is `MissingRef` with BASE as typed; a pinned project appears in no link.

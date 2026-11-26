@@ -11,12 +11,12 @@ of `winter-workspace` at `127cdf2`. Message wording is the binary's own (`decisi
 
 ```rust
 // crates/core/src/scope_env/resolve.rs — pure apart from the lookup port; engineering:scope-computation-authority
-pub(crate) enum Lookups { Run, Mask }      // Mask: no command entry runs (product:offline-env-inspection)
-pub(crate) const PLACEHOLDER: &str = "<unresolved:command>";
+pub enum Lookups { Run, Mask }      // Mask: no command entry runs (product:offline-env-inspection)
+pub const PLACEHOLDER: &str = "<unresolved:command>";
 
-pub(crate) struct ScopeEnv { pub vars: Vec<(String, String)> }  // ordered; keys unique
+pub struct ScopeEnv { pub vars: Vec<(String, String)> }  // ordered; keys unique
 
-pub(crate) fn resolve(
+pub fn resolve(
     bands: &EnvBands,
     identity: &Identity,
     lookups: Lookups,
@@ -44,6 +44,13 @@ pub enum UnresolvedCause {
 }
 pub enum Unclaimed { Anonymous, NotExported, MultiValueLabel(EnvFormat), NotInOutput }
 ```
+
+Visibility: `resolve`, `Lookups`, `PLACEHOLDER`, and `ScopeEnv` are `pub` inside their private module and re-exported by
+name from `lib.rs`, the names of `scope_env/resolve.rs` on a `pub use` line of their own, with every type their
+signatures name: `ResolutionError`, `Unresolved`, `UnresolvedCause`, and `Unclaimed`, which the scaffold re-exports
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

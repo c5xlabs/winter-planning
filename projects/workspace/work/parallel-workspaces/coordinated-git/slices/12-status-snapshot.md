@@ -4,6 +4,7 @@ depends-on:
   - target-patterns
   - fan-out
   - worktree-probe
+  - ws-fetch
   - epic:parallel-workspaces/workspace-bootstrap
 ---
 
@@ -22,9 +23,14 @@ once and filtered by PATTERNS, the source checkouts and standalones with their l
 - `crates/core/src/status.rs` gains `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `collect`, and
   `exit_code`: an environment's feature branch from its first non-pinned worktree tracking `origin/`, its index from the
   built `env_index::lookup`, and the first probe failure, in environment then project order, the collection error.
+- A standalone's ahead and behind are counted against `tracking_operand` of `ws-fetch`, and its absence is tested by
+  `standalones` of `target-patterns` ([refresh.md](../spec/refresh.md) and
+  [target-patterns.md](../spec/target-patterns.md), Domain).
 - A missing matched worktree, a missing or failing standalone, and a failed refresh count in `Unseen`, which feeds
   `exit_code` and never the document.
-- Nothing is written to any repository or file; no command calls it yet.
+- Nothing is written to any repository or file. `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `collect`,
+  and `exit_code` are re-exported by name from `lib.rs` for its tests ([status.md](../spec/status.md), Domain); no
+  command calls them yet.
 
 ## Acceptance
 
@@ -37,7 +43,9 @@ once and filtered by PATTERNS, the source checkouts and standalones with their l
 - A component test: a failing standalone probe is a warning and no row, and the other standalones are present.
 - A component test: a worktree probe failure in one environment is the collection error after that environment's other
   probes ran.
-- A component test: two environments tracking different upstreams keep their own `upstream` per row.
+- A component test: two non-pinned worktrees of one environment tracking different branches keep their own `upstream`
+  per row, and the environment's `feature_branch` comes from the first of them alone.
+- A component test: an absent standalone has no row, is warned, and makes `exit_code` 1 when there are no PATTERNS.
 - A component test: `collect` leaves every file under the workspace and every ref unchanged.
 - `cargo dev gate slice` exits 0.
 

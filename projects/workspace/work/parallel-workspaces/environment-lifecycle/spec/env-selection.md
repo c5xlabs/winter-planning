@@ -19,22 +19,30 @@ under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Mes
 // Pure but for the file reads of known_env and present; starts no program.
 
 /// Which environments a command's patterns can reach.
-pub(crate) enum EnvRule {
+pub enum EnvRule {
     Present,   // ws fetch, pull, merge, push, status: the environments present, by index
-    Named,     // ws destroy, connect, disconnect, diff, reset, clean: literal names first, then globbed present ones
+    Named,     // ws destroy, connect, disconnect, diff, reset, clean, checkout: literal names first, then globbed
+               // present ones
 }
 
-pub(crate) fn known_env(files: &dyn ReadFiles, root: &Path, registry: &[(String, i64)], name: &str) -> bool;
+pub fn known_env(files: &dyn ReadFiles, root: &Path, registry: &[(String, i64)], name: &str) -> bool;
 
 /// The environments `halves` reach under `rule`, in the rule's order, without repeats.
-pub(crate) fn reach(files: &dyn ReadFiles, root: &Path, config: &WorkspaceConfig, registry: &[(String, i64)],
+pub fn reach(files: &dyn ReadFiles, root: &Path, config: &WorkspaceConfig, registry: &[(String, i64)],
     halves: &[String], rule: EnvRule) -> Result<Vec<String>, ReachError>;
-pub(crate) enum ReachError { Selection(SelectionError), Internal(InternalError) }
+pub enum ReachError { Selection(SelectionError), Internal(InternalError) }
 
 // crates/core/src/termination.rs — SelectionError gains, beside EmptyPattern and NotBareName:
-UnknownEnv { env: String }          // "no environment named <env!r>: none is registered and <root>/<env> is not a
-                                    //  directory"; registered deviation, decision:parallel-workspaces/target-selection
+UnknownEnv { env: String, path: PathBuf }   // path: <root>/<env>; "no environment named <env!r>: none is registered
+                                            //  and <path> is not a directory"; registered deviation,
+                                            //  decision:parallel-workspaces/target-selection
 ```
+
+Visibility: `EnvRule`, `known_env`, `reach`, and `ReachError` are `pub` inside their private module and re-exported by
+name from `lib.rs`, each module's names on a `pub use` line of their own, with every type their signatures name
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

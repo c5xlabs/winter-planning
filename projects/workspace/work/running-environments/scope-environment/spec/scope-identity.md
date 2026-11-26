@@ -11,13 +11,13 @@ Derived values. Reference locations are paths under `tools/winter-cli/src/winter
 
 ```rust
 // crates/core/src/scope_env.rs — the one module that computes a scope's variables; engineering:scope-computation-authority
-pub(crate) const WORKSPACE_SCOPE: &str = "workspace";
+pub const WORKSPACE_SCOPE: &str = "workspace";
 
-pub(crate) enum Scope { Workspace, Feature(String) }
+pub enum Scope { Workspace, Feature(String) }
 
 // The managed variables, before any band entry. Computed from the registry and the configuration only:
 // nothing is allocated, probed, or recorded.
-pub(crate) struct Identity {
+pub struct Identity {
     pub scope: Scope,
     pub index: i64,                 // 0 for Workspace; the recorded index for Feature
     pub port_base: Option<i64>,     // None for Workspace: WINTER_PORT_BASE is never emitted for it
@@ -26,19 +26,25 @@ pub(crate) struct Identity {
     pub index_fault: Option<IndexFault>,
 }
 
-pub(crate) enum IndexFault {        // a recorded index outside the layout; product:runtime-scope-values
+pub enum IndexFault {        // a recorded index outside the layout; product:runtime-scope-values
     Reserved,                       // 0, the workspace scope's
     Buffer,                         // N + 1, never assigned
     OutsideLayout,                  // below 0, or above envs_per_workspace
 }
 
 // Precondition: the workspace loaded (configuration-model.md, Load) and the registry read (state_registry::read).
-pub(crate) fn identity(
+pub fn identity(
     workspace: &Workspace,
     registry: &BTreeMap<String, i64>,
     scope: &str,
 ) -> Result<Identity, EnvError>;
 ```
+
+Visibility: `identity`, `WORKSPACE_SCOPE`, `Scope`, `Identity`, and `IndexFault` are `pub` inside `scope_env.rs` and
+re-exported by name from `lib.rs`, on a `pub use` line of their own, with `EnvError`, which the scaffold re-exports
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
 
 ## Interfaces
 
@@ -87,6 +93,8 @@ pub enum EnvError {
     UnknownScope { scope: String },                                  // "no env by that name is registered"
     RecordedIndex { scope: String, index: i64, fault: IndexFault },
     Resolution(ResolutionError),                                     // resolution.md; a lookup failure is its Lookup variant
+    Interrupted,          // a lookup answered LookupFailure::Interrupted (value-lookups.md, The child); not Termination::Env:
+                          // the command file ends it as Termination::Aborted { interrupted: true } (consumers.md)
 }
 // No variant carries a resolved value or a rendered command (product:private-runtime-values).
 ```

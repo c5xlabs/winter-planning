@@ -19,7 +19,8 @@ byte. Builds the content-preserving half of `product:nested-local-inheritance` a
   another is deleted and re-inserted, a new scalar goes before the first table and a new table at the end; it answers no
   document when the serialised text is unchanged.
 - Line endings and a byte order mark are kept as write-byte-preservation gives.
-- No caller yet.
+- The upsert is `config_edit::upsert_local_keys` of [delegation.md](../spec/delegation.md), Domain, re-exported by name
+  from `lib.rs` for its tests; no command calls it yet.
 
 ## Acceptance
 

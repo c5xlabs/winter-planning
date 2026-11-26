@@ -21,7 +21,8 @@ registered deviations.
 ## Change
 
 - `crates/core/src/refresh.rs` gains `pull`: a failed refresh is `refresh_failed` and the project's worktrees still
-  integrate on local refs; a worktree with no upstream, a configured but unfetched one included, is `no_upstream`.
+  integrate on local refs; a worktree's upstream is `tracking_operand` of `ws-fetch` with the commit check, so one with
+  no upstream, a configured but unfetched one included, is `no_upstream`.
 - `crates/core/src/commands/ws/pull.rs` registers the command with `--ff-only`, `--merge`, `--rebase`, and
   `--autostash`, writes the events or their text rows and the diverged hint, and exits 1 unless the run succeeded.
 - `crates/core/topics/ws/pull.md`, referenced from the `ws` group topic.
@@ -37,6 +38,8 @@ registered deviations.
   already local, and the command exits 1.
 - A component test: a standalone pinned at a tag is `held_pin` and its HEAD does not move; one pinned at a branch is
   `re_pinned` when it fast-forwards and its lock record advances.
+- A component test: `--standalone` with an absent standalone warns it, names it in a `target_missing` event under
+  `--json`, and starts no git process in it.
 - An executable test in `crates/cli/tests` running two `ws pull` processes of the built binary at once over one project
   with two environments: each target ends integrated or `error` with Git's lock cause, never `diverged`.
 - `cargo dev gate slice` exits 0.

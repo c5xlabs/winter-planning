@@ -26,7 +26,8 @@ split of what the reference calls diverged is a registered deviation.
   paths or a new stash entry.
 - `pins::advance::Integration` gains `MissingRef`, `DirtyBlocked`, `AutostashFailed`, and `AbortFailed`, and its counts
   widen to `u64`, as `Integrated`'s are; `advance` passes each through like `Diverged`.
-- No new command calls `integrate` yet.
+- `Fallback`, `Integrated`, `AutostashStep`, and `integrate` are re-exported by name from `lib.rs` for its tests
+  ([integration.md](../spec/integration.md), Domain); no command calls them yet.
 
 ## Acceptance
 

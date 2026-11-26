@@ -10,17 +10,17 @@ under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Mes
 
 ```rust
 // crates/core/src/scope_env.rs — engineering:scope-computation-authority, engineering:complete-resolution-outcomes
-pub(crate) enum Consumer {
+pub enum Consumer {
     Print { resolve: bool },   // winter env (env-command.md)
     Launch,                    // service up; any operation that starts a workload with the scope's variables
     Observe,                   // service down, service status, and the teardown computation of ws destroy
 }
-pub(crate) enum Computed {
+pub enum Computed {
     Complete(ScopeEnv),
     // Observe only: the managed variables of scope-identity.md and the failure that stopped the bands
     Degraded { managed: ScopeEnv, cause: EnvError },
 }
-pub(crate) fn compute(
+pub fn compute(
     ports: &Ports<'_>,
     interrupts: &Interrupts,
     workspace: &Workspace,
@@ -29,7 +29,19 @@ pub(crate) fn compute(
     consumer: Consumer,
     diagnostics: &mut Diagnostics<'_>,   // Observe's warnings below; Print and Launch write none
 ) -> Result<Computed, EnvError>;
+
+/// The environment of a process started with a computed scope's variables (Launch environment, below). Pure.
+pub struct LaunchEnvironment { pub remove: Vec<&'static str>, pub env: Vec<(String, String)> }
+pub fn launch_environment(computed: &Computed) -> LaunchEnvironment;
 ```
+
+Visibility: `compute`, `Consumer`, `Computed`, `launch_environment`, and `LaunchEnvironment` are `pub` inside
+`scope_env.rs` and re-exported by name from `lib.rs`, on a `pub use` line of their own, with `ScopeEnv` and `EnvError`,
+which resolution.md and scope-identity.md make `pub` (`context/architecture/changes.md`, A domain module, of
+`winter-workspace`), so the slice that lands each tests it before a command calls it (`context/standards/testing.md`)
+and the gate finds nothing unused without an `allow` (`context/standards/rust.md`). `Launch`, `Observe`, and
+`launch_environment` have no caller in this epic: `epic:running-environments/service-orchestration` calls them from
+provider-contract.md, Fan-out and Invocation.
 
 ## Interfaces
 
@@ -41,11 +53,19 @@ pub(crate) fn compute(
 | `Launch`            | `Run`                         | `Err`          | `Err`                               | `Err`: that scope is not launched                                                       |
 | `Observe`           | `Mask`                        | `Err`          | warning; the recorded index is used | `Degraded`: one warning naming the scope and the cause, then the managed variables only |
 
+An interrupted lookup is `Err(EnvError::Interrupted)` under `Print` and `Launch`, the only consumers that run lookups,
+and is no failure of the scope: the caller ends the invocation as `Termination::Aborted { interrupted: true }`, the
+aborted notice and exit 1, and calls nothing more. That is the frozen row of results-and-exit-codes.md, Interrupts and
+prompts, for an interrupt outside the service paths, which `service up` dispatch shares; `Termination::Aborted` is the
+one `epic:parallel-workspaces/workspace-bootstrap` adds. results-and-exit-codes.md is
+[../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md).
+
 ```text
 # product:complete-launch-environment; reference: modules/service/provider_invocation.py:64-92
 Launch    registered deviation, decision:running-environments/scope-environment/incomplete-launch-refusal: the
           reference catches a template or shell-reference failure, warns, and launches with no scope variables; only
-          a failing command entry stopped it. Here every EnvError stops the scope's launch. The fan-out treats it as
+          a failing command entry stopped it. Here every EnvError but Interrupted (above) stops the scope's launch.
+          The fan-out treats it as
           a failed call that returned 1: no later cell is called, and the cells already called stay reported
           (provider-contract.md, Fan-out, owns the reporting of attempted and unattempted cells)
 Observe   registered deviation, product:complete-launch-environment: the reference passes no variables at all
@@ -59,12 +79,13 @@ warnings  name the scope, the band, and the key; never a value (product:private-
 ```text
 # decision:running-environments/scope-environment/lookup-execution-policy
 # reference: modules/service/service_fan_out_service.py:115-205, modules/service/service_status_matrix_service.py:46
-one dispatch   a consumer computes each scope at most once per dispatch and reuses the result for every call of that
-               scope (provider-contract.md, Fan-out). No result is kept across scopes, dispatches, or invocations:
-               a workspace-band lookup runs again for each feature scope a dispatch launches
+no cache       compute keeps no result across calls, scopes, or invocations: each call runs its lookups again, so a
+               workspace-band lookup runs again for each feature scope computed. Computing each scope at most once
+               per dispatch and reusing the result for every call of that scope is the caller's, provider-contract.md,
+               Fan-out
 up, start      Launch: lookups run
-restart, logs  no scope variables are computed; a provider that needs values runs `winter env SCOPE --resolve` itself,
-               so every start and restart gets fresh values
+restart, logs  no scope variables are computed (provider-contract.md); a provider that needs values runs
+               `winter env SCOPE --resolve` itself, so every start and restart gets fresh values
 down, status   Observe: no lookup runs, --wait readiness polling included
 winter env     only with --resolve
 nothing else   no other command of this epic runs a lookup; an operation another epic adds names its Consumer in its
@@ -79,6 +100,7 @@ the environment of every process started with a scope's variables (provider call
 value-lookups.md) is the environment OsPrograms gives every child, with
   remove   WINTER_ENV, WINTER_ENV_INDEX, WINTER_PORT_BASE, WINTER_WORKSPACE_PORT_BASE, WINTER_SERVICE_PREFIX
   env      the scope's variables (Complete, or Degraded's managed variables), laid over
+launch_environment(computed) answers these two lists for a provider call; provider-contract.md, Invocation, applies them
 so a caller that sourced another scope supplies none of its identity, and a workspace-scope process never sees a
 WINTER_PORT_BASE. A command entry's key under Mask holds PLACEHOLDER, never a caller's value of that name.
 registered deviation, decision:running-environments/scope-environment/inherited-environment: the reference passes

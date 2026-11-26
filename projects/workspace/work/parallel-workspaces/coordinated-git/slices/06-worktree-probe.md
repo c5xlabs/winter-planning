@@ -16,12 +16,13 @@ per-worktree state of `product:inspect-workspace-git` and `product:worktree-upst
 
 ## Change
 
-- `crates/core/src/status.rs` holds `WorktreeRow` without its `nested` field, and the probe that fills one from a
-  worktree path, through the program port with `TrackingAheadBehindProbe` and `MainAheadBehindProbe` spans.
+- `crates/core/src/status.rs` holds `WorktreeRow` without its `nested` field, and `Probed` and `probe`, which fill one
+  from a worktree path, through the program port with `TrackingAheadBehindProbe` and `MainAheadBehindProbe` spans.
 - The probe parses records rather than human status text: type 1, 2, u, and `?` records counted as the spec gives, a
   rename counted once by its new path.
 - An unborn worktree runs neither the main-relative probe nor the log, and is marked so the text can show it.
-- No command calls it yet.
+- `WorktreeRow`, `Probed`, and `probe` are re-exported by name from `lib.rs` for its tests
+  ([status.md](../spec/status.md), Domain); no command calls them yet.
 
 ## Acceptance
 

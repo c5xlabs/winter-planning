@@ -103,12 +103,11 @@ binds_service(root)
 # product:nested-teardown-preservation; decision:parallel-workspaces/nested-workspaces/recursive-teardown
 Forwarded
   force               destroy.md's Options.force
-  strict              Options.strict; false while Options has no such field
-  provision_teardown  Options.provision_teardown; true while Options has no such field
-  # --strict and --no-provision-teardown are registered by epic:running-environments/resource-provisioning and
-  # epic:agent-ready-operation/executable-extensions (destroy.md, System), which may land after this epic; until each
-  # does, a destroy forwards what a destroy without that option means, and the epic that adds the field sets
-  # Forwarded from it
+  strict              destroy.md's Options.strict
+  provision_teardown  destroy.md's Options.provision_teardown
+  # --strict and --no-provision-teardown, and the two Options fields, are registered by the owners destroy.md,
+  # System, names: epic:agent-ready-operation/executable-extensions and epic:running-environments/resource-provisioning;
+  # each sets its Forwarded field from the Options field it adds
 ```
 
 ### Deviations

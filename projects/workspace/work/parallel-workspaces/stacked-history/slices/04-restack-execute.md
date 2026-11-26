@@ -23,7 +23,9 @@ remains. A rebase that fails carries `GitOperation::Rebase` of `module-scaffold`
 - A non-zero rebase is a `Conflict` only when git left `stopped-sha` or `original-commit`, the repository left
   mid-rebase; otherwise, or when a classification read fails, a `Failure` with the repo error.
 - `restack/execute.rs` names the `git rebase` span its rebase opens.
-- Nothing is written for a later run, nothing is pushed, and no upstream setting changes; no command calls it yet.
+- Nothing is written for a later run, nothing is pushed, and no upstream setting changes.
+- `execute` and the report types are re-exported by name from `lib.rs` for its tests
+  ([restack-execution.md](../spec/restack-execution.md), Domain); no command calls them yet.
 
 ## Acceptance
 
