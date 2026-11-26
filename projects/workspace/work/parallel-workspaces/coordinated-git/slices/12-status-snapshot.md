@@ -22,9 +22,9 @@ once and filtered by PATTERNS, the source checkouts and standalones with their l
 
 - `crates/core/src/status.rs` gains `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `StatusError`,
   `collect`, and `exit_code`: `collect` does root discovery and the load from the start path, a failure
-  `StatusError::Config`; an environment's feature branch from its first non-pinned worktree tracking `origin/`, its
-  index from the built `env_index::lookup`, and the first probe failure, in environment then project order, the
-  collection error, `StatusError::Collection`.
+  `StatusError::Config`; an environment's rows are its worktrees' `Probed`, the unborn mark kept for the text; its
+  feature branch from its first non-pinned worktree tracking `origin/`, its index from the built `env_index::lookup`,
+  and the first probe failure, in environment then project order, the collection error, `StatusError::Collection`.
 - A standalone's ahead and behind are counted against `tracking_operand` of `ws-fetch`, and its absence is tested by
   `standalones` of `target-patterns` ([refresh.md](../spec/refresh.md) and
   [target-patterns.md](../spec/target-patterns.md), Domain).

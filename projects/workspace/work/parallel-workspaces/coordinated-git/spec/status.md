@@ -35,11 +35,11 @@ pub struct WorktreeRow {
     pub nested: Option<NestedMember>,                        // child-state.md; reserved: nested-workspaces adds it
 }
 /// One worktree probe (Environments, worktree probe, steps 1-3), at `path`; `unborn` marks a branch with no commit
-/// yet for the text, since the row has no field for it.
+/// yet for `text`, since the row has no field for it.
 pub struct Probed { pub row: WorktreeRow, pub unborn: bool }
 pub fn probe(ports: &Ports<'_>, repo: &str, path: &Path, main_branch: &str, pinned: bool) -> Result<Probed, GitFailure>;
 pub struct EnvRow { pub name: String, pub index: i64, pub port_base: i64,
-    pub feature_branch: Option<String>, pub worktrees: Vec<WorktreeRow> }   // extensions: always {}
+    pub feature_branch: Option<String>, pub worktrees: Vec<Probed> }   // document: each row; text: unborn too
 pub struct CheckoutRow { pub repo: String, pub branch: Option<String>, pub behind_origin: u64,
     pub ahead_origin: u64, pub dirty: u64, pub local_only_commits: u64, pub stashes: u64 }
 pub struct ProjectRow { pub checkout: CheckoutRow, pub drift: Vec<String> }
@@ -59,12 +59,20 @@ pub fn exit_code(snapshot: &Snapshot, scoped: bool) -> u8;
 // each box as it is
 pub enum StatusError { Config(Box<ConfigError>), Collection(Box<StatusCollectionError>) }
 
-/// The command file's one domain call (context/architecture/changes.md, A command): Order, steps 1 and 2. `sink`
+/// The command file's one domain call (context/architecture/changes.md, A command): Order, steps 1 to 3. `sink`
 /// receives the --fetch run's events (refresh.md, FetchEvent); an Err from it is the ending, handed back as Stopped.
 pub(crate) fn run(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
     patterns: &[Pattern], fetch: bool, sink: &mut dyn FnMut(&FetchEvent) -> Result<(), Termination>)
     -> Result<StatusEnd, StatusError>;
-pub(crate) enum StatusEnd { Collected(Snapshot), Stopped(Termination) }
+/// Collected: document(snapshot), text(snapshot), and exit_code(snapshot, !patterns.is_empty()), which the command
+/// file writes and exits with as handed
+pub(crate) enum StatusEnd { Collected { document: serde_json::Value, text: String, code: u8 }, Stopped(Termination) }
+
+/// Order, step 3: the v1 document (Document), extensions always {}, and the human text (Text) of a snapshot, built
+/// here, so the command file names none of the snapshot's fields or the document's keys: `environments` and `drift`
+/// are COMMAND_FILE_NAMES of winter-workspace's crates/dev/src/architecture.rs.
+pub(crate) fn document(snapshot: &Snapshot) -> serde_json::Value;
+pub(crate) fn text(snapshot: &Snapshot) -> String;
 
 // termination.rs — Termination gains StatusCollection(Box<StatusCollectionError>), exit 2, as
 // results-and-exit-codes.md, Domain, defines it; GitOperation gains LocalWorkProbe ("local-work probe"),
@@ -76,8 +84,8 @@ Visibility: `WorktreeRow`, `Probed`, `probe`, `EnvRow`, `CheckoutRow`, `ProjectR
 names on a `pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A
 domain module, of `winter-workspace`), so the slices that land them test them before a command calls them
 (`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
-`StatusCollectionError`, which `StatusError` carries, joins the `termination` line of `lib.rs`. `run` and `StatusEnd`
-stay `pub(crate)`: they land with the command that calls them.
+`StatusCollectionError`, which `StatusError` carries, joins the `termination` line of `lib.rs`. `run`, `StatusEnd`,
+`document`, and `text` stay `pub(crate)` and join no `pub use` line: they land with the command whose `run` calls them.
 
 ## Interfaces
 
@@ -85,7 +93,7 @@ stay `pub(crate)`: they land with the command that calls them.
 
 ```text
 # reference: WH:272-312, WSS:88-357
-steps 1 and 2 are run's; whichever loads first, the fetch or collect, meets a load failure as StatusError::Config,
+steps 1 to 3 are run's; whichever loads first, the fetch or collect, meets a load failure as StatusError::Config,
 exit 1, before anything is written to stdout
 1. --fetch: refresh::fetch (ws fetch of refresh.md) from the same start, with Scope::Project and the same PATTERNS,
    each event handed to the sink in its mode (under --json, shape C events, then the document); the repo_fetched
@@ -94,7 +102,8 @@ exit 1, before anything is written to stdout
    warnings, gives for ws status; a Stopped fetch is StatusEnd::Stopped, and nothing is collected
 2. collect(start, PATTERNS, failed_refreshes: step 1's count, 0 without --fetch): root discovery and the load, a failure
    StatusError::Config, exit 1; any other failure is StatusError::Collection, exit 2, and nothing more is written
-3. the command file: the document, or the text, written whole; then exit_code
+3. document(snapshot), text(snapshot), and exit_code, handed back as StatusEnd::Collected; the command file writes
+   the document under --json, else the text, whole as handed, then exits with code; it builds no output of its own
 nothing is fetched without --fetch; nothing is written to any repository or file
 ```
 
@@ -180,7 +189,7 @@ dashboard    configured_layout: the loaded dashboard_layout; resolved_layout: it
 ### Document
 
 ```text
-# reference: WH:1418-1530, schemas/ws-status-v1.json
+# reference: WH:1418-1530, schemas/ws-status-v1.json; built by document
 {"schema_version": 1,
  "environments": [{"name", "index", "port_base", "feature_branch", "worktrees": [row...], "extensions": {}}],
  "projects":    [{"repo", "branch", "behind_origin", "ahead_origin", "dirty", "drift", "local_only_commits", "stashes"}],
@@ -213,7 +222,7 @@ tests validate every document against
 ### Text
 
 ```text
-# reference: WH:1212-1361; layout is not contract
+# reference: WH:1212-1361; built by text; layout is not contract
 per environment   "Env: <name>", then "Branch:   <feature_branch>" when set, then a table
                   REPO | BRANCH | UPSTREAM | SYNC | DIRTY:
                   BRANCH the branch, "(detached)" when null, "<branch> (unborn)" when unborn
