@@ -1,5 +1,6 @@
 ---
 name: runner-api-retirement
+external: github:paul-gross/blizzard#2493
 depends-on:
   - runner-api-host
   - runner-api-leases

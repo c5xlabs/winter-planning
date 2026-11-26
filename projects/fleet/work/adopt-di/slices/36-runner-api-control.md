@@ -1,5 +1,6 @@
 ---
 name: runner-api-control
+external: github:paul-gross/blizzard#2490
 depends-on:
   - runner-api-leases
 code:

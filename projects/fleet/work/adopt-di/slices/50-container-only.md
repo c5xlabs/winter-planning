@@ -1,5 +1,6 @@
 ---
 name: container-only
+external: github:paul-gross/blizzard#2504
 depends-on:
   - hub-legacy-retirement
   - runner-api-retirement

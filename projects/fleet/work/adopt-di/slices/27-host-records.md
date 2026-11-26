@@ -1,5 +1,6 @@
 ---
 name: host-records
+external: github:paul-gross/blizzard#2481
 depends-on:
   - host-settings
 code:

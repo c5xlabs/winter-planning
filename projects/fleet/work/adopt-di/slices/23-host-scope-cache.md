@@ -1,5 +1,6 @@
 ---
 name: host-scope-cache
+external: github:paul-gross/blizzard#2477
 depends-on:
   - hub-scope-cache
   - epic:config/runtime

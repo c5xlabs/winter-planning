@@ -1,5 +1,6 @@
 ---
 name: runner-identity-harnesses
+external: github:paul-gross/blizzard#2485
 depends-on:
   - runner-stores
   - host-settings

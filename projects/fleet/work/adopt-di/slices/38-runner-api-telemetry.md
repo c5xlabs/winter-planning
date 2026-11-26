@@ -1,5 +1,6 @@
 ---
 name: runner-api-telemetry
+external: github:paul-gross/blizzard#2492
 depends-on:
   - runner-api-leases
 code:

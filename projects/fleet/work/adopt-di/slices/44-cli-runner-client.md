@@ -1,5 +1,6 @@
 ---
 name: cli-runner-client
+external: github:paul-gross/blizzard#2498
 depends-on:
   - cli-worker
   - epic:config/runtime

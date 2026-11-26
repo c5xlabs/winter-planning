@@ -1,5 +1,6 @@
 ---
 name: cli-hub-client
+external: github:paul-gross/blizzard#2495
 depends-on:
   - cli-operator
 code:

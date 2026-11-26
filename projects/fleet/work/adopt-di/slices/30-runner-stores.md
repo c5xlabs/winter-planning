@@ -1,5 +1,6 @@
 ---
 name: runner-stores
+external: github:paul-gross/blizzard#2484
 depends-on:
   - host-infrastructure
   - hosted-runners

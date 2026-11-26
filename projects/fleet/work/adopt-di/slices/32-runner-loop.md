@@ -1,5 +1,6 @@
 ---
 name: runner-loop
+external: github:paul-gross/blizzard#2486
 depends-on:
   - runner-identity-harnesses
 code:

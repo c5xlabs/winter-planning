@@ -1,5 +1,6 @@
 ---
 name: cli-operator
+external: github:paul-gross/blizzard#2494
 depends-on:
   - hub-request-pilot
 code:

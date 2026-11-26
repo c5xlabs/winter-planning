@@ -1,5 +1,6 @@
 ---
 name: cli-runner-local
+external: github:paul-gross/blizzard#2502
 depends-on:
   - cli-runner-host
   - cli-runner-writes

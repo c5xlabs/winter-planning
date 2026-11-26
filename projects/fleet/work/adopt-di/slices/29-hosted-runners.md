@@ -1,5 +1,6 @@
 ---
 name: hosted-runners
+external: github:paul-gross/blizzard#2483
 depends-on:
   - host-scope-pilot
   - host-settings

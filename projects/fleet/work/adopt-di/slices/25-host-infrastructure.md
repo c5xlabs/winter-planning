@@ -1,5 +1,6 @@
 ---
 name: host-infrastructure
+external: github:paul-gross/blizzard#2479
 depends-on:
   - host-scope-pilot
 code:

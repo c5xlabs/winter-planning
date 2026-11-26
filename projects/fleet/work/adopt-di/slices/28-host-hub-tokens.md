@@ -1,5 +1,6 @@
 ---
 name: host-hub-tokens
+external: github:paul-gross/blizzard#2482
 depends-on:
   - host-infrastructure
   - epic:config/runtime

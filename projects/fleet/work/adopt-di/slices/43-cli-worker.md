@@ -1,5 +1,6 @@
 ---
 name: cli-worker
+external: github:paul-gross/blizzard#2497
 depends-on:
   - cli-operator
   - epic:config/runtime

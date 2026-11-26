@@ -1,5 +1,6 @@
 ---
 name: runner-api-services
+external: github:paul-gross/blizzard#2487
 depends-on:
   - runner-loop
   - hosted-runners

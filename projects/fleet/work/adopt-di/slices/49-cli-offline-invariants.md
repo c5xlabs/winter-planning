@@ -1,5 +1,6 @@
 ---
 name: cli-offline-invariants
+external: github:paul-gross/blizzard#2503
 depends-on:
   - cli-operator
   - hub-events

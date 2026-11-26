@@ -1,5 +1,6 @@
 ---
 name: cli-runner-writes
+external: github:paul-gross/blizzard#2501
 depends-on:
   - cli-runner-dual-mode
 code:

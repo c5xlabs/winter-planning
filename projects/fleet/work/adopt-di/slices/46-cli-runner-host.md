@@ -1,5 +1,6 @@
 ---
 name: cli-runner-host
+external: github:paul-gross/blizzard#2500
 depends-on:
   - cli-runner-dual-mode
 code:

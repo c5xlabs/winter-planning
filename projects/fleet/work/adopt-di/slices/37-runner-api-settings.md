@@ -1,5 +1,6 @@
 ---
 name: runner-api-settings
+external: github:paul-gross/blizzard#2491
 depends-on:
   - runner-api-services
 code:

@@ -1,5 +1,6 @@
 ---
 name: cli-hub-local
+external: github:paul-gross/blizzard#2496
 depends-on:
   - cli-hub-client
   - hub-offline-roots

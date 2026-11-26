@@ -1,5 +1,6 @@
 ---
 name: cli-runner-dual-mode
+external: github:paul-gross/blizzard#2499
 depends-on:
   - cli-runner-client
   - runner-api-retirement

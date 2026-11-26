@@ -1,5 +1,6 @@
 ---
 name: host-settings
+external: github:paul-gross/blizzard#2480
 depends-on:
   - host-infrastructure
   - epic:config/runtime
