@@ -1,7 +1,7 @@
 ---
 epic: config/runtime
 refinement: refined
-status: in-progress
+status: delivered
 external: github:paul-gross/blizzard#2124
 ---
 

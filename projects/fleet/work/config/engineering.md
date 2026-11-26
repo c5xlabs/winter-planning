@@ -6,8 +6,8 @@ Binds `initiative:config`.
 
 `epic:config/sweep` and `epic:config/runtime` land in either order, and neither waits for the other. A constant the
 sweep promotes declares its lifetime when it is promoted, using the lifetime `epic:config/runtime` has already agreed
-for it where one is agreed ([runtime/spec/settings.md](./runtime/spec/settings.md) §Lifetimes for constants the sweep
-will promote).
+for it where one is agreed ([runtime/spec/settings.md](../../delivered/config/runtime/spec/settings.md) §Lifetimes for
+constants the sweep will promote).
 
 - If the runtime epic's change for the constant's daemon has landed, a promoted `pass` or `session` constant is an entry
   from the start: seeded from the file and changed through its daemon's API.
