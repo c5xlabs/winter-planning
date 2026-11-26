@@ -8,6 +8,7 @@ epics:
   - provider-tmux
   - provider-docker
   - provider-process-compose
+  - nested-runtime
 ---
 
 # Run isolated environments
@@ -33,6 +34,9 @@ attributable logs through one provider-independent interface.
 `epic:running-environments/provider-process-compose` each provide a native first-party runtime choice independently of
 the other two. Their common obligations include isolation, explicit capability limits, fair log following, and cleanup
 that proves ownership rather than guessing from a similar name.
+
+`epic:running-environments/nested-runtime` extends service shutdown, provision teardown, and runtime-value agreement to
+child workspaces that `epic:parallel-workspaces/nested-workspaces` already verifies and delegates to.
 
 ## Left for later
 

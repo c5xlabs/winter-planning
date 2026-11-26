@@ -22,4 +22,4 @@ ownership/retraction of generated child overrides; this blocks finalizing `produ
 
 **Open.** Choose all-child preflight, failure continuation, deeply nested unknown state, and consent for removing entire
 child Git stores; this blocks finalizing `product:nested-teardown-preservation` and `engineering:nested-loss-evidence`,
-with resource/service semantics owned by their runtime epics.
+with child service and provision teardown owned by `epic:running-environments/nested-runtime`.

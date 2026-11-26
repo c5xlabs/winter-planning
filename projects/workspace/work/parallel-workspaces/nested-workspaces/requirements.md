@@ -30,7 +30,7 @@ Acceptance:
 - Allocation uses the parent's actual persisted assignment, not a hypothetical hash suggestion.
 - Adding, reordering, or removing children does not silently relocate live resources; affected changes and recovery are
   explained before application.
-- Runtime inspection in the child agrees with the allocation delegated by the parent.
+- The child's own environment inspection reports the allocation delegated by the parent.
 
 ## Inherit only approved local settings (product:nested-local-inheritance)
 
@@ -59,18 +59,16 @@ Acceptance:
 - Failed or incomplete child inspection remains an unknown safety condition, not a healthy empty workspace.
 - Child errors are attributed to the outer repository and do not suppress other child results.
 
-## Retire child resources before removing their stores (product:nested-teardown-preservation)
+## Retire child environments before removing their stores (product:nested-teardown-preservation)
 
-The engineer can retire an outer environment without abandoning running child services or deleting the only copy of
-child work. Failure policy follows `decision:parallel-workspaces/nested-workspaces/recursive-teardown`.
+The engineer can retire an outer environment without deleting the only copy of child work. Failure policy follows
+`decision:parallel-workspaces/nested-workspaces/recursive-teardown`.
 
 Acceptance:
 
 - Dirty, unpublished, unreadable, or incompletely audited child work refuses default outer teardown before destruction.
-- Preview identifies nested env teardown, child workspace-service shutdown, and loss-bearing store removal without
-  running mutation commands.
-- Child env lifecycle teardown and child workspace-service shutdown precede removal of the outer worktree.
-- A child with no service binding does not fail solely because an inapplicable shutdown command was attempted.
+- Preview identifies nested env teardown and loss-bearing store removal without running mutation commands.
+- Child env lifecycle teardown precedes removal of the outer worktree.
 - Child failure retains the outer store unless explicit, scoped discard/teardown approval permits proceeding; failure
   and retained-work outcomes remain visible even when approved cleanup continues.
-- Strictness and provision-teardown choices reach the child without broadening scope or bypassing root verification.
+- Strictness choices reach the child without broadening scope or bypassing root verification.

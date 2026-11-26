@@ -24,5 +24,5 @@ interruption cannot lose child-owned settings or publish a successful partial de
 
 Recursive deletion uses complete evidence for all child stores being removed; a skipped standalone probe, missing
 tracking ref, failed history read, or incompatible child result cannot count as no local work. Disposable multi-level
-Git fixtures cover retained branches, stashes, detached work, and child-service failures. Serves
+Git fixtures cover retained branches, stashes, detached work, and failed child teardown. Serves
 `product:nested-work-inspection` and `product:nested-teardown-preservation`.

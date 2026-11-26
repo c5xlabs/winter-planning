@@ -22,13 +22,10 @@ allocations, deliberately inherited local settings, and recursive protection for
 ## Depends on
 
 - `epic:parallel-workspaces/environment-lifecycle`
-- `epic:running-environments/scope-environment`
-- `epic:running-environments/resource-provisioning`
-- `epic:running-environments/service-orchestration`
 
 ## Left for later
 
-Child lifecycle integration can be staged after structural environment support and the runtime epics; none must depend
-on nested workspaces to operate independently. Provider implementations remain owned by
-`epic:running-environments/provider-tmux`, `epic:running-environments/provider-docker`, and
-`epic:running-environments/provider-process-compose`.
+This epic is structural: it needs no runtime capability, and teardown here retires child environments and their stores
+only. Stopping a child's services, running its provision teardown, and checking its runtime values against the delegated
+allocation belong to `epic:running-environments/nested-runtime`, which builds on this epic and the runtime epics; none
+of them depends on nested workspaces to operate independently.

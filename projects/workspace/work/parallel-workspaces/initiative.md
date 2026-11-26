@@ -42,10 +42,10 @@ workspaces before their stores are removed.
 
 ## Left for later
 
-Runtime preparation and service control belong to `initiative:running-environments`; nesting consumes those capabilities
-without making base environment identity depend on complete runtime integration. Version-matched guidance comes from
-`epic:agent-ready-operation/context-navigation`, while adoption and release evidence belong to
-`initiative:rust-adoption`.
+Runtime preparation and service control belong to `initiative:running-environments`. Nesting here is structural, and
+`epic:running-environments/nested-runtime` adds child service and provision teardown once those capabilities exist.
+Version-matched guidance comes from `epic:agent-ready-operation/context-navigation`, while adoption and release evidence
+belong to `initiative:rust-adoption`.
 
 ## Stance
 
