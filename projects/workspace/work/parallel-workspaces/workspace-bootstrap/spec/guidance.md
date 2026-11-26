@@ -3,10 +3,11 @@
 The Workspace topics this epic adds: one per command it adds, and the `setup` family that
 `decision:agent-ready-operation/context-navigation/setup-guidance` assigns to it. Topic sources, references,
 reachability, and the coverage tests are those of
-[context-navigation spec.md](../../../agent-ready-operation/context-navigation/spec.md), Topic source and Coverage of
-commands; each topic below is one Markdown file under `crates/core/topics/` of `winter-workspace`, at the path its id
-gives. A topic names only commands and options the binary holds. Reference sources are paths of `winter-workspace` at
-`b57b020`; a topic restates their procedure for this binary's commands and drops what this binary has no command for.
+[context-navigation spec.md](../../../../delivered/agent-ready-operation/context-navigation/spec.md), Topic source and
+Coverage of commands; each topic below is one Markdown file under `crates/core/topics/` of `winter-workspace`, at the
+path its id gives. A topic names only commands and options the binary holds. Reference sources are paths of
+`winter-workspace` at `b57b020`; a topic restates their procedure for this binary's commands and drops what this binary
+has no command for.
 
 ## Data
 
