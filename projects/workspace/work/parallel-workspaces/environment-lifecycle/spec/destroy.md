@@ -11,9 +11,8 @@ Confirmation, under the thresholds of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
 Interrupts and prompts. Events are the `InitEvent`s of
 [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), Events and text. Names pass
-[env-names.md](./env-names.md); selection is the Named rule of
-[target-patterns.md](../../coordinated-git/spec/target-patterns.md); the order of effects is
-[fan-out.md](../../coordinated-git/spec/fan-out.md)'s for destructive commands; the release is
+[env-names.md](./env-names.md); selection is `reach` with `EnvRule::Named` of [env-selection.md](./env-selection.md);
+targets run one at a time, as `engineering:bounded-fan-out` binds a command that removes files; the release is
 [allocation.md](./allocation.md)'s. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
 `winter-workspace` at `127cdf2`. Message wording is the binary's own (`decision:functional-parity`).
 
@@ -105,9 +104,9 @@ order, before any prompt, git call, or write
   3. env_name::check(each literal), argument order (env-names.md)
   4. the registry read (lock-and-state.md); a refusal is its ConfigError, exit 1
   5. select:
-     the Named rule of target-patterns.md, Reaching environments, over the env-level PATTERNS as env halves:
-     literal   a PATTERN with none of * ? [; known_env (target-patterns.md) must hold, in pattern order: the first
-               that does not -> SelectionError::UnknownEnv, exit 1, nothing done
+     env_selection::reach(files, root, config, registry, PATTERNS, EnvRule::Named) (env-selection.md):
+     literal   a PATTERN with none of * ? [; the first, in pattern order, that names no environment ->
+               SelectionError::UnknownEnv, exit 1, nothing done
                # decision:parallel-workspaces/environment-lifecycle/discovery-authority: a directory or a record
                # registered deviation: the reference prompts, then fails that target with "env directory not found"
      glob      the environments present (location-listing.md) whose name matches; env_name::check of each match

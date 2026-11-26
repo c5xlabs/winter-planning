@@ -25,6 +25,7 @@ pub(crate) struct Report {
 pub(crate) enum Stop { Conflict(Conflict), Failure(Failure) }
 pub(crate) fn execute(ports: &Ports<'_>, workspace: &Workspace, links: &[Link]) -> Report;
 // no state is written anywhere for a later run: a re-run plans from Git alone
+// the rebase's repo error is GitOperation::Rebase, which restack-plan.md's Domain adds; its span "git rebase"
 ```
 
 ## Interfaces
@@ -43,12 +44,14 @@ per link, in plan order (bottom first); per participating repo, in configuration
     # after its replay, so a re-run rebases that repo again, which changes nothing, and reports it rebased
   not cut_exempt and ancestor(newbase, env_tip) -> UpToDate; no write
   otherwise  git rebase --onto <newbase> <oldbase> <env>   (checks out <env> as a side effect)
+    # <env> bare: rebase reads refs/heads/<env> first; a qualified ref would detach HEAD (product:replay-dependent-work)
     exit 0 -> Rebased, also when nothing past oldbase replays and the branch fast-forwards
     non-zero, classified by the rebase state git left (engineering:stack-stop-classification):
       the first of git rev-parse --git-path rebase-merge/stopped-sha, rebase-apply/original-commit that exists
         -> Conflict: replayed_commit its content, trimmed; conflicted_paths the lines of
            git diff --name-only --diff-filter=U; the repo is left mid-rebase, never aborted
       neither -> Failure with the repo error's message and git's stderr
+      a classification read that itself fails -> Failure with that call's repo error
 a Conflict or a Failure stops the run: later repos of that link and every upper link are not touched
 remaining := the links from the stopped one to the top, plan-shaped; no rollback, nothing pushed, tracking unchanged
 ```
@@ -74,12 +77,13 @@ as the reference does
    "failure": {"env", "repo_name", "message"} | null,
    "remaining": {"links": [plan-shaped link...], "refusals": []}}
   outcome   "up-to-date" | "rebased" | "conflict" for a repo reached; "skipped" for a non-participating repo;
-            null for a participating repo never reached
+            null for the repo that failed and for a participating repo never reached
   links     every link of the plan, bottom first
 exit        0 when the whole plan ran; 1 after a conflict or a failure (Reported)
 text        per link "<env> onto <predecessor>" and a table of REPO, BOUNDARY, SOURCE, and OUTCOME ("-" for none);
             then the conflict (the replayed commit, the link, the repo, each conflicted path, and to resolve with
-            git rebase --continue and re-run the same command with the same --cut), or the failure with its repo
+            git rebase --continue, or git rebase --abort to return that repository to where it stood, and re-run the
+            same command with the same --cut), or the failure with its repo
             and message, or that the restack is complete
-restack never pushes; force-pushing a rebased branch is the engineer's (epic:parallel-workspaces/coordinated-git)
+restack never pushes and never changes upstream tracking; publishing a rebased branch is done with git (epic.md)
 ```

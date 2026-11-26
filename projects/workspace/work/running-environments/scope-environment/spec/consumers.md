@@ -27,6 +27,7 @@ pub(crate) fn compute(
     registry: &BTreeMap<String, i64>,
     scope: &str,
     consumer: Consumer,
+    diagnostics: &mut Diagnostics<'_>,   // Observe's warnings below; Print and Launch write none
 ) -> Result<Computed, EnvError>;
 ```
 

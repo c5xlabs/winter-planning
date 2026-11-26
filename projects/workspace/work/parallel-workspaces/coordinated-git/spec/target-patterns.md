@@ -1,13 +1,16 @@
 # Target patterns
 
-The `<env>/<repo>` matcher every worktree command selects through, the two rules that list the environments a pattern
-can reach, and the refusals and warnings selection itself writes. The pattern shapes per command are the Combination
-rules of [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md); the
-glob is `fnmatchcase` of `crates/core/src/pattern_match.rs`, as built; the environments present are `present` of
-[location-listing.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md),
-Environments present; the repository test is the one of that leaf, The worktree probe. Other specs link this leaf for
-selection and never restate it. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
-`winter-workspace` at `127cdf2`. Message wording is the binary's own (`decision:functional-parity`).
+The `<env>/<repo>` matcher every worktree command selects through, and the refusals and warnings selection itself
+writes. The pattern shapes per command are the Combination rules of
+[command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md); the glob is
+`fnmatchcase` of `crates/core/src/pattern_match.rs`, as built; the two rules that list the environments a pattern can
+reach, `EnvRule`, `known_env`, and the unknown-environment refusal are `reach` of
+[env-selection.md](../../environment-lifecycle/spec/env-selection.md),
+`epic:parallel-workspaces/environment-lifecycle`'s; the repository test is the one of
+[location-listing.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md), The
+worktree probe. Other specs link this leaf for selection and never restate it. Reference locations are paths under
+`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Message wording is the binary's own
+(`decision:functional-parity`).
 
 ## Domain
 
@@ -18,11 +21,8 @@ selection and never restate it. Reference locations are paths under `tools/winte
 /// One parsed `<env>/<repo>` pattern; a bare `<env>` is held as `<env>/*`.
 pub(crate) struct Pattern { pub env: String, pub repo: String }
 
-/// Which environments a command's patterns can reach.
-pub(crate) enum EnvRule {
-    Present,   // ws fetch, pull, merge, push, status: the environments present, by index
-    Named,     // ws connect, disconnect, diff, reset, clean: literal env halves by name, then globbed present ones
-}
+// EnvRule, known_env, and SelectionError::UnknownEnv are env-selection.md's; the Rule column below names each
+// command's EnvRule.
 
 /// A worktree a command acts on. Built for every loaded project entry of each reached environment, in merged
 /// order, that some pattern matches; two patterns matching one worktree give one Selected.
@@ -46,7 +46,6 @@ pub(crate) struct Selection {
 
 pub(crate) fn parse(pattern: &str) -> Result<Pattern, SelectionError>;
 pub(crate) fn matches(pattern: &Pattern, env: &str, repo: &str) -> bool;
-pub(crate) fn known_env(files: &dyn ReadFiles, root: &Path, registry: &[(String, i64)], name: &str) -> bool;
 pub(crate) fn select(files: &dyn ReadFiles, diagnostics: &mut Diagnostics<'_>, root: &Path,
     config: &WorkspaceConfig, registry: &[(String, i64)], patterns: &[Pattern], rule: EnvRule)
     -> Result<Selection, SelectError>;
@@ -54,8 +53,6 @@ pub(crate) enum SelectError { Selection(SelectionError), Internal(InternalError)
 
 // crates/core/src/termination.rs — SelectionError gains, beside EmptyPattern and NotBareName:
 NotEnvRepo { pattern: String }      // more than one "/": "invalid pattern <p!r>: expected <env>/<repo> (one '/' max)"
-UnknownEnv { env: String }          // "no environment named <env!r>: none is registered and <root>/<env> is not a
-                                    //  directory"; registered deviation, decision:parallel-workspaces/target-selection
 ```
 
 ## Interfaces
@@ -78,18 +75,9 @@ parse runs where Combination rules places the pattern-shape check: before root d
 ### Reaching environments
 
 ```text
-# reference: modules/workspace/workspace_sync_service.py:768-780, workspace_push_service.py:66-70,
-#            workspace_merge_service.py:254-261, workspace_snapshot_service.py:126 (Present);
-#            modules/workspace/handlers/workspace_handler.py:350-375, pattern_match.py:48-68 (Named)
 env halves   the env half of each pattern, duplicates dropped
-Present      the environments present (location-listing.md), in index order; a pattern reaches each one whose name
-             fnmatchcase matches its env half. A literal env half that passes known_env but is not present
-             reaches nothing
-Named        literal := the env halves that are no glob, sorted by code point; each is reached by name, whether or
-             not it is present
-             then the environments present whose name matches any glob env half (fnmatchcase(name, half)) and is
-             not a literal, sorted by code point
-             present is listed only when some env half is a glob
+reached      env_selection::reach(files, root, config, registry, env halves, the command's EnvRule)
+             (env-selection.md); its ReachError::Internal is SelectError::Internal
 both         the patterns themselves are matched against (env, repo) per worktree: a worktree of a reached env is
              selected when any pattern matches it
 ```
@@ -102,12 +90,9 @@ env name      after the load and the drift notice, before any git call or write,
               pattern order, passes env_name::check of ../../environment-lifecycle/spec/env-names.md, else
               CommandError::EnvName, exit 1; so `projects/x` never reaches the source checkouts and `/x` is refused
               (decision:parallel-workspaces/environment-lifecycle/env-name-grammar)
-unknown env   then each must pass known_env; the first that does not ends the command with
-              SelectionError::UnknownEnv (CommandError::Selection, exit 1)
+unknown env   then reach's refusal (env-selection.md): the first literal env half that names no environment ends
+              the command with SelectionError::UnknownEnv (CommandError::Selection, exit 1)
               ws status ends either refusal as its collection error, exit 2. Nothing has been written to stdout
-known_env     name is recorded in the env index registry, or <root>/<name> is a directory, symbolic links followed
-              # the reference: Present treats the name as matching nothing, Named builds the env by name and fails
-              # at its first git call with NoSuchPathError, after earlier worktrees were written
 missing       each selected worktree, in selection order, is tested once:
                 <path> does not exist                    -> Missing::Absent
                 <path> is no repository (location-listing.md's test, no parent search)

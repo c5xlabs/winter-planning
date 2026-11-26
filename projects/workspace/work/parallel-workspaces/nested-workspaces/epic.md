@@ -23,7 +23,9 @@ outer environment retires each child first, its services and provisioned resourc
 
 ## Depends on
 
+- `epic:parallel-workspaces/workspace-bootstrap`
 - `epic:parallel-workspaces/environment-lifecycle`
+- `epic:parallel-workspaces/coordinated-git`
 
 ## Left for later
 

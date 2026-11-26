@@ -15,10 +15,12 @@ extends that of
 [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md), with no notice;
 orphans are `scan` of [prune.md](../../workspace-bootstrap/spec/prune.md); pins are `snapshot` of
 [standalone-pins.md](../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md); the
-`nested` member is [child-state.md](../../nested-workspaces/spec/child-state.md)'s. Reference locations are paths under
-`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`; "WSS" is
-`modules/workspace/workspace_snapshot_service.py`, "RRR" `modules/workspace/internal/read_repo_repository.py`, "WH"
-`modules/workspace/handlers/workspace_handler.py`. Message wording is the binary's own (`decision:functional-parity`).
+`nested` member is [child-state.md](../../nested-workspaces/spec/child-state.md)'s, and
+`epic:parallel-workspaces/nested-workspaces` adds it: its field, its reads, and its text lines; until then no row
+carries it. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`;
+"WSS" is `modules/workspace/workspace_snapshot_service.py`, "RRR" `modules/workspace/internal/read_repo_repository.py`,
+"WH" `modules/workspace/handlers/workspace_handler.py`. Message wording is the binary's own
+(`decision:functional-parity`).
 
 ## Domain
 
@@ -161,6 +163,8 @@ row: {"repo", "branch", "upstream", "ahead", "behind", "tracking_ahead", "tracki
       the rows child-state.md names
 every document validates against schemas/ws-status-v1.json, which the binary does not change; extensions is always
 the empty object, as in-process plugin decorators are gone
+the binary's repository keeps a copy of that schema, as the reference holds it at 127cdf2, as test data its component
+tests validate every document against
 ```
 
 ### Exit code

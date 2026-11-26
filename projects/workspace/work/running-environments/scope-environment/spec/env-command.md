@@ -21,6 +21,11 @@ order
        unknown name          EnvError::UnknownScope, also when a directory of that name exists
        recorded index fault  EnvError::RecordedIndex
        resolution, lookup    EnvError::Resolution; a lookup failure carries its details (value-lookups.md)
+       interrupted lookup    LookupFailure::Interrupted is not Termination::Env: it ends as Termination::Interrupted,
+                             exit 130, nothing written (value-lookups.md, The child); env --resolve joins the
+                             service paths in the 130 row of results-and-exit-codes.md
+  steps 1 to 3 are one domain entry of scope_env, which the command file calls and whose failure it maps
+  (context/architecture/changes.md, A command: a command file names neither config_load nor state_registry)
   4. every line is built in memory, then written to stdout in one write and flushed; exit 0
      a failed write ends as Termination::BrokenPipe or the write's error (runtime.md)
 stdout on failure   nothing: steps 1-3 write no byte to stdout, so `eval "$(winter env x)"` under sh -eu sees an
@@ -30,7 +35,9 @@ stderr on failure   the one diagnostic of the Termination; no other line
                     ("<unresolved:command>"), which providers match literally. No notice is written for --resolve
 tracing             the command span gets winter.env = the part of SCOPE before the first "/" when that part is not
                     empty and not "workspace", whether or not the name is registered
-                    (reference: modules/workspace/env_target.py:76-138)
+                    (reference: modules/workspace/env_target.py:76-138); the tracer port (CommandTracer, tracing.md)
+                    gains a call that sets one attribute on the open command span, which the binary's tracer applies
+                    and NoTrace ignores
 ```
 
 ### Lines

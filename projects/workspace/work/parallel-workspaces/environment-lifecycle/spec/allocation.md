@@ -21,7 +21,7 @@ pub(crate) enum Allocation {
     Moved { from: i64, to: i64 },                    // an alias recorded at another index takes its position
 }
 pub(crate) fn allocate(name: &str, aliases: &[String], envs_per_workspace: u32,
-    registry: &std::collections::BTreeMap<String, i64>) -> Result<Allocation, EnvIndexError>;
+    registry: &[(String, i64)]) -> Result<Allocation, EnvIndexError>;   // entries in file order, as findings
 
 pub(crate) enum RegistryFinding {                    // the warning text names every field
     OutOfRange { name: String, index: i64 },         // index <= 0 or index > M
@@ -35,7 +35,8 @@ pub(crate) fn findings(aliases: &[String], envs_per_workspace: u32, registry: &[
 // crates/core/src/state_registry.rs — gains; each is one update of write-path.md on <root>/.winter/state.toml
 // engineering:allocation-integrity: the read, the decision, and the write happen under the one .winter/ lock
 pub(crate) fn allocate(files: &dyn WriteFiles, root: &Path, name: &str, aliases: &[String],
-    envs_per_workspace: u32) -> Result<Allocation, AllocateError>;
+    envs_per_workspace: u32, moved: &mut dyn FnMut(i64, i64)) -> Result<Allocation, AllocateError>;
+                                                     // moved(from, to): called for Moved, before the write
 pub(crate) fn release(files: &dyn WriteFiles, root: &Path, name: &str) -> Result<Option<i64>, ConfigError>;
                                                      // Some(index): the name was recorded and is removed
 pub(crate) enum AllocateError { Index(EnvIndexError), State(ConfigError) }
@@ -86,6 +87,7 @@ state_registry::allocate(files, root, name, ...)
         (ConfigError::FileRead naming the file), nothing written
       env_index::allocate(...) Err -> AllocateError::Index, nothing written
       Recorded -> no write (edit returns None)
+      Moved -> moved(from, to) first, inside the edit, so the caller reports the move before the file changes
       New or Moved -> the parsed document with env_index[name] = index, serialised with the toml crate
         (engineering:toml-library): every other top-level key and every other entry kept, a missing or non-table
         env_index replaced by a table, its other entries in their order and the new name last; an inline env_index
@@ -126,8 +128,9 @@ written by: ws list (list.md), before its result; ws init --all (init.md), once,
 
 ```text
 Recorded, New          no event
-Moved { from, to }     before the write is applied: RepoAction { repo: <env>, location: <root>/.winter/state.toml,
-                       action: IndexMoved, detail: "<from> -> <to>" }; then the write; the run goes on
+Moved { from, to }     from allocate's moved callback, before the write is applied: RepoAction { repo: <env>, location:
+                       <root>/.winter/state.toml, action: IndexMoved, detail: "<from> -> <to>" }; then the write;
+                       the run goes on; a write that then fails is the AllocateError::State row below
                        # registered deviation: the reference moves the env's ports silently
 EnvIndexError          the target's RepoError event (its rendered error), the target fails, and nothing of the target
                        is created: the allocation runs before the env directory exists (init.md)

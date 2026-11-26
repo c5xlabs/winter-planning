@@ -53,8 +53,9 @@ children   the env's worktrees that exist on disk, of projects with `nested` dec
 order within one env target of ws destroy:
   0. audit      each child: nesting.state(root); a RepoError -> RepoError "nested workspace state — <error>", the
                 project is unreadable, and the other children are still read
-                any unreadable -> RepoError on the env "refusing to destroy — cannot read nested workspace: <names>.
-                ...", whatever --force; the target fails with nothing torn down    # see Deviations
+                any unreadable -> RepoError on the env "refusing to destroy — cannot read nested workspace: <names>;
+                keeping the env.", whatever --force; the target fails with nothing torn down and no later phase
+                runs                                                               # see Deviations
   1. losses     without --force, added to environment-lifecycle's own refusal lists, which refuse the target:
                 dirty     "<repo> (nested: <names of the child's envs with a dirty repo, joined ', '>)"
                 unpushed  "<repo> (nested: <unpushed() joined ', '>)"; the refusal says the work would be deleted
@@ -73,7 +74,7 @@ order within one env target of ws destroy:
                   returncode != 0 -> CmdCompleted; RepoError "nested `winter ws destroy <env>` exited with code <n>"
                   0 -> CmdCompleted; NestedEnvDestroyed
                 any failure -> RepoError on the env "aborting destroy — a nested env could not be destroyed;
-                keeping the env.", whatever --force; the target fails      # see Deviations
+                keeping the env.", whatever --force; the target fails, and phases 3 and 4 do not run   # see Deviations
                 # the child's ws destroy runs the child's provision teardown and stops its per-env services
   3. services   each child in order: binds_service(root)
                   false -> nothing runs   # `service down` fails where no provider is bound
@@ -83,7 +84,8 @@ order within one env target of ws destroy:
                            with code <n>"; 0 -> CmdCompleted, NestedServicesStopped
                   a RepoError of binds_service -> RepoError "nested workspace services — <error>"
                 any failure -> RepoError on the env "aborting destroy — a nested workspace's services could not be
-                stopped; keeping the env.", whatever --force; the target fails      # see Deviations
+                stopped; keeping the env.", whatever --force; the target fails, and phase 4 does not run
+                                                                                    # see Deviations
   4.            environment-lifecycle's provision teardown, hooks, and removals; none starts before phase 3 ends
 children run serially: one child call at a time, as ../../coordinated-git/spec/fan-out.md gives destructive commands
 ```
@@ -95,6 +97,18 @@ binds_service(root)
   over the committed as configuration-model.md, Layering, merges them
   either not valid TOML -> NestedConfigUnreadable
   true when capabilities is a table whose `service` is a non-empty string, or an array holding one
+```
+
+```text
+# product:nested-teardown-preservation; decision:parallel-workspaces/nested-workspaces/recursive-teardown
+Forwarded
+  force               destroy.md's Options.force
+  strict              Options.strict; false while Options has no such field
+  provision_teardown  Options.provision_teardown; true while Options has no such field
+  # --strict and --no-provision-teardown are registered by epic:running-environments/resource-provisioning and
+  # epic:agent-ready-operation/executable-extensions (destroy.md, System), which may land after this epic; until each
+  # does, a destroy forwards what a destroy without that option means, and the epic that adds the field sets
+  # Forwarded from it
 ```
 
 ### Deviations

@@ -13,10 +13,9 @@ through the program port of
 [child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md); the index is
 [allocation.md](./allocation.md)'s; the workspace exclude file is that of
 [managed-content.md](../../workspace-bootstrap/spec/managed-content.md); the fan-out bound is
-[fan-out.md](../../coordinated-git/spec/fan-out.md)'s; `push_default` and `set_push_default_upstream` are
-[push-default.md](../../coordinated-git/spec/push-default.md)'s. Reference locations are paths under
-`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Message wording is the binary's own
-(`decision:functional-parity`).
+`engineering:bounded-fan-out`'s; `push_default` and `set_push_default_upstream` are
+[push-default.md](./push-default.md)'s. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
+`winter-workspace` at `127cdf2`. Message wording is the binary's own (`decision:functional-parity`).
 
 ## System
 
@@ -211,7 +210,7 @@ worktree::run(w)
 ### Fan-out
 
 ```text
-# engineering:bounded-fan-out, as ../../coordinated-git/spec/fan-out.md gives it for remote and git work; reference:
+# engineering:bounded-fan-out: at most four repository tasks at once; reference:
 #   modules/workspace/init_service.py:308-344, internal/git_ops_service.py:24
 workers     at most 4 projects at once; one project's steps in order on one worker; reconciliation.md, Fan-out, gives the
             channel, the sink, the stop on a sink error, and the threads

@@ -2,10 +2,11 @@
 
 The `push.default=upstream` write that lets a plain `git push` in a managed checkout reach the branch it tracks. The git
 calls go through the program port of
-[child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md). Callers:
-`ws connect` here ([tracking.md](./tracking.md)), `ws checkout` of `epic:parallel-workspaces/safe-history`, and the
-worktree reconciliation of `ws init` of `epic:parallel-workspaces/environment-lifecycle`; each links this leaf.
-Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`.
+[child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md). Callers: the
+worktree reconciliation of `ws init` here ([init.md](./init.md)), `ws connect` of
+`epic:parallel-workspaces/coordinated-git` ([tracking.md](../../coordinated-git/spec/tracking.md)), and `ws checkout` of
+`epic:parallel-workspaces/safe-history`; each links this leaf. Reference locations are paths under
+`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`.
 
 ## Domain
 
@@ -26,13 +27,14 @@ pub(crate) fn set_push_default_upstream(programs: &dyn RunPrograms, tracer: &dyn
 # reference: modules/workspace/internal/write_repo_repository.py:601-604,
 #            modules/workspace/internal/gitpython_repository.py:190-206
 push_default(path)               git config --get push.default
-                                   exit 0 -> the value, less its final newline; exit 1 -> None; other -> RepoError
+                                   exit 0 -> the value, less its final newline; exit 1 -> None; other ->
+                                   GitFailure::Repo { Config, repo }
 set_push_default_upstream(path)  git config --local push.default upstream
                                    --local writes $GIT_COMMON_DIR/config, the file the source checkout and every
                                    worktree of the project share, also when extensions.worktreeConfig is on: the
                                    value is the project's, not the worktree's, as GitPython's config_writer()
                                    writes it
-                                   non-zero exit -> RepoError GitFailure { Config, repo }
+                                   non-zero exit -> GitFailure::Repo { Config, repo }
 ```
 
 ```text

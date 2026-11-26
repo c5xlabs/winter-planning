@@ -55,6 +55,11 @@ pub(crate) fn scrubbed(snapshot: &ProcessEnv) -> Scrub;
 pub(crate) struct Scrub { pub remove: Vec<OsString>, pub env: Vec<(OsString, OsString)> }
 ```
 
+`scrubbed` and `Scrub` land first with `epic:parallel-workspaces/workspace-bootstrap`, whose `cmd` of a nested project
+applies them (reconciliation.md, Commands), in `crates/core/src/nested.rs` as this Domain places them; this leaf owns
+their contract, given by `remove` and `env` of Child environment below without `WINTER_NESTED_CHAIN`. This epic builds
+the rest of the leaf on them and adds no second scrub.
+
 ```rust
 // crates/core/src/termination.rs — RepoMessage gains; each RepoError carries cwd = the nested root
 OwnRootOnChain { own, root },      // "this winter resolved workspace <own>, which an enclosing nested call already

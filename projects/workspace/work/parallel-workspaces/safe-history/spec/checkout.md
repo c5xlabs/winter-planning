@@ -8,7 +8,7 @@ JSON document, which this leaf owns, is shape A of
 the previous position are those of [safety-probes.md](./safety-probes.md); the environment and its worktrees are
 selected as [target-patterns.md](../../coordinated-git/spec/target-patterns.md) gives for a literal environment; tokens
 expand as [ref-tokens.md](../../coordinated-git/spec/ref-tokens.md); `push.default` is written as
-[push-default.md](../../coordinated-git/spec/push-default.md) gives; the command is serial, as
+[push-default.md](../../environment-lifecycle/spec/push-default.md) gives; the command is serial, as
 [fan-out.md](../../coordinated-git/spec/fan-out.md) lists. The drift warning is that of
 [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md). Reference
 locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Message wording is the
@@ -55,10 +55,11 @@ pub(crate) fn checkout(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, wor
 order
   1. root discovery and the load; a failure is its ConfigError, exit 1
   2. the drift warning
-  3. ENV passes env_name::check (../../environment-lifecycle/spec/env-names.md) or the command is refused;
-     then ENV as a literal environment (target-patterns.md): one neither registered nor present is refused before any git
-     call; its worktrees are every non-pinned project's <root>/<ENV>/<repo>, in configuration order; a missing one is
-     warned about and skipped (target-patterns.md). targets := the rest
+  3. ENV passes env_name::check (../../environment-lifecycle/spec/env-names.md), so it holds no glob character, or
+     the command is refused; then targets := the non-pinned worktrees select (target-patterns.md) yields for the one
+     pattern ENV/* under EnvRule::Named, in its order: an ENV known_env refuses is SelectionError::UnknownEnv
+     (../../environment-lifecycle/spec/env-selection.md) before any git call, and a missing worktree is warned
+     about, skipped, and named in missing (target-patterns.md)
   4. per target, before any git call: feature_ref := expand("origin/<FEATURE_BRANCH>"), main_ref := "origin/<main_branch>";
      an unknown token refuses the whole command (ref-tokens.md)
   5. preflight (below): any refusal -> the report with aborted true and only the refused repos; nothing is written

@@ -28,7 +28,7 @@ pub(crate) enum Refusal {
 }
 pub(crate) struct PlanRefusal {
     pub result: Refusal, pub env: String, pub predecessor: String,
-    pub repos: Vec<String>,           // sorted; empty for a chain-shape refusal
+    pub repos: Vec<String>,           // sorted; empty for a repeat and for the env or BASE MissingRef
     pub element: Option<String>,      // MissingRef: the env, BASE as typed, or "--cut"; InvertedOrder: the repeated cut
 }
 pub(crate) enum Source { ForkPoint, Cut }              // "fork-point" | "cut"
@@ -36,6 +36,10 @@ pub(crate) struct LinkRepo { pub repo_name: String, pub boundary: Option<Sha>, p
 pub(crate) struct Link { pub env: String, pub predecessor: String, pub repos: Vec<LinkRepo> }
 pub(crate) enum Plan { Refused(Vec<PlanRefusal>), Links(Vec<Link>) }  // Links bottom link first
 pub(crate) fn plan(ports: &Ports<'_>, workspace: &Workspace, chain: &Chain) -> Result<Plan, Termination>;
+// termination.rs — GitOperation gains Rebase ("rebase"), the operation of the rebase's repo error
+// (restack-execution.md); branch's repo error is TrackingRead of ../../coordinated-git/spec/push.md
+// spans: restack.rs names "git merge-base" and restack/execute.rs "git rebase", beside git.rs's "git rev-parse"
+// and "git status"; each other call's span is "git <subcommand>"
 ```
 
 ## Interfaces
@@ -56,8 +60,11 @@ participates  env tip and predecessor tip both Some; otherwise the repo is skipp
 ancestor(a,b) git merge-base --is-ancestor <a> <b>: exit 0 -> true; any other exit, or a missing worktree -> false
 fork(wt)      git merge-base --fork-point <pred_ref> <env_ref>: exit 0 with non-empty stdout -> the sha; else None
 rebasing(wt)  git rev-parse --git-path rebase-merge, then rebase-apply: either path exists -> true
-dirty(wt)     git status --porcelain --untracked-files=no (git::dirty): untracked files never count
-branch(wt)    git symbolic-ref --quiet HEAD stripped of refs/heads/; exit 1 -> detached
+dirty(wt)     git::dirty, as built (safety-probes.md's dirty): tracked changes only, no optional lock taken
+branch(wt)    git symbolic-ref --quiet HEAD stripped of refs/heads/; exit 1 -> detached; any other exit -> the
+              repo error of the call, TrackingRead
+spans         each call opens the span "git <subcommand>" with winter.repo, as repository-catalog's
+              location-listing.md, tracing, gives
 a git that cannot be started is InternalError; dirty and branch reading a repo error end the run with it, exit 1
 ```
 
@@ -74,21 +81,23 @@ a git that cannot be started is InternalError; dirty and branch reading a repo e
                  # decision:parallel-workspaces/stacked-history/token-expansion: the reference expands them during
                  # its reads, and the cut only in participating repos
 2. reads         every link, every repo
-3. missing refs  each link, top first, whose env tip is None in every repo -> MissingRef, element the env
+3. missing refs  each link, top first, whose env tip is None in every repo -> MissingRef, repos [], element the env
                  the bottom link, when some repo has its env tip and every such repo lacks the predecessor tip
-                 -> MissingRef, element BASE as typed
+                 -> MissingRef, repos [], element BASE as typed
 4. per link, top first, over its participating repos:
    safety        Dirty, then RebaseInProgress, then DetachedHead (HEAD not on refs/heads/<env>), each one refusal
                  naming its repos
    boundaries    the bottom link with --cut: per repo, cut_tip := tip(the cut expanded in 1a); None -> MissingRef
-                 with element "--cut"; ancestor(cut_tip, env tip) (applies) or ancestor(predecessor tip, env tip) (already done)
+                 with element "--cut"; ancestor(cut_tip, env tip) (applies) or ancestor(predecessor tip, env tip)
+                 (already done)
                  -> boundary cut_tip, Cut; neither -> CutNotAncestor; MissingRef before CutNotAncestor
                  every other link: fork(wt); None -> UnknownBoundary naming the repos; else boundary, ForkPoint
                  # no merge-base fallback; --cut is never a boundary for an upper link
    inversion     with any boundary, and no repo whose env tip equals its boundary: when in every repo with a
                  boundary the env tip differs from the predecessor tip and ancestor(env tip, predecessor tip)
                  -> InvertedOrder naming those repos
-                 # declared limit: a chain typed backwards in any other shape is not detected (product:declare-stack-order)
+                 # declared limit: a chain typed backwards in any other shape is not detected
+                 # (product:declare-stack-order)
 ```
 
 ### Plan
@@ -118,4 +127,15 @@ text
               InvertedOrder       list the chain top of stack first, BASE last, each environment once
   --dry-run that this is a plan with no change, then per link "<env> onto <predecessor>" and a table of REPO,
             BOUNDARY, and SOURCE, "-" for a skipped repo
+```
+
+### Help
+
+```text
+# product:declare-stack-order; the topic crates/core/topics/ws/restack.md, referenced from the ws group topic
+states  ENVs are listed top of stack first and BASE last; each ENV is replayed onto the one after it, the last onto
+        BASE, and the bottom link runs first
+        a repository participates in a link where both its env branch and its predecessor resolve; pinned projects
+        never do; --cut sets the bottom link's boundary only; --dry-run shows each link and its repositories
+        a conflict is resolved with git in its worktree, then the same command is run again
 ```

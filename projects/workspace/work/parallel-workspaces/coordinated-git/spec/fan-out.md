@@ -41,8 +41,10 @@ pub(crate) fn fan_out<T: Sync, R: Send>(
 
 ```text
 # engineering:bounded-fan-out
-REMOTE_TASKS (4)  ws fetch, ws pull, ws merge, ws status --fetch (its fetch), and the clones and fetches of
-                  ws init; one group per project repository (its worktrees, serial) and one per standalone
+REMOTE_TASKS (4)  ws fetch, ws pull, ws merge, and ws status --fetch (its fetch); one group per project
+                  repository (its worktrees, serial) and one per standalone
+                  ws init runs its repositories at the same bound in the fan-out of reconciliation.md, Fan-out
+                  (../../workspace-bootstrap/spec/reconciliation.md), and does not use fan_out
 STATUS_PROBES (8) ws status worktree probes of one environment, and the nested reads of
                   ../../nested-workspaces/spec/child-state.md; one task per worktree, no grouping
 serial            ws push, ws connect, ws disconnect, ws diff, and every command that moves a pointer or removes

@@ -21,12 +21,15 @@ tracking. Network and partial failures remain visible rather than obscured by a 
 
 ## Depends on
 
-- `epic:parallel-workspaces/environment-lifecycle`
+- `epic:parallel-workspaces/repository-catalog`
 - `epic:parallel-workspaces/reproducible-inputs`
+- `epic:parallel-workspaces/workspace-bootstrap`
+- `epic:parallel-workspaces/environment-lifecycle`
 
 ## Left for later
 
 Destructive pointer changes and untracked deletion belong to `epic:parallel-workspaces/safe-history`; stack rewrites to
 `epic:parallel-workspaces/stacked-history`; standalone ref locks and updates to
 `epic:parallel-workspaces/reproducible-inputs`. Dashboard presentation belongs to
-`epic:agent-ready-operation/workspace-dashboard`.
+`epic:agent-ready-operation/workspace-dashboard`, and a nested child's state in `ws status` to
+`epic:parallel-workspaces/nested-workspaces`.

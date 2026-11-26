@@ -15,6 +15,10 @@ For `epic:parallel-workspaces/environment-lifecycle`.
   wires with that command: the catalog builds `drift::detect` and `drift::notice_line`, and this epic's spec says where
   in the run the notice is written.
 - Repository fan-out in `ws init` and the serial order of `ws destroy` follow `engineering:bounded-fan-out`.
+- `ws index` is built, with its recorded scenarios, by `epic:rust-adoption/parity-validation`, as
+  [index-lookup.md](./spec/index-lookup.md) of this epic gives it; it answers an allocated slot as `registry` and a
+  hypothetical one as `suggested` and reserves nothing, as `product:stable-environment-allocation` asks. This epic
+  leaves it unchanged: `allocate` is added beside `lookup` in `env_index.rs`, and no second lookup is built.
 
 ## Cross-process allocation integrity (engineering:allocation-integrity)
 
@@ -41,9 +45,3 @@ recoverable after process failure. Serves `product:environment-worktrees` and `p
 Destructive preflight distinguishes absent data from failed inspection; a failed inspection is never read as nothing at
 risk. Read-only preview cannot run teardown commands or repair registration implicitly. Serves
 `product:destroy-environments` and `product:environment-state-recovery`.
-
-## Open questions
-
-- `ws index` is built, with its recorded scenarios, by `epic:rust-adoption/parity-validation`, though its contract is
-  [index-lookup.md](./spec/index-lookup.md) of this epic. Engineering confirms, when this epic is sliced, that its
-  slices change the built `ws index` in place and build no second one.

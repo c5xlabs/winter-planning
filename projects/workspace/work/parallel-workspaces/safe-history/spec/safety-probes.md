@@ -15,10 +15,8 @@ under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`.
 // crates/core/src/history.rs — engineering:moved-ref-preservation
 // A selected worktree is the value target-patterns.md yields (../../coordinated-git/spec/target-patterns.md): env,
 // repository name, worktree path, and the repository's configured main branch. Pinned projects never reach here.
-pub(crate) enum Risk {
-    Dirty,                    // staged or unstaged tracked change; untracked files never count
-    Abandonment,              // commits reachable from the moving ref and not from its safety ref
-}
+// dirty: a staged or unstaged tracked change; untracked files never count. unpushed: the commits reachable from
+// the moving ref and not from its safety ref.
 pub(crate) fn dirty(ports: &Ports<'_>, wt: &Selected) -> Result<bool, GitFailure>;          // git::dirty, as built
 pub(crate) fn has_ref(ports: &Ports<'_>, wt: &Selected, rev: &str) -> Result<bool, GitFailure>;
 pub(crate) fn safety_ref(ports: &Ports<'_>, wt: &Selected, branch: Branch) -> Result<String, GitFailure>;
@@ -26,9 +24,26 @@ pub(crate) fn unpushed(ports: &Ports<'_>, wt: &Selected, from: &str, safety: &st
 pub(crate) fn active_branch(ports: &Ports<'_>, wt: &Selected) -> Result<Option<String>, GitFailure>;
 pub(crate) fn commit(ports: &Ports<'_>, wt: &Selected, rev: &str) -> Result<Option<Sha>, GitFailure>;
 pub(crate) enum Branch<'b> { Head, Named(&'b str) }
-// termination.rs: GitOperation gains AbandonmentProbe ("abandonment probe"), Reset ("reset"), Clean ("clean"),
-// Rebase ("rebase"); the spans "git rev-list", "git reset", "git clean", "git rebase", "git merge-base" join git.rs's set
+// termination.rs: GitOperation gains AbandonmentProbe ("abandonment probe"), UntrackedProbe ("untracked probe"),
+// Reset ("reset"), Clean ("clean"); the spans "git rev-list", "git ls-files", "git ls-tree", "git reset", and
+// "git clean" join git.rs's set, each call's span "git <subcommand>". Rebase and the "git rebase" and
+// "git merge-base" spans are not this epic's: they are ws restack's (stacked-history) and integration's
+// (coordinated-git)
 ```
+
+The operation each git call of this epic names when it fails as a repo error:
+
+| Call                                                                                                | A repo error names                                                                     |
+| --------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `dirty`                                                                                             | `TrackedStatus`, as built                                                              |
+| `upstream` and `active_branch`: `git symbolic-ref`, `git config --get`                              | `TrackingRead`, of `epic:parallel-workspaces/coordinated-git`                          |
+| `unpushed`                                                                                          | `AbandonmentProbe`                                                                     |
+| checkout's untracked check: `git ls-files`, `git ls-tree` ([checkout.md](./checkout.md), Preflight) | `UntrackedProbe`                                                                       |
+| checkout's `git checkout` ([checkout.md](./checkout.md), Execution, step 2)                         | `Checkout`, as built                                                                   |
+| checkout's tracking writes (Execution, step 3)                                                      | `SetUpstream`, of `epic:parallel-workspaces/environment-lifecycle`                     |
+| checkout's `push.default` write (Execution, step 4)                                                 | `Config`, as [push-default.md](../../environment-lifecycle/spec/push-default.md) gives |
+| `git reset` ([reset.md](./reset.md), Execution)                                                     | `Reset`                                                                                |
+| `git clean` ([clean.md](./clean.md), Git's clean)                                                   | `Clean`                                                                                |
 
 ## Interfaces
 
@@ -39,9 +54,10 @@ dirty(wt)            git status --porcelain --untracked-files=no, GIT_OPTIONAL_L
 has_ref(wt, rev)     git rev-parse --verify --quiet <rev>; exit 0 -> true, any other exit -> false
                      # a tag, a remote-tracking ref, or a commit id all count: the reference does not restrict the kind
 upstream(wt, b)      b = Head: the branch `git symbolic-ref --quiet HEAD` names, stripped of refs/heads/; exit 1
-                     (detached or unborn) -> None
+                     (detached or unborn) -> None; another non-zero exit is the repo error of the call
                      remote := git config --get branch.<branch>.remote; merge := git config --get branch.<branch>.merge
-                     either unset -> None; else name := "<remote>/<merge without a leading refs/heads/>"
+                     either unset (exit 1) -> None; another non-zero exit is the repo error of the call
+                     else name := "<remote>/<merge without a leading refs/heads/>"
                      git rev-parse --verify --quiet <name>^{commit} exit 0 -> Some(name), else None
 safety_ref(wt, b)    upstream(wt, b), else "origin/<main_branch>" (the token expansion of origin/{main})
                      # measured against what the pointer moves away from, never the destination

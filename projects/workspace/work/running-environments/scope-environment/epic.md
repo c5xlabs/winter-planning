@@ -23,6 +23,7 @@ reporting operations to apply the same declared scope and precedence rules witho
 
 - `epic:parallel-workspaces/workspace-configuration`
 - `epic:parallel-workspaces/environment-lifecycle`
+- `epic:parallel-workspaces/workspace-bootstrap`
 
 ## What this epic is not
 

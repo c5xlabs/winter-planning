@@ -23,6 +23,8 @@ synchronization does not perform these actions implicitly.
 
 ## Depends on
 
+- `epic:parallel-workspaces/repository-catalog`
+- `epic:parallel-workspaces/environment-lifecycle`
 - `epic:parallel-workspaces/coordinated-git`
 
 ## Left for later

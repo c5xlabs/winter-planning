@@ -32,6 +32,14 @@ pub(crate) fn parse(document: &serde_json::Value, present: &[String]) -> Result<
     // present: the standalones the child declares whose location exists (Derivation, unseen standalone)
 pub(crate) fn reported_root(document: &serde_json::Value) -> Result<Option<&str>, ShapeFault>;
 pub(crate) struct ShapeFault(pub String);          // "<field path> is <value>; expected <kind>"
+
+// the `nested` member of a ws status worktree row (../../coordinated-git/spec/status.md, Domain, WorktreeRow)
+pub(crate) struct NestedMember {
+    pub env_count: Option<usize>,          // None when error is set
+    pub dirty: bool,
+    pub unpushed: bool,
+    pub error: Option<String>,             // the rendered RepoError of Nesting::state
+}
 ```
 
 ## Interfaces

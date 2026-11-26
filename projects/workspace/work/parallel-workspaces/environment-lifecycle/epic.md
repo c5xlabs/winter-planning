@@ -21,14 +21,18 @@ with visible safety checks and recovery information. Structural creation remains
 
 ## Depends on
 
+- `epic:parallel-workspaces/workspace-configuration`
 - `epic:parallel-workspaces/repository-catalog`
+- `epic:parallel-workspaces/workspace-bootstrap`
 
 ## Left for later
 
-Whole-workspace bootstrap remains `epic:parallel-workspaces/workspace-bootstrap`. Listing every existing checkout
-location — feature worktrees, standalones, and the workspace — belongs to `epic:parallel-workspaces/repository-catalog`,
-which finds the environments present by the reference's rule that
+Listing every existing checkout location — feature worktrees, standalones, and the workspace — belongs to
+`epic:parallel-workspaces/repository-catalog`, which finds the environments present by the reference's rule that
 `decision:parallel-workspaces/environment-lifecycle/discovery-authority` keeps. Runtime variable rendering belongs to
 `epic:running-environments/scope-environment`; provision and service teardown integration belongs to
 `epic:running-environments/resource-provisioning` and `epic:running-environments/service-orchestration`. Those
 integrations can land after structural lifecycle without making the capabilities depend on one another in a cycle.
+Nested children's creation and teardown belong to `epic:parallel-workspaces/nested-workspaces`, and the `on_env_init`
+and `on_env_destroy` hooks to `epic:agent-ready-operation/executable-extensions`; each adds its step to `ws init` or
+`ws destroy` after this epic lands.

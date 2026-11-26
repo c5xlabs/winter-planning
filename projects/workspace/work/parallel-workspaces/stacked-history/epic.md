@@ -23,9 +23,10 @@ command to continue.
 
 ## Depends on
 
+- `epic:parallel-workspaces/coordinated-git`
 - `epic:parallel-workspaces/safe-history`
 
-## Left for later
+## What this epic is not
 
-Remote force-push policy remains publication behavior in `epic:parallel-workspaces/coordinated-git`; this epic does not
-automatically publish rewritten history or choose a hosting provider's review workflow.
+Restack never publishes rewritten history or chooses a hosting provider's review workflow; force-pushing a restacked
+branch is done with Git itself.

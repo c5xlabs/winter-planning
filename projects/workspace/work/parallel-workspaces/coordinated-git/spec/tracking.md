@@ -8,9 +8,9 @@ that of [output-formats.md](../../../../delivered/parallel-workspaces/component-
 this leaf owns both documents. Selection is [target-patterns.md](./target-patterns.md) with `EnvRule::Named`; the drift
 notice is that of
 [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md); the push default
-is [push-default.md](./push-default.md). Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
-`winter-workspace` at `127cdf2`; "WH" is `modules/workspace/handlers/workspace_handler.py`. Message wording is the
-binary's own (`decision:functional-parity`).
+is [push-default.md](../../environment-lifecycle/spec/push-default.md). Reference locations are paths under
+`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`; "WH" is
+`modules/workspace/handlers/workspace_handler.py`. Message wording is the binary's own (`decision:functional-parity`).
 
 ## Domain
 
