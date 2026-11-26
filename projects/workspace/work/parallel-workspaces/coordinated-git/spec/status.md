@@ -141,6 +141,8 @@ worktree probe, at the worktree, cwd = its path
      left count behind and the right ahead; a failure when origin/<main> does not resolve -> 0, 0; otherwise
      RepoError "main-branch ahead/behind probe failed"
   3. last_commit_subject: ahead 0 -> null; else git log -1 --format=%s HEAD, trimmed; empty or failed -> null
+parked           a row whose branch is not <env> is the parked state
+                 (decision:parallel-workspaces/environment-lifecycle/head-state)
 feature_branch   the first non-pinned worktree of the environment, in project order, whose upstream starts
                  "origin/": that upstream less "origin/"; null when none (missing worktrees read as none)
 index, port_base the environment's index (index-lookup.md's lookup); base_port + index * ports_per_env
@@ -166,7 +168,8 @@ standalones  each declared standalone, in merged order, at its location:
                dirty          distinct staged and unstaged paths plus untracked files, as location-listing.md's
                               workspace probe, steps 2-5, counts them
                ahead, behind  against tracking_operand of its active branch (refresh.md, Domain), no commit check:
-                              git rev-list --count <T>..HEAD and HEAD..<T>; no T -> 0, 0
+                              git rev-list --count <T>..HEAD and HEAD..<T>; no T -> 0, 0; a failure -> RepoError
+                              GitFailure { TrackingAheadBehindProbe, repo }
                local work     as projects
              a failure of any of these -> a warning naming the standalone and the cause, no row, and
              Unseen.failed_standalones; the other standalones and the command go on

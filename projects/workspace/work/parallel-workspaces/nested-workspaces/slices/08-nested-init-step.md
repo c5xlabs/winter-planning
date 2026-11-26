@@ -46,6 +46,10 @@ whose named move is a registered deviation.
   `base_port <old> -> <new>` is emitted before the overlay changes, and the write applies.
 - Component tests: a child overlay holding its own keys and comments keeps them; a key inherited by an earlier init and
   no longer named stays as it was; `inherit_local = []` copies nothing and keeps what the child holds.
+- A component test: an `inherit_local` naming `base_port` and `service_prefix`, both set in the parent's local file,
+  writes the delegated values for them, not the parent's.
+- A component test: with `alpha` recorded in the env index at an index other than its hash suggestion, the delegated
+  `base_port` is the slice of the band `port_base` gives for the recorded index.
 - A component test: a child `ws init` exiting 1 fails the repository with `NestedCommandFailed`, and the other
   repositories of the environment go on.
 - A component test: a failing `cmd` of the nested project starts no `winter` call.

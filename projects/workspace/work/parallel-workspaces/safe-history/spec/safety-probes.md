@@ -65,6 +65,7 @@ has_ref(wt, rev)     git rev-parse --verify --quiet <rev>; exit 0 -> true, any o
 upstream(wt, b)      b = Head: the branch `git symbolic-ref --quiet HEAD` names, stripped of refs/heads/; exit 1
                      (detached) -> None; an unborn HEAD names its branch, which has no upstream configured; another
                      non-zero exit is the repo error of the call
+                     b = Named(n): the branch n, read whether or not HEAD is on it
                      remote := git config --get branch.<branch>.remote; merge := git config --get branch.<branch>.merge
                      either unset (exit 1) -> None; another non-zero exit is the repo error of the call
                      else name := "<remote>/<merge without a leading refs/heads/>"

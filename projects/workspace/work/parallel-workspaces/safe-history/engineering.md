@@ -12,9 +12,8 @@ For `epic:parallel-workspaces/safe-history`.
 ## Abandonment evidence follows every moved ref (engineering:moved-ref-preservation)
 
 Unpushed commits are measured against the configured upstream when its ref exists locally, otherwise against
-`origin/<main>`; checkout also measures the env branch whenever HEAD is not on it. Dirt is staged or unstaged tracked
-change and is checked before abandonment. A failed probe is that repository's error, never zero unpushed commits. Serves
-`product:adopt-feature-history` and `product:reset-worktree-pointers`.
+`origin/<main>`; checkout also measures the env branch whenever HEAD is not on it. Dirt is checked before abandonment.
+Serves `product:adopt-feature-history` and `product:reset-worktree-pointers`.
 
 ## Retain irreversible deletion evidence (engineering:clean-partial-accounting)
 

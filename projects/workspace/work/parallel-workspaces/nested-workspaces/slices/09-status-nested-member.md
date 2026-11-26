@@ -27,7 +27,8 @@ bullets of `product:nested-work-inspection`.
 
 - A component test with real git and a `winter` stand-in writing a child document of two envs, one dirty: the row of the
   nested worktree holds `{"env_count": 2, "dirty": true, "unpushed": false, "error": null}`, no other row has the
-  member, the document validates against the copied v1 schema, and the text reads " <repo> (nested): 2 envs, dirty".
+  member, the document validates against the copied v1 schema, and the text line is
+  `"  <repo> (nested): 2 envs, dirty"`.
 - A component test: a child with no `.winter/config.toml` gives `env_count` null and the rendered `NoNestedConfig` as
   `error`, the text line reads "unreadable — <first line>", the other rows and environments are all present, and the
   command exits 1, not 2.

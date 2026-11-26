@@ -84,4 +84,4 @@ Acceptance:
   environment, even under `--force`, and the result names the child and env that failed and that the outer environment
   was kept.
 - The outer `--force`, `--strict`, and `--no-provision-teardown` reach every child without broadening scope or bypassing
-  root verification.
+  root verification; `--strict` and `--no-provision-teardown` reach it once their owners register them on `ws destroy`.

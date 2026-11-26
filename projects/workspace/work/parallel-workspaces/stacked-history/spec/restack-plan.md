@@ -35,12 +35,26 @@ pub struct PlanRefusal {
     pub element: Option<String>,      // MissingRef: the env, BASE as typed, or "--cut"; InvertedOrder: the repeated cut
 }
 pub enum Source { ForkPoint, Cut }              // "fork-point" | "cut"
-pub struct LinkRepo { pub repo_name: String, pub boundary: Option<Sha>, pub source: Option<Source> }
+pub struct LinkRepo {
+    pub repo_name: String, pub boundary: Option<Sha>, pub source: Option<Source>,
+    // Reads' pred_ref for the repo: BASE as step 1a expanded it on the bottom link; in no document of Result, which
+    // carries the predecessor as typed
+    pub pred_ref: String,
+}
 pub struct Link { pub env: String, pub predecessor: String, pub repos: Vec<LinkRepo> }
 pub enum Plan {
     Refused(Vec<PlanRefusal>),
     Links { root: PathBuf, links: Vec<Link> },   // links bottom link first; root: the workspace root, for execute
 }
+/// The reads of Reads below, each in the worktree `path` of the repository `repo`: a missing worktree, or a directory
+/// that is no repository, reads as Reads gives it; a git that cannot be started is GitFailure::Internal, and only
+/// branch also answers GitFailure::Repo.
+pub fn tip(ports: &Ports<'_>, repo: &str, path: &Path, r#ref: &str) -> Result<Option<Sha>, GitFailure>;
+pub fn ancestor(ports: &Ports<'_>, repo: &str, path: &Path, a: &str, b: &str) -> Result<bool, GitFailure>;
+pub fn fork(ports: &Ports<'_>, repo: &str, path: &Path, pred_ref: &str, env_ref: &str)
+    -> Result<Option<Sha>, GitFailure>;
+pub fn rebasing(ports: &Ports<'_>, repo: &str, path: &Path) -> Result<bool, GitFailure>;
+pub fn branch(ports: &Ports<'_>, repo: &str, path: &Path) -> Result<Option<String>, GitFailure>;  // None: detached
 /// Root discovery and the load from `start`, as the built locations::list and pins::repin take it, then Reads,
 /// Refusals, and Plan below.
 pub fn plan(ports: &Ports<'_>, start: &Path, chain: &Chain) -> Result<Plan, RestackError>;
@@ -105,7 +119,8 @@ tip(wt, ref)  git rev-parse --verify --quiet <ref> -> the sha, or None on any no
 participates  env tip and predecessor tip both Some; otherwise the repo is skipped in that link
 ancestor(a,b) git merge-base --is-ancestor <a> <b>: exit 0 -> true; any other exit, or a missing worktree -> false
 fork(wt)      git merge-base --fork-point <pred_ref> <env_ref>: exit 0 with non-empty stdout -> the sha; else None
-rebasing(wt)  git rev-parse --git-path rebase-merge, then rebase-apply: either path exists -> true
+rebasing(wt)  git rev-parse --git-path rebase-merge, then rebase-apply: either path exists -> true; a non-zero exit
+              counts that marker as absent, and a missing worktree -> false
 dirty(wt)     git::dirty, as built, with the repo and the worktree: tracked changes only, no optional lock taken
 branch(wt)    git symbolic-ref --quiet HEAD stripped of refs/heads/; exit 1 -> detached; any other exit -> the
               repo error of the call, TrackingRead
@@ -153,6 +168,7 @@ a git that cannot be started is RestackError::Internal; dirty and branch reading
 ```text
 links         reversed: the bottom link first, the order of execution
 link repos    every non-pinned repo in configuration order; a skipped one carries boundary and source None
+pred_ref      every link repo, skipped or not, carries its pred_ref of Reads, which execution reads its new base from
 frozen        boundaries are read once, here; execution reads new bases afresh (restack-execution.md)
 ```
 

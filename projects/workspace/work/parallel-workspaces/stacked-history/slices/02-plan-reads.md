@@ -20,8 +20,10 @@ read's repo error is `TrackingRead` of [push.md](../../coordinated-git/spec/push
 
 - `crates/core/src/restack.rs` gains `tip`, `ancestor`, `fork`, `rebasing`, and `branch`, which `restack/execute.rs`
   also reads through; `tip` reads a fully qualified ref, so `refs/heads/<env>` never resolves to a same-named tag.
-- A missing worktree, or a directory that is no repository, reads as `None` or false in `tip`, `ancestor`, and `fork`;
-  `branch` answers `None` on exit 1 and `GitFailure::Repo` with `TrackingRead` on any other exit.
+- Each read has its signature of [restack-plan.md](../spec/restack-plan.md), Domain. A missing worktree, or a directory
+  that is no repository, reads as `None` or false in `tip`, `ancestor`, and `fork`; `rebasing` counts a marker whose
+  `git rev-parse --git-path` exits non-zero as absent; `branch` answers `None` on exit 1 and `GitFailure::Repo` with
+  `TrackingRead` on any other exit; a git that cannot be started is `GitFailure::Internal` in every read.
 - `restack.rs` names the `git merge-base` span its `ancestor` and `fork` calls open.
 - `tip`, `ancestor`, `fork`, `rebasing`, and `branch` are re-exported by name from `lib.rs` for its tests
   ([restack-plan.md](../spec/restack-plan.md), Domain); no command calls them yet.
@@ -34,7 +36,7 @@ read's repo error is `TrackingRead` of [push.md](../../coordinated-git/spec/push
 - Component tests: after the predecessor branch is amended, `fork` answers the predecessor's old tip from its reflog,
   not the merge base; with the predecessor's reflog expired and the old tip unreachable from it, `fork` is `None`.
 - Component tests: `rebasing` is true while a `git rebase` (merge backend) and a `git rebase --apply` are stopped on a
-  conflict, and false otherwise.
+  conflict, and false otherwise, a missing worktree included.
 - Component tests: `branch` answers the branch name on a branch, `None` when HEAD is detached, and `TrackingRead` in a
   directory that is no repository.
 - A unit test over a recording tracer: each read opens its `git <subcommand>` span with `winter.repo`.

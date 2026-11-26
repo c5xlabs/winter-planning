@@ -11,8 +11,8 @@ Acceptance:
 
 - Help says whether a command acts on a whole environment or on the worktrees its patterns select; pinned projects are
   never touched.
-- Reset and clean dry-runs name each selected worktree with its resolved ref or deletion paths, and any refusal, without
-  mutation.
+- Reset and clean dry-runs name each selected worktree with its resolved ref or deletion paths without mutation; a
+  refused reset dry-run names each refused worktree with its refusal instead.
 - Missing refs, unknown ref tokens (`product:parallel-workspaces/ref-tokens`), and a bare revision across several
   worktrees refuse before execution; `--force` does not make an invalid destination valid.
 - Unattended structured use requires explicit scope and approval rather than treating output format as consent.
@@ -29,7 +29,8 @@ Acceptance:
   still tracking the feature branch; a branch no repository knows requires `--new`.
 - Missing both target and fallback refuses even under `--force`; no implicit fetch changes the evidence.
 - Without `--force`, a repository with staged or unstaged tracked changes or unpushed commits refuses the whole command;
-  untracked files alone never refuse, and a check that cannot run refuses rather than reading as nothing at risk.
+  untracked files not in the target's way never refuse, and a check that cannot run refuses rather than reading as
+  nothing at risk.
 - Protection also covers the env-named branch that will move when HEAD is detached or parked on a different branch.
 - Without `--force`, an untracked file in the way of the target refuses the whole command before any repository moves,
   and stays on disk; with `--force` it is overwritten.

@@ -66,5 +66,6 @@ bullets of `product:resume-stack-rewrite`, and `product:preserve-unrelated-work`
 - A component test: run from a directory under no workspace root, `ws restack upper main` exits 1 with the configuration
   error, nothing on stdout, and no git call.
 - Component tests: `ws restack --help` shows `ENV... BASE` and its options, and `context ws/restack` writes the topic's
-  chain order, participation rule, and resume step.
+  chain order, participation rule, that `--cut` sets the bottom link's boundary only, that `--dry-run` shows each link
+  and its repositories, and the resume step.
 - `cargo dev gate slice` exits 0.

@@ -43,10 +43,10 @@ against it in parallel. Shaped by `engineering:typed-outcomes` and `product:priv
 
 ## Acceptance
 
-- Unit tests of the rendering: each `LookupFailure` and `OutputFault` renders the first line of Failure rendering for
-  its variant, `<band> key '<key>': command`<command>`<what>`, followed by the cwd, exit, and stderr details it has;
-  `UnknownScope` reads "no env by that name is registered" with the scope; `RecordedIndex` names the scope, the index,
-  and the fault; `InvalidKey` names the band and the key.
+- Unit tests of the rendering: each `LookupFailure` but `Interrupted`, which is never rendered, and each `OutputFault`
+  renders the first line of Failure rendering for its variant, `<band> key '<key>': command`<command>`<what>`, followed
+  by the cwd, exit, and stderr details it has; `UnknownScope` reads "no env by that name is registered" with the scope;
+  `RecordedIndex` names the scope, the index, and the fault; `InvalidKey` names the band and the key.
 - A unit test per `ResolutionError` and `UnresolvedCause` variant: the text names the band and the key, and a token
   renders as declared.
 - A unit test: `Termination::Env` has exit 1 and its `error_type` answer is `Env`.

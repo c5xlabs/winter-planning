@@ -146,8 +146,8 @@ stdout must be UTF-8, else NotUtf8
 raw      [(key, stdout trimmed of white space)]
 dotenv   lines split at "\n", a trailing "\r" removed; each line trimmed
            empty, or starting "#"                 skipped
-           otherwise split at the first "="; the name, trimmed, matches ^[A-Za-z_][A-Za-z0-9_]*$, else
-           DotenvLine { line }. "export FOO=1" is such a fault
+           otherwise split at the first "=", else DotenvLine { line }; the name, trimmed, matches
+           ^[A-Za-z_][A-Za-z0-9_]*$, else DotenvLine { line }. "FOO" and "export FOO=1" are such faults
            value: trimmed, then one surrounding pair of the same quote, ' or ", removed; nothing else unquoted,
            no escapes, no inline comment removed
            a repeated name: the last line wins, at the place of its first
@@ -171,6 +171,7 @@ first line   "<band> key '<key>': command `<command>` <what>", what by failure:
              DotenvLine "output line <n> is not a valid dotenv KEY=VALUE line"; JsonSyntax "output is not valid
              JSON — <cause>"; JsonNotObject "output must be a flat JSON object, got <found>"; JsonKey "output JSON key
              '<key>' is not a valid env-var identifier"; JsonNotScalar "output JSON key '<key>' is not a flat scalar"
+             Interrupted has none: it is never rendered, since compute answers it as EnvError::Interrupted
 details      as a RepoError's (results-and-exit-codes.md): cwd; exit (Exit, Timeout -9, Output 0); stderr (Exit's,
              or Start's cause). A failing lookup's stderr is shown as it wrote it
              (decision:running-environments/scope-environment/persistent-value-exposure)

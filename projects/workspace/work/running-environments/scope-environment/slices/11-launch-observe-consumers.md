@@ -40,8 +40,8 @@ calls them from its fan-out and its provider invocation. Delivers the refusal, d
   undefined reference writes one warning naming the scope and the key, and answers `Degraded` whose managed variables
   hold the scope's identity and port base; an unrecorded name is `Err(UnknownScope)`.
 - A unit test: no warning text holds a value of the scope's bands.
-- A unit test, `Launch`: a `run` callback answering `Interrupted` is `Err(EnvError::Interrupted)`, not a resolution
-  failure.
+- A unit test, `Launch`, over a recording program port with an interrupt pending: the command entry answers
+  `Interrupted`, and `compute` is `Err(EnvError::Interrupted)`, not a resolution failure.
 - Unit tests of `launch_environment`: `remove` holds `WINTER_ENV`, `WINTER_ENV_INDEX`, `WINTER_PORT_BASE`,
   `WINTER_WORKSPACE_PORT_BASE`, and `WINTER_SERVICE_PREFIX`, so a stale value of each is dropped; for the workspace
   scope `env` holds no `WINTER_PORT_BASE`; a command entry's key under `Observe` holds `PLACEHOLDER` in `env`, so a

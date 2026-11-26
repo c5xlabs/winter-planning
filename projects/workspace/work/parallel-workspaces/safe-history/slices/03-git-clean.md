@@ -37,6 +37,8 @@ and ignored-file bullets of `product:remove-untracked-content`.
   still parsed.
 - A component test: a `remove` that exits non-zero after deleting some paths, forced by an untracked directory without
   write permission, answers the paths it removed with the call's failure.
+- A component test: `list` and `remove` in a directory that is no repository each fail as the repo error
+  `NotAGitWorktree` naming its path, and `remove` reports no path.
 - A unit test of the parse: an exit-0 output of one unrecognised line is the parse failure with its diagnosis; "Would
   skip ", "Skipping ", and "warning:" lines are not.
 - `cargo dev gate slice` exits 0.

@@ -25,7 +25,7 @@ and not its Python JSON spellings.
 - Unit tests, raw: stdout with surrounding blanks and a trailing newline answers the key with the trimmed text.
 - Unit tests, dotenv: blank and `#` lines are skipped; `A = 1`, `A="x y"`, and `A='x'` answer `1`, `x y`, and `x`;
   `A="x'` keeps its quotes; `A=1 # c` answers `1 # c`; a `\r\n` file reads as `\n`; a repeated name takes the last value
-  at the first place; `export FOO=1` and `=1` are `DotenvLine` with their 1-based line and no text.
+  at the first place; `FOO`, `export FOO=1`, and `=1` are `DotenvLine` with their 1-based line and no text.
 - Unit tests, json: `{"A":"x","B":true,"C":null,"D":1e16,"E":0.10}` answers `x`, `true`, `null`, `1e16`, and `0.10`; an
   array is `JsonNotObject { "array" }`; `{"a-b":1}` is `JsonKey`; `{"A":{}}` is `JsonNotScalar`; `NaN` and a truncated
   object are `JsonSyntax` with a position-only cause.

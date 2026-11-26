@@ -13,8 +13,9 @@ creates or verifies the worktree, then identity, excludes, tracking, and `cmd`. 
 steps of [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), One repository and Commands, which
 `epic:parallel-workspaces/workspace-bootstrap` builds; the push default is `push-default`'s. Delivers
 `product:environment-worktrees` for one worktree, `engineering:worktree-effect-confinement` at creation, and
-`engineering:lifecycle-step-isolation`, under `decision:parallel-workspaces/environment-lifecycle/head-state` and
-`decision:parallel-workspaces/environment-lifecycle/location-confinement`, both registered deviations.
+`engineering:lifecycle-step-isolation`, under `decision:parallel-workspaces/environment-lifecycle/head-state`,
+`decision:parallel-workspaces/environment-lifecycle/location-confinement`, and
+`decision:parallel-workspaces/environment-lifecycle/reused-branch-tracking`, all registered deviations.
 
 ## Change
 
@@ -25,8 +26,8 @@ steps of [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), 
   `NotAWorktreeOf`, and no later step runs.
 - Tracking: a detached or parked worktree is reported and never reattached, and a parked one gets no tracking write; a
   pinned worktree is set to `origin/<main_branch>` and `push.default=upstream`; a non-pinned one takes the inferred
-  upstream only when it was created in this run or has no tracking of its own. A tracking failure fails the project, and
-  `cmd` still runs.
+  upstream only when its `<env>` branch was created in this run or it has no tracking of its own. A tracking failure
+  fails the project, and `cmd` still runs.
 - `bootstrap.rs`'s `Action` gains `WorktreeCreated`, `UpstreamInferred`, `PinnedTrackingSet`, `WorktreeDetached`, and
   `WorktreeParked`, with their text.
 - `EnvWorktree` is re-exported by name from `lib.rs`, and `run` as `reconcile_worktree`, since `process::run` holds
@@ -47,6 +48,8 @@ steps of [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), 
 - Component tests, non-pinned: a created worktree with an inferred upstream gets it and `push.default=upstream`,
   reported `upstream_inferred`; an existing worktree tracking something else keeps it; no inferred upstream writes
   nothing.
+- A component test, non-pinned: a worktree added on an existing local `<env>` branch whose operator-set tracking differs
+  from the sibling-inferred upstream keeps that tracking, reports `worktree_created`, and emits no `upstream_inferred`.
 - Component tests: a detached worktree reports `worktree_detached` and, pinned, fails tracking with `HeadDetached` while
   its `cmd` still runs; a worktree on another branch reports `worktree_parked` naming it, and its tracking configuration
   is unchanged.

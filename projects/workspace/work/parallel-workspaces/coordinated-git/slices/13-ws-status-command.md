@@ -44,6 +44,8 @@ tracking of `product:worktree-upstream-control`, under `decision:command-vocabul
   an unfetched upstream `(not fetched)`; `document` of the same snapshot carries the `environments`, `drift`,
   `drift_missing`, `drift_undeclared`, `config_ref_drift`, and `head_drift` keys of status.md, Document.
 - A component test: the text of `ws status` with a detached worktree shows `(detached)`.
+- A component test: a worktree on a branch other than its environment's name is a row whose `branch` is that branch, the
+  parked state of status.md, Environments.
 - A component test: a clean, fully pushed workspace exits 0; a dirty matched worktree exits as results-and-exit-codes.md
   gives; an unknown literal environment exits 2 with nothing on stdout.
 - A component test, per the `ws status` block of results-and-exit-codes.md: with PATTERNS matching a clean worktree, an

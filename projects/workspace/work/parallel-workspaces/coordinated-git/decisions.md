@@ -7,8 +7,9 @@
 Push reports skipped pinned commits whenever it skips them and reports an up-to-date candidate as up to date, connect
 and disconnect list the pinned worktrees they skip, and push and `ws merge` skip a standalone held at a tag or commit
 with a reason. These are registered deviations: the reference mentions skipped pinned commits only when nothing else was
-pushed, skips pinned worktrees in connect and disconnect silently, counts a held standalone as a push failure, and lets
-`ws merge` move a held standalone off its locked commit.
+pushed, reports a published branch level with its upstream but ahead of main as pushed, skips pinned worktrees in
+connect and disconnect silently, counts a held standalone as a push failure, and lets `ws merge` move a held standalone
+off its locked commit.
 
 ## Ordinary integration conflicts (decision:parallel-workspaces/coordinated-git/integration-conflicts)
 

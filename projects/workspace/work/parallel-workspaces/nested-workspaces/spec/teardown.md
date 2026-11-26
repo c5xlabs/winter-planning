@@ -93,8 +93,8 @@ children run serially: one child call at a time, as ../../coordinated-git/spec/f
 ```text
 # product:nested-teardown-preservation; reference: modules/workspace/nested_workspace_service.py:227-237,326-333
 binds_service(root)
-  the child's .winter/config.toml and .winter/config.local.toml, each absent reads as empty, the local deep-merged
-  over the committed as configuration-model.md, Layering, merges them
+  the child's .winter/config.toml and .winter/config.local.toml, each absent reads as empty, the local layered over
+  the committed as configuration-model.md, Layering, gives
   either not valid TOML -> NestedConfigUnreadable
   true when capabilities is a table whose `service` is a non-empty string, or an array holding one
 ```

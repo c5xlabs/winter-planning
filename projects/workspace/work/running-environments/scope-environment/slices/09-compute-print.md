@@ -35,8 +35,8 @@ bullet of `product:external-value-resolution`, under
 - A unit test: two `compute` calls for two feature scopes, each with `resolve`, start the workspace band's lookup twice.
 - Unit tests: an unrecorded name is `Err(UnknownScope)`; a name recorded at the buffer slot is `Err(RecordedIndex)` with
   `Buffer`; a failing lookup is `Err(Resolution(Lookup))` naming its entry.
-- A unit test: a `run` callback answering `Interrupted` for the first command entry is `Err(EnvError::Interrupted)`, and
-  no second command entry is attempted.
+- A unit test over a recording program port with an interrupt pending: the first command entry answers `Interrupted`,
+  `compute` is `Err(EnvError::Interrupted)`, and no second command entry is started.
 - A unit test: nothing is written to the `Diagnostics` in any of these cases.
 - `cargo dev gate slice` exits 0.
 

@@ -24,7 +24,9 @@ remains. A rebase that fails carries `GitOperation::Rebase` of `module-scaffold`
   mid-rebase; otherwise, or when a classification read fails, a `Failure` with the repo error.
 - `restack/execute.rs` names the `git rebase` span its rebase opens.
 - Nothing is written for a later run, nothing is pushed, and no upstream setting changes.
-- `execute` takes the workspace root and the links of `Plan::Links`.
+- `execute` takes the workspace root and the links of `Plan::Links`, and reads each repository's new base from its link
+  repository's `pred_ref`, so the bottom link's BASE is not expanded again.
+- A git that cannot be started, in a read or the rebase, is a `Failure` carrying that error's message.
 - `execute` and the report types are re-exported by name from `lib.rs` for its tests, `Conflict` as `RestackConflict`,
   since `agents_md::Conflict` holds `Conflict` at the crate root ([restack-execution.md](../spec/restack-execution.md),
   Domain); no command calls them yet.
@@ -45,6 +47,10 @@ remains. A rebase that fails carries `GitOperation::Rebase` of `module-scaffold`
 - A component test: a rebase failing with `index.lock` held is a `Failure` carrying `Rebase` and git's stderr, not a
   `Conflict`, with the completed outcomes kept.
 - A component test: a predecessor branch deleted between planning and its link is a `Failure` naming that ref.
+- A unit test over a recording program port: a git that cannot be started during a link's reads is a `Failure` carrying
+  that error's message, with the completed outcomes kept.
+- A component test: BASE `{main}` over two repositories whose `main_branch` values differ rebases each bottom env onto
+  its own repository's main branch.
 - Component tests of resume, planning and executing again: after `git rebase --continue` the completed links and the
   resolved repository read `UpToDate` and are not rebased again; a cut repository already replayed reads `UpToDate`; a
   cut already contained in BASE re-reports `Rebased` with its tip unchanged.

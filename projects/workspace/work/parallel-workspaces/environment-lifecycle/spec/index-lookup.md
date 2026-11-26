@@ -11,12 +11,14 @@ allocation; where [allocation.md](./allocation.md)'s allocate answers otherwise 
 ```text
 # product:parallel-workspaces/environment-lifecycle/stable-environment-allocation
 ws index NAME [--json]
-  reads    the workspace root            ../../workspace-configuration/spec/configuration-model.md, Root discovery
+  reads    the workspace root            configuration-model.md, Root discovery
            env_aliases, envs_per_workspace, layered and defaulted
                                          same, Load, Layering, Top-level keys, Cross-key rules
-           the env index registry        ../../workspace-configuration/spec/lock-and-state.md, `.winter/state.toml`
+           the env index registry        lock-and-state.md, `.winter/state.toml`
   writes   nothing: no file under the workspace is created, changed, or locked; a looked-up name is not recorded
   NAME     any string; it need not name an existing environment and is not validated as an environment name
+configuration-model.md = ../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md
+lock-and-state.md = ../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md
 ```
 
 | NAME is                        | `index`                                                                                | `source`      |
@@ -36,15 +38,16 @@ allocate    allocation.md's allocate can differ from lookup for one name: an ali
             the recorded index here and moves at its next `ws init`; a name recorded on an alias or the buffer slot
             answers that index here and is refused there. ws index writes no finding of allocation.md and its answer
             and exit stay those of the table above
---json      one Shape A document (../../component-runtime/spec/output-formats.md, Shape per command):
+--json      one Shape A document (output-formats.md, Shape per command):
               {"name": <NAME as given>, "index": <integer>, "source": "registry" | "suggested"}
-human       ../../component-runtime/spec/output-formats.md, Human output, row `ws index`; the mark follows the integer
+human       output-formats.md, Human output, row `ws index`; the mark follows the integer
             only for a suggested index of a name that is not an alias
 exit        0 for every row above
 failures    a missing workspace root and every configuration fault end as the ConfigError of the section that
             defines it. The lookup itself cannot fail: it does not probe, so it never meets a full band, and the
             cross-key rule between the two keys (ConfigError::EnvsPerWorkspaceTooSmall) leaves the band at least
             one slot before lookup runs. EnvIndexError is not part of this command.
+output-formats.md = ../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md
 ```
 
 ## Domain

@@ -1,5 +1,14 @@
 # Environment lifecycle decisions
 
+## Reused branch tracking (decision:parallel-workspaces/environment-lifecycle/reused-branch-tracking)
+
+**Decider:** product owner
+
+`ws init <env>` writes an inferred upstream over existing tracking only on an `<env>` branch it created in that run; a
+worktree added on an existing local `<env>` branch keeps that branch's tracking, because `product:environment-worktrees`
+preserves existing operator tracking. This is a registered deviation: the reference overrides the tracking of any
+worktree it adds, so re-adding one on a branch the operator connected points it at the siblings' upstream.
+
 ## Detached and parked worktrees (decision:parallel-workspaces/environment-lifecycle/head-state)
 
 **Decider:** product owner

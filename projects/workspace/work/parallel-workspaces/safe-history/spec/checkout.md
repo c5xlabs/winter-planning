@@ -153,5 +153,8 @@ text    a table of REPO and RESULT, one row per entry of repos, then the previou
   aborted:  that nothing changed, the blocking paths of each refused-untracked repo, and one hint: fetch or --new for
             unknown-branch alone; fetch when any missing-ref; --force otherwise
   complete: the env, the feature branch, the count moved to the feature and, when any, the count started from main
-  stopped:  the repo it stopped on with its error, the repos already moved, and the unattempted ones
+  stopped:  the repo it stopped on with its error, the repos already moved, and the unattempted ones; for the failed
+            repo, its retained state: step 2 failed, that its HEAD, branch, and tracking are unchanged; step 3 failed,
+            that it is on <target_rev> with its old tracking; step 4 failed, that it is on <target_rev> tracking
+            FEATURE_BRANCH without push.default=upstream
 ```

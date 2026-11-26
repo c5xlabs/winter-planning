@@ -43,7 +43,8 @@ them before a command calls them (`context/standards/testing.md`) and the gate f
 ```text
 # reference: modules/workspace/env_restack_service.py:30-178, internal/write_repo_repository.py:383-437
 per link, in plan order (bottom first); per participating repo, in configuration order:
-  pred_ref, env_ref, tip, ancestor   as restack-plan.md, Reads, read now, not at planning
+  pred_ref      the link repo's pred_ref (restack-plan.md, Plan), so the bottom link's BASE is not expanded again
+  env_ref, tip, ancestor   as restack-plan.md, Reads, read now, not at planning
   env_tip := tip(env_ref); newbase := tip(pred_ref); oldbase := the frozen boundary
     either tip None -> Failure naming the ref that no longer resolves
     # the reference's assertion error is an artifact of Python under decision:functional-parity, not a deviation
@@ -60,6 +61,7 @@ per link, in plan order (bottom first); per participating repo, in configuration
            git diff --name-only --diff-filter=U; the repo is left mid-rebase, never aborted
       neither -> Failure with the repo error's message and git's stderr
       a classification read that itself fails -> Failure with that call's repo error
+  a git that cannot be started, in any read or the rebase: GitFailure::Internal -> Failure with that error's message
 a Conflict or a Failure stops the run: later repos of that link and every upper link are not touched
 remaining := the links from the stopped one to the top, plan-shaped; no rollback, nothing pushed, tracking unchanged
 ```

@@ -198,7 +198,8 @@ worktree::run(w)
          replaced by a link since reconcile_env's step b is caught -> NotAWorktreeOf
        branch_exists(source, env) -> worktree_add(source, location, env)
                                   else worktree_add_new(source, location, env, main_branch)
-       -> RepoAction WorktreeCreated            # a reused local branch and a new one report the same
+       -> RepoAction WorktreeCreated            # a reused local branch and a new one report the same; step 4
+                                                # knows which
      present:                                   # engineering:worktree-effect-confinement
        any of these -> NotAWorktreeOf
          resolve(location) != resolve(root)/<env>/<repo>     # a link to another environment's worktree included
@@ -227,7 +228,10 @@ worktree::run(w)
      not pinned:  inferred None -> nothing
                   current := tracking(location)
                   current == inferred -> nothing
-                  current Some and the worktree was not created in step 1 -> nothing   # operator-owned tracking
+                  current Some and step 1 did not create the branch (worktree_add_new) -> nothing
+                    # operator-owned tracking, a reused local <env> branch's included; registered deviation:
+                    # decision:parallel-workspaces/environment-lifecycle/reused-branch-tracking; the reference
+                    # overrides the tracking of any worktree it adds (init_service.py:666-701)
                   else set_upstream(location, inferred); set_push_default_upstream(location);
                     RepoAction UpstreamInferred, detail inferred
                   # push-default.md, when each caller writes it: ws init

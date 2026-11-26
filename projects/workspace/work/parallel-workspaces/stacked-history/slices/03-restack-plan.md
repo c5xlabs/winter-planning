@@ -28,7 +28,8 @@ safety, and cut bullets of `product:review-replay-boundaries`, and `engineering:
   ends the run as `RestackError::RefToken` before any git call; then reads, missing refs, and per link the safety,
   boundary, and inversion refusals, every refusal listed.
 - An unrefused plan, `Plan::Links`, holds the workspace root and every non-pinned repository per link in configuration
-  order, a skipped one with boundary and source `None`; `--cut` is the bottom link's boundary only.
+  order, a skipped one with boundary and source `None`, each with its `pred_ref`; `--cut` is the bottom link's boundary
+  only.
 - `plan` writes nothing; a repo error of `dirty` or `branch` ends it as `RestackError::Repo`, and a git that cannot be
   started as `RestackError::Internal`.
 - `plan` and the plan's types are re-exported by name from `lib.rs` for its tests, and `chain` as `restack_chain`, since

@@ -24,14 +24,14 @@ the earlier slices use a stand-in. Delivers the end-to-end evidence of `product:
 ## Acceptance
 
 - `ws init alpha` initializes the child and clones its projects, and the child's `ws status --json` reports the
-  `port_base` its delegated `base_port` gives; the outer source checkout of the nested project is not initialized as a
-  workspace.
+  `port_base` its delegated `base_port` gives; once the child holds an env, its `ws list --json` reports the delegated
+  `service_prefix`; the outer source checkout of the nested project is not initialized as a workspace.
 - The outer `ws status --json` reports the child's env count; with a child env holding a retained branch, a stash, or a
   detached commit present nowhere else, the row's `unpushed` is true and `ws destroy alpha` refuses naming it.
 - A child workspace that declares a nested project of its own: `ws status` of the outer reads through both levels, and
   `ws destroy alpha --force` destroys the innermost envs, then the child's, then the outer's.
-- A child env whose teardown fails, as with a worktree's `index.lock` held, keeps the outer env under `--force`, and a
-  re-run after the lock is gone completes it.
+- A child env whose teardown fails, as with a child worktree locked by `git worktree lock`, keeps the outer env under
+  `--force`, and a re-run after `git worktree unlock` completes it.
 - A child that binds `service` and whose `winter service down workspace` fails — within this milestone the child's
   `winter` has no `service` command, and once one exists a bound provider with no program on `PATH` fails — keeps the
   outer env, its worktree, directory, exclude block, and index under `--force`, and the result names the child and the

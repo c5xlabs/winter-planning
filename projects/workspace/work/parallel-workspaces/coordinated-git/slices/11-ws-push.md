@@ -36,11 +36,15 @@ calls. Delivers `product:push-worktree-destinations`, the push bullets of `produ
 - Component tests through `InProcess` with a fixture remote: a connected worktree whose branch origin lacks creates it
   and is `pushed` with its count; a worktree with nothing ahead is `up_to_date` and runs no push; a worktree with
   commits and no upstream is `no_upstream` with the connect guidance and fails the run.
+- A component test: a published branch level with `origin/<B>` and ahead of `origin/<main>` is `up_to_date`, pushed
+  false, and runs no `git push`.
 - Component tests: a pinned worktree with commits is a `skipped_pinned` row by default, beside pushed rows, and does not
   fail the run; with only pinned worktrees selected it is the environment skip and fails the run; `--include-pinned`
   pushes it.
 - Component tests of the local copy: a source branch that matched the old remote tip advances by `update-ref`; one that
   had its own commit is skipped "not in sync"; a dirty holder is skipped "dirty"; each leaves the row `pushed`.
+- A component test: a local fast-forward whose git call fails, in a clean holder, is skipped "ff failed" and leaves the
+  row `pushed`.
 - A component test: a standalone held at a tag is `held_pin` and does not fail the run.
 - A component test: `--standalone` with an absent standalone warns it, names it in the document's `missing`, and starts
   no git process in it.

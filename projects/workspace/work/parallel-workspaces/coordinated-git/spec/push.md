@@ -71,7 +71,9 @@ ahead       each in-scope worktree is probed as status.md's worktree probe gives
               tracking_ahead  the branch.ab ahead count of its porcelain status; 0 with no resolving upstream
               main_ahead      the ahead count against origin/<main_branch>
             pinned:     a candidate when tracking_ahead > 0
-            non-pinned: a candidate when tracking_ahead > 0 or main_ahead > 0
+            non-pinned: a candidate when tracking_ahead > 0, or main_ahead > 0 when tracking_ref_present is false
+                        # registered deviation, pinned-skips: the reference counts main_ahead also when the tracking
+                        # ref resolves, so a published branch level with it pushes nothing and is reported pushed
             a probe failure -> the row is failed with the rendered RepoError
 no in-scope worktree, with Exclude:
             the pinned selected worktrees that would be candidates; when any, skipped gains

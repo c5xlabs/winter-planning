@@ -39,16 +39,24 @@ pub(crate) struct CleanReport {
     pub repos: Vec<RepoClean>,               // empty: nothing matched; every count 0: nothing to clean
     pub failure: Option<CleanFailure>,
 }
+pub(crate) enum CleanEvent<'r> {
+    Started { dry_run: bool, missing: &'r [(Selected, Missing)] },   // written as the target_missing events before
+                                                                     // clean_started
+    Repo(&'r RepoClean),                                             // as each target's call returns
+    Completed { total: usize, failure: Option<&'r CleanFailure> },   // success is failure.is_none()
+}
 pub(crate) fn preview(ports: &Ports<'_>, targets: &[Selected]) -> Result<CleanReport, CleanError>;
-pub(crate) fn clean(ports: &Ports<'_>, targets: &[Selected], dry_run: bool) -> CleanReport;
+// Running, steps 8-9: each target's RepoClean goes to sink once its call returns, before the next target's call
+pub(crate) fn clean(ports: &Ports<'_>, targets: &[Selected], dry_run: bool,
+    sink: &mut dyn FnMut(&CleanEvent<'_>) -> Result<(), Termination>) -> Result<CleanReport, Termination>;
 // The command file's one domain call (context/architecture/changes.md, A command): Running, steps 1-10, from the start
 // path, as the built locations::list and pins::repin take it. confirm is called with the preview exactly when step 7
 // prompts; the command file builds it over confirm.rs (runtime.md, Confirmation), rendering the preview and asking
-// "Continue?". Its Err is the ending, answered as Stopped with nothing removed
+// "Continue?". sink receives each event as it is reached. An Err from either is the ending, answered as
+// RunEnd::Stopped with nothing removed after it; Completed { success } otherwise
 pub(crate) fn run(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern],
-    force: bool, dry_run: bool, confirm: &mut dyn FnMut(&CleanReport) -> Result<(), Termination>)
-    -> Result<CleanEnd, CleanError>;
-pub(crate) enum CleanEnd { Reported(CleanReport), Stopped(Termination) }
+    force: bool, dry_run: bool, confirm: &mut dyn FnMut(&CleanReport) -> Result<(), Termination>,
+    sink: &mut dyn FnMut(&CleanEvent<'_>) -> Result<(), Termination>) -> Result<RunEnd, CleanError>;
 // the failures before anything is removed: the load, the selection (target-patterns.md, SelectError), and a list
 // call of preview (Running, step 5). The command file maps: Config -> Termination::Config, EnvName ->
 // Termination::Command(CommandError::EnvName), Selection -> Termination::Command(CommandError::Selection), Repo ->
@@ -73,7 +81,7 @@ each tests it before a command calls it (`context/standards/testing.md`) and the
 `allow` (`context/standards/rust.md`); `HistoryError` is re-exported with them (changes.md, An error). `parse` is
 re-exported as `parse_clean`, since `targets::parse` holds `parse` at the crate root. `Selected` is `pub` by
 [target-patterns.md](../../coordinated-git/spec/target-patterns.md), Domain. Everything else here stays `pub(crate)`:
-`run`, `CleanEnd`, `preview`, `clean`, and the report types land with the command that calls them.
+`run`, `CleanEvent`, `preview`, `clean`, and the report types land with the command that calls them.
 
 ## Interfaces
 
@@ -129,17 +137,21 @@ order
 ### Result
 
 ```text
+# engineering:bounded-fan-out: every event is written from run's sink as it is reached, so each worktree's removed
+# paths are on stdout before the next worktree's call starts
 --json  NDJSON, each line flushed (shape C)
   {"type": "clean_started", "dry_run": bool}     target_missing events precede it (target-patterns.md, Missing
                                                  targets in results)
-  {"type": "repo_clean", "env", "repo", "count", "paths"}       one per target reached, in order, empty ones too;
-                                                                paths is what git reported removed, or would remove
+  {"type": "repo_clean", "env", "repo", "count", "paths"}       one per target reached, in order, empty ones too,
+                                                                each written as its call returns; paths is what git
+                                                                reported removed, or would remove
   {"type": "clean_completed", "success": bool, "total": <sum of count>}
       plus "failure": {"env", "repo", "message", "unattempted": [{"env", "repo"}...]} when it stopped
       # unattempted: registered deviation
   nothing matched: started with dry_run, then completed with success true and total 0
   nothing to clean: started, one repo_clean per target with count 0, completed
 text    nothing matched: one line naming PATTERNS; nothing to clean: one line
+        each worktree's listing written from its Repo event, the totals and the stopped lines from Completed
   --dry-run: per worktree with paths, "<env>/<repo> (<count>)" and each path; the totals; that nothing was removed
   removed:   the same listing of what went, then the count of paths and of worktrees touched
   stopped:   additionally the worktree it stopped on with its message, that the paths listed are gone for good, and
