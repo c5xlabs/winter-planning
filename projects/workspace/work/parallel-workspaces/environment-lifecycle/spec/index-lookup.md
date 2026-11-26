@@ -4,7 +4,7 @@ The `ws index` command: what it reads, what it answers, and that it changes noth
 row of [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md),
 Commands. The rule it reports is the `lookup` line of
 [lock-and-state.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md), Env index
-allocation.
+allocation; where [allocation.md](./allocation.md)'s allocate answers otherwise is the `allocate` line below.
 
 ## Interfaces
 
@@ -32,6 +32,10 @@ no probing  lookup never runs the probe loop of `allocate`. A suggested index is
 recorded    a recorded value is whatever integer the state file holds for NAME — negative, zero, or beyond the band
             included — and is answered unchanged; lookup does not check it against the layout.
             reference: modules/workspace/internal/toml_env_index_registry.py:42-45
+allocate    allocation.md's allocate can differ from lookup for one name: an alias recorded off its position answers
+            the recorded index here and moves at its next `ws init`; a name recorded on an alias or the buffer slot
+            answers that index here and is refused there. ws index writes no finding of allocation.md and its answer
+            and exit stay those of the table above
 --json      one Shape A document (../../component-runtime/spec/output-formats.md, Shape per command):
               {"name": <NAME as given>, "index": <integer>, "source": "registry" | "suggested"}
 human       ../../component-runtime/spec/output-formats.md, Human output, row `ws index`; the mark follows the integer
