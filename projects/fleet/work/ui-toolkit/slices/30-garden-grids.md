@@ -8,20 +8,23 @@ code:
   - blizzard/web/projects/hub/src/app/garden/routines/routine-panel.ts::FleetRoutinePanel
 ---
 
-# Adopt the grid bridge in cadence and routine tables
+# Close the cadence and routine keyboard choices
 
-Completes [choices.md](../spec/choices.md#system)'s three-table adoption for `product:keyboard-choices` and
-`product:full-adoption`, under `decision:ui-toolkit/no-table-engine`.
+Completes the cadence and routine half of `product:keyboard-choices` and `product:full-adoption`. Neither surface has a
+table whose rows act, so under `decision:ui-toolkit/no-table-engine` the grid bridge of
+[choices.md](../spec/choices.md#system) does not reach them.
 
 ## Change
 
-- Put cadence and routine interactive tables on the shared grid composition without adding sorting or filtering.
-- Preserve edit, retire, and run actions, disabled states, and the existing table presentation.
+- The cadence and routine master lists are `fleetKitSelectList` listboxes, not tables, and keep the select list's own
+  keyboard model. Their remaining tables (errands, last swept) take no row actions, so under
+  `decision:ui-toolkit/no-table-engine` they stay plain rather than joining the grid composition.
+- Preserve edit, retire, and run actions, disabled states, and the existing presentation.
 
 ## Acceptance
 
-- Browser tests exercise one Tab entry, text/action-cell navigation, native focus, and exactly-once activation in each
-  table.
+- Browser tests exercise the select lists' one Tab entry, arrow and type-ahead movement without opening, and Enter and
+  click opening exactly once.
 - Existing row actions retain their permission/pending behavior and tests; read-only graph/proposal-count tables stay
   plain.
 - `web:typecheck`, `web:unit-test`, and the affected browser layout checks pass with no table-engine dependency.
