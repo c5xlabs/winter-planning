@@ -64,7 +64,7 @@ pub(crate) fn run(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnos
     patterns: &[String], options: Options, confirm: &mut dyn FnMut(&[String]) -> Result<(), Termination>,
     sink: &mut InitSink<'_>) -> Result<Destroyed, DestroyError>;
 pub(crate) enum Destroyed {
-    NoMatch,       // Selection, step 6: the command file writes the no-match line
+    NoMatch { line: String },   // Selection, step 6: the no-match line, built here; the command file writes it
     Ran(RunEnd),   // Completed { success: every target succeeded }, or Stopped(the ending of confirm or the sink)
 }
 // the failures before any prompt; the command file maps Config -> Termination::Config, EnvName ->
@@ -155,9 +155,10 @@ steps 1-8 are run's; order, before any prompt, git call, or write
      glob      the environments present (location-listing.md) whose name matches; env_name::check of each match
                (env-names.md)
      names     the literals sorted by code point, then the glob matches not among them, sorted, without repeats
-  6. no names (only globs were given, and none matched): Destroyed::NoMatch, and the command file writes the line
-     "No environments matched: <patterns joined by ' '>" on stdout, also under --json; exit 0 (output-formats.md,
-     JSON-mode departures)
+  6. no names (only globs were given, and none matched): Destroyed::NoMatch { line }, line the text
+     "No environments matched: <patterns joined by ' '>", which run builds, so the command file holds no such
+     literal (COMMAND_FILE_NAMES of winter-workspace's crates/dev/src/architecture.rs); the command file writes
+     line on stdout, also under --json; exit 0 (output-formats.md, JSON-mode departures)
   7. prompt when more than one PATTERN was given or any PATTERN is a glob, unless --force or --dry-run: confirm(names),
      whose closure writes "This will destroy <n> environment(s): <names joined ', '>", then confirm("Continue?");
      declined or end of input -> Termination::Aborted, exit 1, nothing done

@@ -74,8 +74,9 @@ Acceptance:
   often a service operation computes a scope is `epic:running-environments/service-orchestration`'s.
 - Failure, invalid output, missing executable, or timeout names the entry and fails the requested resolution rather than
   launching with an omitted or placeholder value.
-- Each lookup runs from the workspace root with closed stdin and a 30-second deadline; a timed-out lookup leaves no
-  process it started running.
+- Each lookup runs from the workspace root with closed stdin and a 30-second deadline. Without a controlling terminal, a
+  timed-out lookup leaves no process it started running; with one, a lookup can prompt on it, as
+  `decision:running-environments/scope-environment/lookup-execution-policy` settles.
 
 ## Refuse incomplete launch environments (product:complete-launch-environment)
 

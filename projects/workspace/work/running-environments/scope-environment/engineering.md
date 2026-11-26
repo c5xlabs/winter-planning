@@ -19,10 +19,11 @@ no consumer derives an index from an unregistered name. Serves `product:runtime-
 ## Bounded value execution (engineering:bounded-value-commands)
 
 Value-producing commands have a fixed 30-second deadline per invocation, stdin closed, the workspace root as working
-directory, and a visible environment. Each runs in its own process group, and the whole group is killed on timeout or
-cancellation. Native argument execution is the default; shell execution requires an operator-authored opt-in and
-prohibited substitutions fail before execution. Serves `product:external-value-resolution` and
-`product:private-runtime-values`.
+directory, and a visible environment. Without a controlling terminal each runs in its own process group, and the whole
+group is killed on timeout or cancellation; with one it stays in Workspace's process group and only its direct child is
+killed, under `decision:running-environments/scope-environment/lookup-execution-policy`. Native argument execution is
+the default; shell execution requires an operator-authored opt-in and prohibited substitutions fail before execution.
+Serves `product:external-value-resolution` and `product:private-runtime-values`.
 
 ## Atomic computation outcomes (engineering:complete-resolution-outcomes)
 

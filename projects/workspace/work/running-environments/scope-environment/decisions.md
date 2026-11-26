@@ -31,17 +31,15 @@ error.
 
 ## Lookup execution policy (decision:running-environments/scope-environment/lookup-execution-policy)
 
-**Decider:** product owner and engineering
+**Decider:** product owner
 
 Lookups follow the reference: computed once per scope per `up` or `start` fan-out with no cache across scopes or runs,
 never run by inspection, status, or stop, each with a fixed 30-second deadline, closed stdin, and the workspace root as
-working directory. As a registered deviation, a timed-out lookup's whole process group is killed, because the reference
-killed only the direct child and left shell-started processes orphaned; an interrupted lookup's group is killed the same
-way, and the invocation still ends as the reference's interrupt does, aborted with exit 1. The group of its own is kept
-with a consequence, registered as a deviation too: a lookup runs in a background group of the terminal, so it cannot use
-the controlling terminal, and one that reads from it or changes its settings, such as a passphrase or MFA prompt, is
-stopped by the terminal and ends as `Timeout` at the deadline, where the reference's lookup stayed in the foreground
-group and could prompt.
+working directory; with a controlling terminal a lookup stays in Workspace's foreground process group, so it can prompt,
+and a timeout or interrupt kills only its direct child, whose descendants may survive. As a registered deviation, an
+invocation without a controlling terminal, as an agent's or CI's, runs each lookup in a process group of its own and
+kills that whole group on a timeout or interrupt, still ending an interrupt as the reference does, aborted with exit 1,
+because agents and CI never prompt and keep the whole-group kill, while a person at a terminal keeps prompts.
 
 ## Resolution compatibility (decision:running-environments/scope-environment/resolution-compatibility)
 

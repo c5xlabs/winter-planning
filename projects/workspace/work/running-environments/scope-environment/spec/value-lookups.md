@@ -56,9 +56,14 @@ pub enum OutputFault {
 
 // crates/core/src/programs.rs — the program port gains
 pub enum Program { Git, Shell, Argv }       // Argv: args[0] is the program; the rest are its arguments
-pub enum Group { Inherit, Own }             // Call.group; every existing call is Inherit
+pub enum Group { Inherit, Own, Shared }     // Call.group; every existing call is Inherit
 pub struct Call<'a> { /* … as child-processes.md and reconciliation.md give it */ pub group: Group,
-                      pub interrupts: Option<&'a Interrupts> }   // Some only with Group::Own
+                      pub interrupts: Option<&'a Interrupts> }   // Some only with Group::Own or Group::Shared
+pub trait RunPrograms { /* … */ fn has_controlling_terminal(&self) -> bool { false } }   // The child, group
+impl OsPrograms { pub fn with_controlling_terminal(self, has: bool) -> Self; }          // answers `has`
+
+// crates/core/src/process.rs — the invocation gains
+pub struct Invocation<'a> { /* … as runtime.md gives it */ pub has_controlling_terminal: bool }
 ```
 
 Visibility: `run_lookup`, `read_output`, and `LookupRequest` are `pub` inside their private module and re-exported by
@@ -105,19 +110,26 @@ env       the environment OsPrograms gives every child (child-processes.md), wit
           reference lays the variables over its whole process environment, so a sourced scope's stale managed
           values reached the lookup
 timeout   30 s, fixed; no option, variable, or entry field changes it
-group     Group::Own: the child leads a new process group (setpgid(0, 0) before exec). On the deadline the adapter
-          sends SIGKILL to the whole group and reaps the child -> Timeout
-          registered deviation, decision:running-environments/scope-environment/lookup-execution-policy: the
-          reference kills the direct child only, and a shell entry's grandchildren outlive it
-terminal  a lookup cannot use the controlling terminal: its group is a background group of the terminal, so a read of
-          it or a change of its settings stops the lookup (SIGTTIN, SIGTTOU), and a lookup that tries ends as
-          Timeout at the deadline
-          registered deviation, the same decision: the reference's lookup stays in the foreground group and can
-          prompt, as a passphrase or MFA prompt does
+group     chosen by programs.has_controlling_terminal(), the fact the binary detects once, as it does
+          stdout_is_terminal, by whether open("/dev/tty", O_RDWR | O_NOCTTY) succeeds, carries as
+          Invocation.has_controlling_terminal, and hands the host's OsPrograms through with_controlling_terminal;
+          a test injects it through the same port, so neither case needs a real terminal
+          no controlling terminal, as under an agent or CI
+                   Group::Own: the child leads a new process group (setpgid(0, 0) before exec). On the deadline
+                   the adapter sends SIGKILL to the whole group and reaps the child -> Timeout
+                   registered deviation, decision:running-environments/scope-environment/lookup-execution-policy:
+                   the reference kills the direct child only, and a shell entry's grandchildren outlive it
+          a controlling terminal
+                   Group::Shared: the child stays in Workspace's process group, as the reference's does, so it can
+                   read the terminal and prompt, as a passphrase or MFA prompt does. On the deadline the adapter
+                   sends SIGKILL to the direct child alone and reaps it -> Timeout; its descendants may survive, as
+                   the reference's do
 interrupt the call defers the interrupt for its duration; the adapter waits in slices of at most 100 ms and, once
-          pending() is true, sends SIGKILL to the group, reaps the child, releases, and answers Interrupted
-          a child in its own group no longer receives the terminal's SIGINT, so without the deferral the handler's
-          _exit would leave the lookup running; the deferral is the means of the group kill of
+          pending() is true, sends SIGKILL to the group (Group::Own) or to the direct child alone (Group::Shared),
+          reaps the child, releases, and answers Interrupted
+          a child in its own group does not receive the SIGINT a terminal or a caller sends Workspace's group, and
+          one in Workspace's group may ignore it, so without the deferral the handler's _exit would leave the
+          lookup running; the deferral is the means of the kill of
           decision:running-environments/scope-environment/lookup-execution-policy, and the invocation still ends as
           the reference's does: aborted, the aborted notice, exit 1 (consumers.md, Failure by consumer). The frozen
           runtime.md, which lists the service paths as the only deferrals, is not edited: this leaf adds the lookup

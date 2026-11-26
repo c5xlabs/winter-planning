@@ -33,8 +33,9 @@ bullet of `product:private-runtime-values`, and the identity bullets of `product
   `NoTrace` ignores it; `env` sets `winter.env` by the spec's rule.
 - `crates/core/topics/env.md`, referenced from `root`: the lines, `eval "$(winter env SCOPE)"`, masking and `--resolve`,
   that `--resolve` prints real values, that a `shell = true` entry's own `$NAME` expansion is not prevented
-  (`product:private-runtime-values`), and that a lookup runs in a process group of its own, so it cannot use the
-  controlling terminal: a lookup that prompts on it ends as a timeout after 30 s
+  (`product:private-runtime-values`), and that with a controlling terminal a lookup can prompt on it and a timeout or
+  interrupt kills the lookup's own process alone, while without one, as under an agent or CI, a lookup runs in a process
+  group of its own that a timeout or interrupt kills whole
   (`decision:running-environments/scope-environment/lookup-execution-policy`).
 
 ## Acceptance
@@ -53,8 +54,8 @@ bullet of `product:private-runtime-values`, and the identity bullets of `product
   an empty string and status 1.
 - A component test through `InProcess` with an interrupt already pending (`interrupt_pending`): `env alpha --resolve`
   over a lookup running `sleep 60` exits 1 with the aborted notice on stderr and nothing on stdout, well before the
-  sleep or the 30 s deadline would end it; the group kill itself is `process-group-calls`'s test, and the binary's
-  handler noting an interrupt while deferred is runtime.md's, so no test sends a signal
+  sleep or the 30 s deadline would end it; the kill itself is `process-group-calls`'s test, and the binary's handler
+  noting an interrupt while deferred is runtime.md's, so no test sends a signal
   ([test-harness.md](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md), `invoke`,
   signals sent).
 - A component test: the run writes no file under the workspace, as a recording file port shows.

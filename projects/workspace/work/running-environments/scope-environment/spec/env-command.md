@@ -24,7 +24,7 @@ order
        interrupted lookup    EnvError::Interrupted is not Termination::Env: it ends as
                              Termination::Aborted { interrupted: true }, the aborted notice, exit 1, nothing on
                              stdout, as results-and-exit-codes.md gives an interrupt outside the service paths and the
-                             reference's click Abort does (cli.py:434-436); the lookup's group is killed first
+                             reference's click Abort does (cli.py:434-436); the lookup is killed first
                              (value-lookups.md, The child)
   steps 1 to 3 are one domain entry of scope_env, which the command file calls and whose failure it maps
   (context/architecture/changes.md, A command: a command file names neither config_load nor state_registry); the

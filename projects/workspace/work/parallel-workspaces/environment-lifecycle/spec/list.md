@@ -25,7 +25,7 @@ pub(crate) struct Listed {
 }
 pub(crate) struct Listing {
     pub workspace: Workspace,            // as loaded: the root and the values the JSON document reads
-    pub environments: Vec<Listed>,       // listing order
+    pub listed: Vec<Listed>,             // listing order
 }
 // the command file's one domain call (context/architecture/changes.md, A command, of winter-workspace): root
 // discovery, the load, the drift notice, the registry read, and the findings are its own (Running ws list, steps 1-6),
