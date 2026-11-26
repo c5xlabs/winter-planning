@@ -8,17 +8,18 @@ code:
   - blizzard/web/projects/hub/src/app/garden/routines/routine-panel.ts::FleetRoutinePanel
 ---
 
-# Adopt the grid bridge in cadence and routine tables
+# Close the cadence and routine keyboard choices
 
-Completes [choices.md](../spec/choices.md#system)'s three-table adoption for `product:keyboard-choices` and
-`product:full-adoption`, under `decision:ui-toolkit/no-table-engine`.
+Completes the cadence and routine half of `product:keyboard-choices` and `product:full-adoption`. Neither surface has a
+table whose rows act, so under `decision:ui-toolkit/no-table-engine` the grid bridge of
+[choices.md](../spec/choices.md#system) does not reach them.
 
 ## Change
 
 - The cadence and routine master lists are `fleetKitSelectList` listboxes, not tables, and keep the select list's own
   keyboard model. Their remaining tables (errands, last swept) take no row actions, so under
   `decision:ui-toolkit/no-table-engine` they stay plain rather than joining the grid composition.
-- Preserve edit, retire, and run actions, disabled states, and the existing table presentation.
+- Preserve edit, retire, and run actions, disabled states, and the existing presentation.
 
 ## Acceptance
 
