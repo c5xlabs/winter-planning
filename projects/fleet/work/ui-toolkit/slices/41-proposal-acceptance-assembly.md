@@ -37,6 +37,7 @@ Delivers `product:assembled-surface` and the last form in `product:full-adoption
 - A real-board browser case exercises both modes and refusal recovery; the view owns no draft/validation/error/layout
   implementation. `web:story-render` and `blizzard:exemplar-check` pass for the reused parts and checked examples.
 - The final adoption census finds every live input surface on the shared path, no superseded helpers, and an empty
-  boundary exemption list; all three interactive tables and the zone picker satisfy their keyboard cases.
+  boundary exemption list; the members grid, the cadence and routine select lists, and the zone picker satisfy their
+  keyboard cases.
 - `web:lint`, `web:typecheck`, `web:unit-test`, `web:structural-gate`, `web:shell-sweep`, and `web:bundle-composition`
   pass.

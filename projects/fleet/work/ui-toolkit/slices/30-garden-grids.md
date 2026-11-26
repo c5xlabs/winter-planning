@@ -15,13 +15,15 @@ Completes [choices.md](../spec/choices.md#system)'s three-table adoption for `pr
 
 ## Change
 
-- Put cadence and routine interactive tables on the shared grid composition without adding sorting or filtering.
+- The cadence and routine master lists are `fleetKitSelectList` listboxes, not tables, and keep the select list's own
+  keyboard model. Their remaining tables (errands, last swept) take no row actions, so under
+  `decision:ui-toolkit/no-table-engine` they stay plain rather than joining the grid composition.
 - Preserve edit, retire, and run actions, disabled states, and the existing table presentation.
 
 ## Acceptance
 
-- Browser tests exercise one Tab entry, text/action-cell navigation, native focus, and exactly-once activation in each
-  table.
+- Browser tests exercise the select lists' one Tab entry, arrow and type-ahead movement without opening, and Enter and
+  click opening exactly once.
 - Existing row actions retain their permission/pending behavior and tests; read-only graph/proposal-count tables stay
   plain.
 - `web:typecheck`, `web:unit-test`, and the affected browser layout checks pass with no table-engine dependency.
