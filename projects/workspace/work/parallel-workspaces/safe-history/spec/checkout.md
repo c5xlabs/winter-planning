@@ -42,12 +42,16 @@ pub(crate) struct Previous { pub head: Option<Sha>, pub branch: Option<Sha> }
 pub(crate) struct CheckoutReport { pub env: String, pub feature_branch: String, pub aborted: bool,
     pub repos: Vec<RepoCheckout>,
     pub missing: Vec<(Selected, Missing)> }   // target-patterns.md, Missing targets in results
-pub(crate) fn checkout(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace,
+// the command file's one domain call (context/architecture/changes.md, A command): Running, steps 1-6, from the start
+// path, as the built locations::list and pins::repin take it
+pub(crate) fn checkout(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path,
                        env: &str, feature_branch: &str, force: bool, new: bool) -> Result<CheckoutReport, CheckoutError>;
-// the failures that end the command before any effect (Running, steps 3-5); a failure after a pointer moved is a
-// failed repo in the report, never an Err. The command file maps: EnvName -> Termination::Command(EnvName),
-// Selection -> Command(Selection), RefToken -> Command(RefToken), Repo -> Repo, Internal -> Internal, each box as it is
+// the failures that end the command before any effect (Running, steps 1 and 3-5); a failure after a pointer moved is a
+// failed repo in the report, never an Err. The command file maps: Config -> Termination::Config, EnvName ->
+// Termination::Command(EnvName), Selection -> Command(Selection), RefToken -> Command(RefToken), Repo -> Repo, Internal
+// -> Internal, each box as it is
 pub enum CheckoutError {
+    Config(Box<ConfigError>),          // root discovery and the load
     EnvName(EnvNameError),             // ENV fails env_name::check (env-names.md)
     Selection(SelectionError),         // UnknownEnv (env-selection.md)
     RefToken(RefTokenError),           // an unknown token (ref-tokens.md)
@@ -56,9 +60,10 @@ pub enum CheckoutError {
 }
 ```
 
-`CheckoutError` is `pub` and re-exported by name from `lib.rs` with the types its variants carry
-(`context/architecture/changes.md`, An error, of `winter-workspace`); the other names here land with the command that
-first calls them and stay `pub(crate)`.
+`CheckoutError` is `pub` and re-exported from `lib.rs` as `HistoryCheckoutError`, with the types its variants carry
+(`context/architecture/changes.md`, An error, of `winter-workspace`), since `bootstrap::checkout::CheckoutError` of
+`epic:parallel-workspaces/workspace-bootstrap` holds `CheckoutError` at the crate root; the other names here land with
+the command that first calls them and stay `pub(crate)`.
 
 ## Interfaces
 
@@ -67,7 +72,7 @@ first calls them and stay `pub(crate)`.
 ```text
 # reference: modules/workspace/handlers/workspace_handler.py:411-471, env_checkout_service.py:135-277
 order
-  1. root discovery and the load; a failure is its ConfigError, exit 1
+  1. root discovery and the load; a failure is CheckoutError::Config, exit 1
   2. the drift warning
   3. ENV passes env_name::check (../../environment-lifecycle/spec/env-names.md), so it holds no glob character, or
      the command is refused; then targets := the non-pinned worktrees select (target-patterns.md) yields for the one

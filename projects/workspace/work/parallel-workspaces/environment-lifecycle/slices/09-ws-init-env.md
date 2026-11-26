@@ -9,8 +9,8 @@ depends-on:
 
 # `ws init <env>` creates and reconciles one environment
 
-Adds `env_create::reconcile_env` and the `TARGET` argument of `ws init` of [init.md](../spec/init.md), Running
-`ws init <env>` steps a to f and Fan-out, with the allocation report of [allocation.md](../spec/allocation.md),
+Adds `env_create::init_env`, `reconcile_env`, and the `TARGET` argument of `ws init` of [init.md](../spec/init.md),
+Running `ws init <env>` steps a to f and Fan-out, with the allocation report of [allocation.md](../spec/allocation.md),
 Reporting an allocation in `ws init <env>`. The command is the `ws init` that
 `epic:parallel-workspaces/workspace-bootstrap` registers without `TARGET`; its row is that of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), Commands.
@@ -21,15 +21,18 @@ Delivers `product:environment-worktrees`, the creation half of `product:stable-e
 
 ## Change
 
-- `crates/core/src/env_create.rs` holds `reconcile_env`: allocate before the env directory exists, then the directory,
-  the `winter-dir/<env>` self-exclude block, the source check, inference over the existing non-pinned worktrees, and
-  `worktree::run` per ready project, at most 4 at once, in reconciliation.md's fan-out; it answers `RunEnd`, the
-  target's success, or the ending of a sink that could not write, which the command returns.
+- `crates/core/src/env_create.rs` holds `init_env` and `EnvInitError`: root discovery and the load from the start path,
+  `env_name::check(TARGET)`, and the registry read, each before any git call or write, then `reconcile_env`.
+- `reconcile_env`: allocate before the env directory exists, then the directory, the `winter-dir/<env>` self-exclude
+  block, the source check, inference over the existing non-pinned worktrees, and `worktree::run` per ready project, at
+  most 4 at once, in reconciliation.md's fan-out; it answers `RunEnd`, the target's success, or the ending of a sink
+  that could not write, which the command returns.
 - The `moved` callback of `state_registry::allocate` emits the `index_moved` action before the write; an allocation
   error fails the target with nothing created; a directory failure keeps the recorded index.
 - `bootstrap.rs`'s `Action` gains `IndexMoved`.
 - `crates/core/src/commands/ws/init.rs` registers `TARGET`; with it, `ws init` refuses `workspace` as command-surface.md
-  gives, then applies `env_name::check`, then reads the registry, each before any git call or write.
+  gives, then makes its one call to `init_env` and maps each `EnvInitError` variant to its `Termination`, as init.md,
+  Domain, gives.
 - `crates/core/topics/ws/init.md` describes `ws init <env>` and states that its success claims no dependency, resource,
   data, or service readiness.
 

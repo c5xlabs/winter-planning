@@ -24,8 +24,10 @@ remains. A rebase that fails carries `GitOperation::Rebase` of `module-scaffold`
   mid-rebase; otherwise, or when a classification read fails, a `Failure` with the repo error.
 - `restack/execute.rs` names the `git rebase` span its rebase opens.
 - Nothing is written for a later run, nothing is pushed, and no upstream setting changes.
-- `execute` and the report types are re-exported by name from `lib.rs` for its tests
-  ([restack-execution.md](../spec/restack-execution.md), Domain); no command calls them yet.
+- `execute` takes the workspace root and the links of `Plan::Links`.
+- `execute` and the report types are re-exported by name from `lib.rs` for its tests, `Conflict` as `RestackConflict`,
+  since `agents_md::Conflict` holds `Conflict` at the crate root ([restack-execution.md](../spec/restack-execution.md),
+  Domain); no command calls them yet.
 
 ## Acceptance
 

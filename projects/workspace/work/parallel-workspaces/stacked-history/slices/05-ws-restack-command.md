@@ -10,10 +10,11 @@ depends-on:
 Adds the `ws restack ENV... BASE [--cut TEXT] [--dry-run] [--json]` command: its row and combination rules, the literal
 chain-name shape included, are those of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), checked by
-`chain` of `restack-plan`; it loads the workspace, runs `plan`, then writes the refused or dry-run result, or runs
-`execute` of `restack-execute` and writes its result. The command file builds the documents and text of
-[restack-plan.md](../spec/restack-plan.md), Result, and [restack-execution.md](../spec/restack-execution.md), Result,
-from the domain's values (`context/architecture/changes.md`, A command): shape A of
+`chain` of `restack-plan`; its one domain call is `restack::run`, which plans from the start path and, for an unrefused
+plan without `--dry-run`, runs `execute` of `restack-execute`; the command writes the refused, dry-run, or run result.
+The command file builds the documents and text of [restack-plan.md](../spec/restack-plan.md), Result, and
+[restack-execution.md](../spec/restack-execution.md), Result, from the domain's values
+(`context/architecture/changes.md`, A command): shape A of
 [output-formats.md](../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md), with no
 discriminator field, each refusal with how to proceed. Its exits are those of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
@@ -25,10 +26,11 @@ bullets of `product:resume-stack-rewrite`, and `product:preserve-unrelated-work`
 
 ## Change
 
+- `crates/core/src/restack.rs` gains `run` and `Restacked`, as restack-plan.md, Domain, gives them.
 - `crates/core/src/commands/ws/restack.rs` registers the command; a `ChainError` of `chain` ends as
-  `CommandError::Chain`, exit 1, before any git call; `plan`'s `RestackError` ends as restack-plan.md, Domain, maps it;
-  a refused plan writes its result and ends `Reported`, exit 1; `--dry-run` writes the plan and exits 0 with no write
-  call; a run exits 0 when complete and `Reported`, exit 1, after a conflict or failure.
+  `CommandError::Chain`, exit 1, before any git call; it makes its one call to `run`, whose `RestackError` ends as
+  restack-plan.md, Domain, maps it; a refused plan writes its result and ends `Reported`, exit 1; `--dry-run` writes the
+  plan and exits 0 with no write call; a run exits 0 when complete and `Reported`, exit 1, after a conflict or failure.
 - The command file builds the refused, dry-run, and run documents and their text; each link repository's `outcome` in
   the run document is derived from the report; the run document lists every link of the plan bottom first, and
   `remaining` holds plan-shaped links and an empty `refusals`.
@@ -61,6 +63,8 @@ bullets of `product:resume-stack-rewrite`, and `product:preserve-unrelated-work`
 - A component test: a conflicting chain exits 1 with the run document's `conflict`; re-running the same command after
   `git rebase --continue` completes and exits 0.
 - A component test: `ws restack upper lower '{mian}'` exits 1 with the ref-token command error and nothing on stdout.
+- A component test: run from a directory under no workspace root, `ws restack upper main` exits 1 with the configuration
+  error, nothing on stdout, and no git call.
 - Component tests: `ws restack --help` shows `ENV... BASE` and its options, and `context ws/restack` writes the topic's
   chain order, participation rule, and resume step.
 - `cargo dev gate slice` exits 0.

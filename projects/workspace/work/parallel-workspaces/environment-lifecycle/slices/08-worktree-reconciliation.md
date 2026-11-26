@@ -29,8 +29,8 @@ steps of [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), 
   `cmd` still runs.
 - `bootstrap.rs`'s `Action` gains `WorktreeCreated`, `UpstreamInferred`, `PinnedTrackingSet`, `WorktreeDetached`, and
   `WorktreeParked`, with their text.
-- `EnvWorktree` and `run` are re-exported by name from `lib.rs` for its tests ([init.md](../spec/init.md), Domain); no
-  command calls `run` yet.
+- `EnvWorktree` is re-exported by name from `lib.rs`, and `run` as `reconcile_worktree`, since `process::run` holds
+  `run` at the crate root, for its tests ([init.md](../spec/init.md), Domain); no command calls `run` yet.
 
 ## Acceptance
 

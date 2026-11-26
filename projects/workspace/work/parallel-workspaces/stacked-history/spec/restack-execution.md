@@ -23,7 +23,7 @@ pub struct Report {
     pub remaining: Vec<Link>,         // from the link the run stopped on, to the top; empty when complete
 }
 pub enum Stop { Conflict(Conflict), Failure(Failure) }
-pub fn execute(ports: &Ports<'_>, workspace: &Workspace, links: &[Link]) -> Report;
+pub fn execute(ports: &Ports<'_>, root: &Path, links: &[Link]) -> Report;   // root and links: Plan::Links's
 // no state is written anywhere for a later run: a re-run plans from Git alone
 // the rebase's repo error is GitOperation::Rebase, which restack-plan.md's Domain adds; its span "git rebase"
 ```
@@ -32,7 +32,9 @@ Visibility: `execute`, `Report`, `Stop`, `Completed`, `Outcome`, `Conflict`, and
 private module and re-exported by name from `lib.rs`, on a `pub use` line of their own, with every type their signatures
 name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands them tests
 them before a command calls them (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
-(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
+(`context/standards/rust.md`). `Conflict` is re-exported as `RestackConflict`, since `agents_md::Conflict` of
+`epic:parallel-workspaces/workspace-bootstrap` holds `Conflict` at the crate root. Everything else here stays
+`pub(crate)`.
 
 ## Interfaces
 

@@ -38,13 +38,21 @@ pub fn identity(
     registry: &BTreeMap<String, i64>,
     scope: &str,
 ) -> Result<Identity, EnvError>;
+
+/// The managed names, in their order (Interfaces, managed variables); a lookup's environment and the Launch
+/// environment of consumers.md remove them.
+pub const MANAGED_NAMES: [&str; 5] = ["WINTER_ENV", "WINTER_ENV_INDEX", "WINTER_PORT_BASE",
+    "WINTER_WORKSPACE_PORT_BASE", "WINTER_SERVICE_PREFIX"];
+/// The managed variables of `identity`, in MANAGED_NAMES order; WINTER_PORT_BASE only for a feature scope.
+pub fn managed_variables(identity: &Identity) -> Vec<(String, String)>;
 ```
 
-Visibility: `identity`, `WORKSPACE_SCOPE`, `Scope`, `Identity`, and `IndexFault` are `pub` inside `scope_env.rs` and
-re-exported by name from `lib.rs`, on a `pub use` line of their own, with `EnvError`, which the scaffold re-exports
-(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
-before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
-(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
+Visibility: `identity`, `WORKSPACE_SCOPE`, `Scope`, `Identity`, `IndexFault`, `MANAGED_NAMES`, and `managed_variables`
+are `pub` inside `scope_env.rs` and re-exported by name from `lib.rs`, on a `pub use` line of their own, with
+`EnvError`, which the scaffold re-exports (`context/architecture/changes.md`, A domain module, of `winter-workspace`),
+so the slice that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds
+nothing unused without an `allow` (`context/standards/rust.md`). `Identity` is re-exported as `ScopeIdentity`, since
+`process::Identity` holds `Identity` at the crate root. Everything else here stays `pub(crate)`.
 
 ## Interfaces
 
@@ -68,7 +76,7 @@ identity(scope)
   every operation that needs a scope's identity calls identity(), provisioning, extension hooks, and nested
   delegation included, so a hook or provision step run before ws init records the name is refused with UnknownScope
 
-managed variables, in this order
+managed variables, in this order: MANAGED_NAMES, and managed_variables(identity) their values
   WINTER_ENV                   "workspace", or the feature name
   WINTER_ENV_INDEX             index, decimal
   WINTER_PORT_BASE             port_base, decimal; Feature only

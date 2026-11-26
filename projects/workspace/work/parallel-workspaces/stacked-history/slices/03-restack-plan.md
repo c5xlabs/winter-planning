@@ -23,15 +23,17 @@ safety, and cut bullets of `product:review-replay-boundaries`, and `engineering:
 
 - `crates/core/src/restack.rs` gains `chain`, which checks one token, each ENV's literal chain-name shape, and an empty
   BASE in that order and answers the first `ChainError`.
-- `crates/core/src/restack.rs` gains the plan's types and `plan`: a repeat is the only refusal and reads nothing; a
-  `RefTokenError` ends the run as `RestackError::RefToken` before any git call; then reads, missing refs, and per link
-  the safety, boundary, and inversion refusals, every refusal listed.
-- An unrefused plan holds every non-pinned repository per link in configuration order, a skipped one with boundary and
-  source `None`; `--cut` is the bottom link's boundary only.
+- `crates/core/src/restack.rs` gains the plan's types and `plan`, which takes the start path: root discovery and the
+  load first, a failure `RestackError::Config`; then a repeat is the only refusal and reads nothing; a `RefTokenError`
+  ends the run as `RestackError::RefToken` before any git call; then reads, missing refs, and per link the safety,
+  boundary, and inversion refusals, every refusal listed.
+- An unrefused plan, `Plan::Links`, holds the workspace root and every non-pinned repository per link in configuration
+  order, a skipped one with boundary and source `None`; `--cut` is the bottom link's boundary only.
 - `plan` writes nothing; a repo error of `dirty` or `branch` ends it as `RestackError::Repo`, and a git that cannot be
   started as `RestackError::Internal`.
-- `chain`, `plan`, and the plan's types are re-exported by name from `lib.rs` for its tests
-  ([restack-plan.md](../spec/restack-plan.md), Domain); no command calls them yet.
+- `plan` and the plan's types are re-exported by name from `lib.rs` for its tests, and `chain` as `restack_chain`, since
+  `epic:parallel-workspaces/nested-workspaces` has a `chain` of its own ([restack-plan.md](../spec/restack-plan.md),
+  Domain); no command calls them yet.
 
 ## Acceptance
 
@@ -58,4 +60,5 @@ safety, and cut bullets of `product:review-replay-boundaries`, and `engineering:
   missing one link's env branch is skipped in that link alone.
 - A component test: a chain with a dirty repository in one link and an unknown boundary in another lists both refusals,
   top link first, and no ref, index, or file changes.
+- A unit test: a start under no workspace root ends with `RestackError::Config` and no git call.
 - `cargo dev gate slice` exits 0.

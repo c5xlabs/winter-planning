@@ -25,7 +25,8 @@ and offset error without the value are registered deviations.
   entry would import is `Undefined`.
 - The render function is `pub(crate)`, so `run-lookup` renders a command's words with it.
 - Under `Run`, a command entry is attempted by `resolve-command-entries`; until it lands, no caller passes `Run`.
-- `resolve`, `Lookups`, `PLACEHOLDER`, and `ScopeEnv` are re-exported by name from `lib.rs` for its tests
+- `Lookups`, `PLACEHOLDER`, and `ScopeEnv` are re-exported by name from `lib.rs` for its tests, and `resolve` as
+  `resolve_scope`, since `pins::resolve::resolve` holds `resolve` at the crate root
   ([resolution.md](../spec/resolution.md), Domain); no command calls them yet.
 
 ## Acceptance

@@ -34,8 +34,10 @@ pub(crate) fn merge(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start:
     patterns: &[Pattern], scope: Scope, mode: MergeMode, autostash: bool, pinned: PinnedScope,
     sink: &mut dyn FnMut(&MergeEvent) -> Result<(), Termination>) -> Result<RunEnd, MergeError>;
 pub(crate) enum MergeError {
-    Config(Box<ConfigError>), Selection(SelectionError), RefToken(RefTokenError), Internal(Box<InternalError>),
+    Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError), RefToken(RefTokenError),
+    Internal(Box<InternalError>),
 }
+// EnvName and Selection are SelectError's (target-patterns.md), each mapped to Termination::Command
 ```
 
 ## Interfaces

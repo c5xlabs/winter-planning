@@ -20,11 +20,14 @@ names, under `decision:parallel-workspaces/environment-lifecycle/discovery-autho
 
 ## Change
 
-- `crates/core/src/env_list.rs` holds `Listed` and `list`: `environments::present` as built, each environment's index
-  from the built `env_index::lookup`, and its branches from `head_branch` and `setting` over the non-pinned worktrees; a
-  failed git read ends it with `EnvListError`, which the command file maps to its `Termination`.
-- `crates/core/src/commands/ws/list.rs` registers `ws list [--json]`: the load, the drift notice, the registry read, the
-  findings as warnings, then the JSON document or the `ENV | FEATURE BRANCH | STATUS` table through `output::table`.
+- `crates/core/src/env_list.rs` holds `Listed`, `Listing`, and `list`, which takes the start path as the built
+  `locations::list` does: root discovery and the load, the drift notice, the registry read, the findings as warnings,
+  then `environments::present` as built, each environment's index from the built `env_index::lookup`, and its branches
+  from `head_branch` and `setting` over the non-pinned worktrees; a failed load, registry read, or git read ends it with
+  `EnvListError`.
+- `crates/core/src/commands/ws/list.rs` registers `ws list [--json]`, makes its one call to `list`, maps each
+  `EnvListError` variant to its `Termination`, and writes the JSON document or the `ENV | FEATURE BRANCH | STATUS` table
+  through `output::table` from the `Listing`.
 - `crates/core/topics/ws/list.md`, referenced from the `ws` group topic.
 
 ## Acceptance

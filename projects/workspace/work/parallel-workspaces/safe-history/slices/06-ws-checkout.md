@@ -25,18 +25,19 @@ whose `previous`, `refused-untracked`, `failed`, and `unattempted` are registere
 
 ## Change
 
-- `crates/core/src/history/checkout.rs` holds the types and `checkout`: the drift warning, the name check, selection,
-  expansion, then the preflight of checkout.md in its order: unknown branch unless `--new`, missing ref, and unless
-  `--force` dirt, HEAD abandonment, env-branch abandonment, and untracked paths in the target's way, each target taking
-  its first refusal; any refusal is the report with `aborted` true and nothing written. A failure before any effect is
-  `CheckoutError`, never a `Termination`.
+- `crates/core/src/history/checkout.rs` holds the types and `checkout`, which takes the start path: root discovery and
+  the load, a failure `CheckoutError::Config`, then the drift warning, the name check, selection, expansion, then the
+  preflight of checkout.md in its order: unknown branch unless `--new`, missing ref, and unless `--force` dirt, HEAD
+  abandonment, env-branch abandonment, and untracked paths in the target's way, each target taking its first refusal;
+  any refusal is the report with `aborted` true and nothing written. A failure before any effect is `CheckoutError`,
+  never a `Termination`.
 - Execution, serially in target order: `previous` captured, `git checkout [--force] -B <ENV> --no-track <target_rev>`,
   `branch.<ENV>.remote` and `branch.<ENV>.merge` written directly, then `push.default=upstream`; a failure is `failed`,
   with `previous` once the pointer moved, and every later target `unattempted` and untouched.
-- `crates/core/src/commands/ws/checkout.rs` registers the command with `--force`, `--new`, and `--json`, maps a
-  `CheckoutError` to its `Termination` as checkout.md, Domain, gives, writes the document once at the end or the text
-  table with its aborted, complete, or stopped lines and hint, and exits 1 when any repo is refused, failed, or
-  unattempted.
+- `crates/core/src/commands/ws/checkout.rs` registers the command with `--force`, `--new`, and `--json`, makes its one
+  call to `checkout`, maps a `CheckoutError` to its `Termination` as checkout.md, Domain, gives, writes the document
+  once at the end or the text table with its aborted, complete, or stopped lines and hint, and exits 1 when any repo is
+  refused, failed, or unattempted.
 - `crates/core/topics/ws/checkout.md`, referenced from the `ws` group topic: checkout acts on every non-pinned worktree
   of one environment, adopts and connects in one step, reads local refs only, and leaves pointer moves alone to
   `ws reset`.

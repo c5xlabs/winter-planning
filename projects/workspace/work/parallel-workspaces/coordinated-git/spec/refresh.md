@@ -68,7 +68,10 @@ pub(crate) fn pull(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagno
     sink: &mut dyn FnMut(&PullEvent) -> Result<(), Termination>) -> Result<RunEnd, RefreshError>;
 // RunEnd is that of standalone-pins.md: Completed { success } or Stopped(Termination); Completed { success: true }
 // with no Started also stands for "nothing to do", which the command file tells by the events it saw
-pub(crate) enum RefreshError { Config(Box<ConfigError>), Selection(SelectionError), Internal(Box<InternalError>) }
+pub(crate) enum RefreshError {
+    Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError), Internal(Box<InternalError>),
+}
+// EnvName and Selection are SelectError's (target-patterns.md), each mapped to Termination::Command
 
 // termination.rs — GitOperation gains SourceSync ("source checkout sync")
 ```

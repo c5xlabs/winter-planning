@@ -32,8 +32,10 @@ bullet of `product:private-runtime-values`, and the identity bullets of `product
 - `CommandTracer` gains the call that sets one attribute on the command span; the binary's `Tracer` sets it and
   `NoTrace` ignores it; `env` sets `winter.env` by the spec's rule.
 - `crates/core/topics/env.md`, referenced from `root`: the lines, `eval "$(winter env SCOPE)"`, masking and `--resolve`,
-  that `--resolve` prints real values, and that a `shell = true` entry's own `$NAME` expansion is not prevented
-  (`product:private-runtime-values`).
+  that `--resolve` prints real values, that a `shell = true` entry's own `$NAME` expansion is not prevented
+  (`product:private-runtime-values`), and that a lookup runs in a process group of its own, so it cannot use the
+  controlling terminal: a lookup that prompts on it ends as a timeout after 30 s
+  (`decision:running-environments/scope-environment/lookup-execution-policy`).
 
 ## Acceptance
 
@@ -49,8 +51,12 @@ bullet of `product:private-runtime-values`, and the identity bullets of `product
 - An executable test in `crates/cli/tests`: under `sh -eu`, `eval "$(winter env alpha --resolve)"` sets each variable to
   its value byte for byte, values holding `'`, `$`, a space, and a newline included; for an unknown scope the shell sees
   an empty string and status 1.
-- An executable test: a `--resolve` lookup running `sleep 60` given SIGINT exits 1 with the aborted notice on stderr and
-  nothing on stdout, and its process group is gone.
+- A component test through `InProcess` with an interrupt already pending (`interrupt_pending`): `env alpha --resolve`
+  over a lookup running `sleep 60` exits 1 with the aborted notice on stderr and nothing on stdout, well before the
+  sleep or the 30 s deadline would end it; the group kill itself is `process-group-calls`'s test, and the binary's
+  handler noting an interrupt while deferred is runtime.md's, so no test sends a signal
+  ([test-harness.md](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md), `invoke`,
+  signals sent).
 - A component test: the run writes no file under the workspace, as a recording file port shows.
 - A tracer test: `env alpha/x` sets `winter.env` to `alpha`; `env workspace` and `env /x` set none.
 - `cargo dev gate slice` exits 0.

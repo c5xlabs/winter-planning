@@ -24,9 +24,10 @@ changes: the module files present and empty, and the errors the later slices ret
   The entries of later slices are re-exported by those slices, as the Domain visibility paragraphs of restack-plan.md
   and restack-execution.md list.
 - `GitOperation` gains `Rebase`, rendered "rebase".
-- `context/architecture/structure.md` gains the rows of `restack` and `restack/execute` and what each may call;
-  `changes.md` gains the rows its tables require for each. `restack` is a domain entry a command file calls, so
-  `COMMAND_FILE_NAMES` is unchanged.
+- `context/architecture/structure.md` gains the rows of `restack` and `restack/execute` and what each may call,
+  `workspace_root` and `config_load` among `restack`'s, since `plan` loads the workspace itself; `changes.md` gains the
+  rows its tables require for each. `restack` is a domain entry a command file calls, so `COMMAND_FILE_NAMES` is
+  unchanged.
 - Nothing constructs the new variants yet; no command changes.
 
 ## Acceptance

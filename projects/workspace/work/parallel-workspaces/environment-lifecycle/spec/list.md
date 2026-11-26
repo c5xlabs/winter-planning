@@ -23,8 +23,15 @@ pub(crate) struct Listed {
     pub feature_branch: Option<String>,
     pub distinct_remote_count: u32,
 }
-pub(crate) fn list(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace)
-    -> Result<Vec<Listed>, EnvListError>;
+pub(crate) struct Listing {
+    pub workspace: Workspace,            // as loaded: the root and the values the JSON document reads
+    pub environments: Vec<Listed>,       // listing order
+}
+// the command file's one domain call (context/architecture/changes.md, A command, of winter-workspace): root
+// discovery, the load, the drift notice, the registry read, and the findings are its own (Running ws list, steps 1-6),
+// as the built locations::list does them
+pub(crate) fn list(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path)
+    -> Result<Listing, EnvListError>;
 // the module's own failure, pub and re-exported from lib.rs with the types it carries; the command file maps each
 // variant, as it is, to Termination::Config, Termination::Repo, and Termination::Internal
 pub enum EnvListError { Config(Box<ConfigError>), Repo(Box<RepoError>), Internal(Box<InternalError>) }
@@ -37,7 +44,7 @@ pub enum EnvListError { Config(Box<ConfigError>), Repo(Box<RepoError>), Internal
 ```text
 # reference: modules/workspace/handlers/workspace_handler.py:252-270,
 #   modules/workspace/internal/read_workspace_repository.py:56-185
-order
+order                                             # steps 1-6 are list's; the command file writes step 7
   1. root discovery and the load; a failure is its ConfigError, exit 1
   2. the drift notice (drift-warning.md), written as that leaf gives
   3. the registry read; a refusal is its ConfigError, exit 1, nothing on stdout
@@ -71,7 +78,7 @@ element:
    "feature_branch": <string> | null,
    "distinct_remote_count": <integer>,
    "extensions": {}}
-service_prefix, main_branch, base_port, ports_per_env   the loaded configuration's top-level values
+service_prefix, main_branch, base_port, ports_per_env   the top-level values of Listing.workspace's configuration
 extensions   always an empty object: the reference fills it from in-process environment decorators, which ws list
              never consults (workspace_handler.py:255-261) and the binary does not reproduce (decision:rough-parity)
 ```

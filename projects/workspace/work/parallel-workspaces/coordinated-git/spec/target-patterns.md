@@ -49,7 +49,8 @@ pub fn matches(pattern: &Pattern, env: &str, repo: &str) -> bool;
 pub fn select(files: &dyn ReadFiles, diagnostics: &mut Diagnostics<'_>, root: &Path,
     config: &WorkspaceConfig, registry: &[(String, i64)], patterns: &[Pattern], rule: EnvRule)
     -> Result<Selection, SelectError>;
-pub enum SelectError { Selection(SelectionError), Internal(InternalError) }
+pub enum SelectError { EnvName(EnvNameError), Selection(SelectionError), Internal(InternalError) }
+// an entry's own error carries each variant as its EnvName, Selection, and Internal (Refusals and warnings)
 
 /// The standalones --standalone and --all reach: every declared standalone, in merged order, each tested once as
 /// Refusals and warnings, standalones, gives; a missing one is warned there and is in `missing`, never in `present`.
@@ -57,16 +58,23 @@ pub struct Standalones { pub present: Vec<(String, PathBuf)>, pub missing: Vec<(
 pub fn standalones(files: &dyn ReadFiles, diagnostics: &mut Diagnostics<'_>, root: &Path, config: &WorkspaceConfig)
     -> Standalones;
 
+/// Missing targets in results: one value per missing worktree, then one per missing standalone, in that order, the
+/// order select and standalones warned them. The command file places them: the `missing` member of a shape A
+/// document, or the target_missing events of a shape C run.
+pub fn missing_entries(worktrees: &[(Selected, Missing)], standalones: &[(String, Missing)]) -> Vec<serde_json::Value>;
+pub fn target_missing_events(worktrees: &[(Selected, Missing)], standalones: &[(String, Missing)])
+    -> Vec<serde_json::Value>;
+
 // crates/core/src/termination.rs — SelectionError gains, beside EmptyPattern and NotBareName:
 NotEnvRepo { pattern: String }      // more than one "/": "invalid pattern <p!r>: expected <env>/<repo> (one '/' max)"
 ```
 
 Visibility: `Pattern`, `Selected`, `Missing`, `Selection`, `SelectError`, `Standalones`, `parse`, `matches`, `select`,
-and `standalones` are `pub` inside their private module and re-exported by name from `lib.rs`, the module's names on a
-`pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A domain module,
-of `winter-workspace`), so the slice that lands them tests them before a command calls them
-(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
-`epic:parallel-workspaces/safe-history`'s probes, which are `pub` too, name `Selected`.
+`standalones`, `missing_entries`, and `target_missing_events` are `pub` inside their private module and re-exported by
+name from `lib.rs`, the module's names on a `pub use` line of their own, with every type their signatures name
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands them tests them
+before a command calls them (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). `epic:parallel-workspaces/safe-history`'s probes, which are `pub` too, name `Selected`.
 
 ## Interfaces
 
@@ -101,7 +109,8 @@ both         the patterns themselves are matched against (env, repo) per worktre
 # product:target-patterns; decision:parallel-workspaces/target-selection — registered deviations below
 env name      after the load and the drift notice, before any git call or write, each literal env half, in
               pattern order, passes env_name::check of ../../environment-lifecycle/spec/env-names.md, else
-              CommandError::EnvName, exit 1; so `projects/x` never reaches the source checkouts and `/x` is refused
+              SelectError::EnvName, which the entry's error carries as its EnvName variant and the command file maps
+              to CommandError::EnvName, exit 1; so `projects/x` never reaches the source checkouts and `/x` is refused
               (decision:parallel-workspaces/environment-lifecycle/env-name-grammar)
 unknown env   then reach's refusal (env-selection.md): the first literal env half that names no environment ends
               the command with SelectionError::UnknownEnv (CommandError::Selection, exit 1)
@@ -150,10 +159,11 @@ selection writes nothing for it.
 # product:explain-results, product:target-patterns; registered deviation, decision:parallel-workspaces/target-selection:
 # the reference names a skipped target in a warning at most, never in its --json output
 entry       {"env": <env, or "standalone">, "repo": <name>, "reason": "absent" | "not_a_repository"}, one per entry of
-            Selection.missing, and per missing standalone, in the order they were warned
+            Selection.missing, and per missing standalone, in the order they were warned: missing_entries
 shape A     the command's document gains the member "missing": [entry...], [] when none
 shape C     one {"type": "target_missing", "env", "repo", "reason"} event per entry, written before the run's started
-            event; a run that writes no other event under --json, as for nothing to do, still writes these
+            event; a run that writes no other event under --json, as for nothing to do, still writes these:
+            target_missing_events
 applies to  every command of the table above, and ws checkout of epic:parallel-workspaces/safe-history; its leaf
             places the member or the events, and output-formats.md's vocabulary rows gain target_missing first
 ws status   excepted: the published v1 schema admits no extra member, so a missing worktree there is the warning

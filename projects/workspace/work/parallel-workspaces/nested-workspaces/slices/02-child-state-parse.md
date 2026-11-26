@@ -19,8 +19,9 @@ registered deviation.
   `schema_version` 1 first, and `parse` checks every field the Shape rules name, ignoring any other.
 - `parse` takes `present`, the standalones the child declares that exist on disk, and adds a `(state unknown)` checkout
   for each one the document leaves out; it reads no file itself.
-- `NestedState`, `NestedEnv`, `NestedMember`, `ShapeFault`, `parse`, and `reported_root` are re-exported by name from
-  `lib.rs` for its tests ([child-state.md](../spec/child-state.md), Domain); no command calls them yet.
+- `NestedState`, `NestedEnv`, `NestedMember`, `ShapeFault`, and `reported_root` are re-exported by name from `lib.rs`,
+  and `parse` as `parse_nested_state`, for its tests ([child-state.md](../spec/child-state.md), Domain); no command
+  calls them yet.
 
 ## Acceptance
 

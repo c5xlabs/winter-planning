@@ -64,10 +64,11 @@ pub struct Call<'a> { /* … as child-processes.md and reconciliation.md give it
 Visibility: `run_lookup`, `read_output`, and `LookupRequest` are `pub` inside their private module and re-exported by
 name from `lib.rs`, the names of `scope_env/lookup.rs` on a `pub use` line of their own, with every type their
 signatures name: `LookupError`, `LookupFailure`, and `OutputFault`; the program port's `Exit`, `Program`, and `Call` are
-already `pub`, as standalone-pins.md, Domain, makes them, and `Group` joins them (`context/architecture/changes.md`, A
-domain module, of `winter-workspace`), so the slice that lands each tests it before a command calls it
-(`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
-Everything else here stays `pub(crate)`. standalone-pins.md is
+already `pub`, as standalone-pins.md, Domain, makes them, and `Group` joins them on the `programs` line as
+`ProcessGroup`, since `fan_out::Group` of `epic:parallel-workspaces/coordinated-git` holds `Group` at the crate root
+(`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
+before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
+(`context/standards/rust.md`). Everything else here stays `pub(crate)`. standalone-pins.md is
 [../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md](../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md).
 
 ## Interfaces
@@ -108,6 +109,11 @@ group     Group::Own: the child leads a new process group (setpgid(0, 0) before 
           sends SIGKILL to the whole group and reaps the child -> Timeout
           registered deviation, decision:running-environments/scope-environment/lookup-execution-policy: the
           reference kills the direct child only, and a shell entry's grandchildren outlive it
+terminal  a lookup cannot use the controlling terminal: its group is a background group of the terminal, so a read of
+          it or a change of its settings stops the lookup (SIGTTIN, SIGTTOU), and a lookup that tries ends as
+          Timeout at the deadline
+          registered deviation, the same decision: the reference's lookup stays in the foreground group and can
+          prompt, as a passphrase or MFA prompt does
 interrupt the call defers the interrupt for its duration; the adapter waits in slices of at most 100 ms and, once
           pending() is true, sends SIGKILL to the group, reaps the child, releases, and answers Interrupted
           a child in its own group no longer receives the terminal's SIGINT, so without the deferral the handler's

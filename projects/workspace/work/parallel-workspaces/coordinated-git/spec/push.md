@@ -39,7 +39,10 @@ pub(crate) struct PushReport { pub envs: Vec<EnvPush>, pub standalone: Vec<PushO
 
 pub(crate) fn push(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
     patterns: &[Pattern], scope: Scope, pinned: PinnedScope) -> Result<PushReport, PushError>;
-pub(crate) enum PushError { Config(Box<ConfigError>), Selection(SelectionError), Internal(Box<InternalError>) }
+pub(crate) enum PushError {
+    Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError), Internal(Box<InternalError>),
+}
+// EnvName and Selection are SelectError's (target-patterns.md), each mapped to Termination::Command
 
 // termination.rs — GitOperation gains Push ("push"), TrackingRead ("tracking read"), TrackingAheadProbe
 // ("tracking-ahead probe"), LocalFastForward ("local fast-forward")

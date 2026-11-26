@@ -22,8 +22,9 @@ pub(crate) struct RepoDiff { pub name: String, pub text: String, pub ahead: u64,
 pub(crate) struct EnvDiff { pub env: String, pub repos: Vec<RepoDiff> }
 pub(crate) fn diff(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern],
     mode: DiffMode) -> Result<Vec<EnvDiff>, DiffError>;
-pub(crate) enum DiffError { Config(Box<ConfigError>), Selection(SelectionError), Repo(Box<RepoError>),
-    Internal(Box<InternalError>) }
+pub(crate) enum DiffError { Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError),
+    Repo(Box<RepoError>), Internal(Box<InternalError>) }
+// EnvName and Selection are SelectError's (target-patterns.md), each mapped to Termination::Command
 // termination.rs — GitOperation gains Diff ("diff"), BranchAheadProbe ("branch ahead probe")
 ```
 

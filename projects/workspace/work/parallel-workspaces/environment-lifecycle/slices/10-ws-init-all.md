@@ -7,20 +7,23 @@ depends-on:
 
 # `ws init --all` reconciles every environment found
 
-Adds `env_create::discover` and the `--all` option of `ws init` of [init.md](../spec/init.md), Running `ws init --all`
-and Discovery for `--all`: the workspace part, the registry findings of [allocation.md](../spec/allocation.md),
-Findings, as warnings once, then `reconcile_env` for each environment found from the first project's worktree
-registrations. Delivers the discovery bullets of `product:environment-targets` and the no-deletion bullet of
-`product:environment-state-recovery`, under `decision:parallel-workspaces/environment-lifecycle/discovery-authority`,
-whose not-recreated registration is a registered deviation.
+Adds `env_create::init_all`, `discover`, and the `--all` option of `ws init` of [init.md](../spec/init.md), Running
+`ws init --all` and Discovery for `--all`: the workspace part, the registry findings of
+[allocation.md](../spec/allocation.md), Findings, as warnings once, then `reconcile_env` for each environment found from
+the first project's worktree registrations. Delivers the discovery bullets of `product:environment-targets` and the
+no-deletion bullet of `product:environment-state-recovery`, under
+`decision:parallel-workspaces/environment-lifecycle/discovery-authority`, whose not-recreated registration is a
+registered deviation.
 
 ## Change
 
 - `crates/core/src/env_create.rs` gains `discover`: the first project entry's `worktree_list`, each registration's
   parent directory directly under the root, a name whose directory is gone or that fails `env_name::check` skipped with
   a warning, the rest sorted without repeats.
-- `crates/core/src/commands/ws/init.rs` registers `--all`, refused with `TARGET` as command-surface.md gives; the order
-  is the load, the registry read, `bootstrap::reconcile`, the findings, `discover`, then every name attempted.
+- `crates/core/src/env_create.rs` gains `init_all`, in init.md's order: the load and the registry read from the start
+  path, `bootstrap::reconcile`, the findings, `discover`, then every name attempted; its failures are `EnvInitError`.
+- `crates/core/src/commands/ws/init.rs` registers `--all`, refused with `TARGET` as command-surface.md gives, and makes
+  its one call to `init_all`, mapping `EnvInitError` as `ws-init-env` does.
 - `crates/core/topics/ws/init.md` describes `--all`.
 
 ## Acceptance

@@ -26,7 +26,8 @@ without editing it; what a user sees of an interrupt stays the reference's.
 - `Program::Argv` runs `args[0]`: a word holding `/` is that path, relative to the call's `cwd`, which a lookup sets to
   the root; any other is looked up on the child's `PATH` as `find_program` does.
 - `Call` gains `group: Group` and `interrupts: Option<&Interrupts>`, `Some` only with `Group::Own`; every existing call
-  passes `Group::Inherit` and `None` and behaves as before.
+  passes `Group::Inherit` and `None` and behaves as before. `Group` is re-exported on the `programs` line of `lib.rs` as
+  `ProcessGroup`, since `fan_out::Group` of `epic:parallel-workspaces/coordinated-git` holds `Group` at the crate root.
 - With `Group::Own`, `OsPrograms` puts the child in its own group before exec; on the timeout it sends `SIGKILL` to the
   group and reaps the child, ending as the existing timeout does.
 - With `interrupts`, the call defers before the start and releases after the reap; it waits in slices of at most 100 ms,
@@ -43,7 +44,11 @@ without editing it; what a user sees of an interrupt stays the reference's.
   program is the `io::Error` of a failed start.
 - A component test: a `Group::Own` shell child that starts `sleep 60 &` and waits, under a 1 s timeout, ends as the
   timeout, and afterwards no process of its group is alive.
-- A component test: a `Group::Own` child does not receive a `SIGINT` sent to the test's process group.
+- A component test: a `Group::Own` shell child that prints its own process id and process group id prints the same
+  number twice, and not the test process's group, so a terminal's `SIGINT` to the foreground group does not reach it;
+  the test sends no signal
+  ([test-harness.md](../../../../delivered/parallel-workspaces/component-runtime/spec/test-harness.md), `invoke`,
+  signals sent).
 - A component test: with `interrupts` and a child sleeping 60 s, `note()` from another thread ends the call within 200
   ms, the group is gone, `pending()` is true, and `is_deferred()` is false after the call.
 - Every existing test passes.

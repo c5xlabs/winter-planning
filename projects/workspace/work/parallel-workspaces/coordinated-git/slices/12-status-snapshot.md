@@ -20,17 +20,19 @@ once and filtered by PATTERNS, the source checkouts and standalones with their l
 
 ## Change
 
-- `crates/core/src/status.rs` gains `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `collect`, and
-  `exit_code`: an environment's feature branch from its first non-pinned worktree tracking `origin/`, its index from the
-  built `env_index::lookup`, and the first probe failure, in environment then project order, the collection error.
+- `crates/core/src/status.rs` gains `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `StatusError`,
+  `collect`, and `exit_code`: `collect` does root discovery and the load from the start path, a failure
+  `StatusError::Config`; an environment's feature branch from its first non-pinned worktree tracking `origin/`, its
+  index from the built `env_index::lookup`, and the first probe failure, in environment then project order, the
+  collection error, `StatusError::Collection`.
 - A standalone's ahead and behind are counted against `tracking_operand` of `ws-fetch`, and its absence is tested by
   `standalones` of `target-patterns` ([refresh.md](../spec/refresh.md) and
   [target-patterns.md](../spec/target-patterns.md), Domain).
-- A missing matched worktree, a missing or failing standalone, and a failed refresh count in `Unseen`, which feeds
-  `exit_code` and never the document.
-- Nothing is written to any repository or file. `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `collect`,
-  and `exit_code` are re-exported by name from `lib.rs` for its tests ([status.md](../spec/status.md), Domain); no
-  command calls them yet.
+- A missing matched worktree and a missing or failing standalone count in `Unseen`, and so does the `failed_refreshes`
+  count `collect` is given; `Unseen` feeds `exit_code` and never the document.
+- Nothing is written to any repository or file. `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`,
+  `StatusError`, `collect`, and `exit_code` are re-exported by name from `lib.rs` for its tests, and
+  `StatusCollectionError` on the `termination` line ([status.md](../spec/status.md), Domain); no command calls them yet.
 
 ## Acceptance
 
@@ -47,6 +49,9 @@ once and filtered by PATTERNS, the source checkouts and standalones with their l
   per row, and the environment's `feature_branch` comes from the first of them alone.
 - A component test: an absent standalone has no row, is warned, and makes `exit_code` 1 when there are no PATTERNS.
 - A component test: `collect` leaves every file under the workspace and every ref unchanged.
+- A component test: a clean workspace collected with `failed_refreshes` 1 makes `exit_code` 1, with or without PATTERNS,
+  and the document is the same as with 0.
+- A component test: a start whose configuration does not parse is `StatusError::Config`, not the collection error.
 - `cargo dev gate slice` exits 0.
 
 ## Out of scope

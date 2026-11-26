@@ -28,7 +28,10 @@ pub(crate) fn connect(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, star
     feature_branch: &str) -> Result<TrackingRun, TrackingError>;
 pub(crate) fn disconnect(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern])
     -> Result<TrackingRun, TrackingError>;
-pub(crate) enum TrackingError { Config(Box<ConfigError>), Selection(SelectionError), Internal(Box<InternalError>) }
+pub(crate) enum TrackingError {
+    Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError), Internal(Box<InternalError>),
+}
+// EnvName and Selection are SelectError's (target-patterns.md), each mapped to Termination::Command
 
 // termination.rs — GitOperation gains UpstreamProbe ("upstream probe"), UnsetUpstream ("upstream removal")
 ```

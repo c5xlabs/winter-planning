@@ -7,11 +7,11 @@ depends-on:
 
 # The `ws reset` command
 
-Adds `ResetMode`, `ResetResult`, `ResetEvent`, `RepoReset`, and the `ws reset PATTERNS... REF` command of
-[reset.md](../spec/reset.md): selection through `targets::select` with `EnvRule::Named`, REF expanded per repository by
-`ref_tokens::expand` of `epic:parallel-workspaces/coordinated-git`, the `--hard` prompt, an all-or-nothing preflight
-over the probes of `safety-probes`, then `git reset` one worktree at a time with each moved worktree's previous commit
-reported. Tracking and attachment are never touched. Its rows are those of
+Adds `ResetMode`, `ResetResult`, `ResetEvent`, `RepoReset`, `history::reset::run`, and the `ws reset PATTERNS... REF`
+command of [reset.md](../spec/reset.md): selection through `targets::select` with `EnvRule::Named`, REF expanded per
+repository by `ref_tokens::expand` of `epic:parallel-workspaces/coordinated-git`, the `--hard` prompt, an all-or-nothing
+preflight over the probes of `safety-probes`, then `git reset` one worktree at a time with each moved worktree's
+previous commit reported. Tracking and attachment are never touched. Its rows are those of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), and its
 prompt the `ws reset --hard` row of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
@@ -23,14 +23,18 @@ whose previous commit, `failed`, and `unattempted` are registered deviations.
 
 ## Change
 
-- `crates/core/src/history/reset.rs` holds the types and the run: the drift warning, selection, nothing matched, the
-  prompt before every refusal check, the ambiguous-sha, expansion, and missing-ref refusals, and under `--hard` without
-  `--force` the dirty and abandonment refusals, all before any write and also under `--dry-run`.
+- `crates/core/src/history/reset.rs` holds the types and `run`, which takes the start path: root discovery and the load,
+  the drift warning, selection, nothing matched, the prompt through its `confirm` closure before every refusal check,
+  the ambiguous-sha, expansion, and missing-ref refusals, and under `--hard` without `--force` the dirty (`git::dirty`)
+  and abandonment refusals, all before any write and also under `--dry-run`; a failure before any effect is
+  `ResetError`, and the events go to its sink as they are reached.
 - Execution captures `commit(wt, "HEAD")` immediately before each `git reset --soft|--mixed|--hard`; the first failure
   is `failed` with its error, and every later target `unattempted` and untouched; nothing rolls back.
 - `crates/core/src/commands/ws/reset.rs` registers the command with `--soft`, `--mixed`, `--hard`, `--force`,
-  `--dry-run`, and `--json`, writes the `target_missing` events, then the shape C events or the text table and its
-  refused, complete, or stopped lines, and exits as Running gives.
+  `--dry-run`, and `--json`, builds the `confirm` closure over `confirm.rs` and the event sink, makes its one call to
+  `run`, maps each `ResetError` variant as reset.md, Domain, gives, writes the `target_missing` events from the started
+  event's `missing`, then the shape C events or the text table and its refused, complete, or stopped lines, and exits as
+  Running gives.
 - `crates/core/topics/ws/reset.md`, referenced from the `ws` group topic: reset acts on the worktrees its patterns
   select, never a pinned one, keeps tracking, and is not `ws checkout`.
 

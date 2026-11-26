@@ -28,7 +28,7 @@ pub(crate) enum Program { Git, Shell, Winter }
 pub const CHAIN: &str = "WINTER_NESTED_CHAIN";
 pub fn chain(snapshot: &ProcessEnv) -> Vec<PathBuf>;   // chain, Child environment
 /// The environment of a nested CLI call (Child environment): scrubbed's remove and env, then WINTER_NESTED_CHAIN of
-/// chain(snapshot) and own_root, then, with tracing on, TRACEPARENT and TRACESTATE of the span active at the call.
+/// chain(snapshot) and own_root, then TRACEPARENT and TRACESTATE of tracer.child_context().
 pub fn child_environment(snapshot: &ProcessEnv, own_root: &Path, tracer: &dyn CommandTracer) -> Scrub;
 
 /// One per invocation, shared by every nested call it makes and across the threads of a fan-out.
@@ -59,12 +59,26 @@ pub(crate) fn scrubbed(snapshot: &ProcessEnv) -> Scrub;
 pub struct Scrub { pub remove: Vec<OsString>, pub env: Vec<(OsString, OsString)> }
 ```
 
+```rust
+// crates/core/src/trace.rs — CommandTracer gains, beside command_started and operation
+/// The W3C trace context a child process continues: (traceparent, tracestate), the context of the command span,
+/// which parents every operation span, so it is the span active at any nested call. None with tracing off or the
+/// command span not recording. The default body answers None, so NoTrace and the test tracers need no change.
+fn child_context(&self) -> Option<(String, Option<String>)> { None }
+// crates/cli/src/trace.rs — the binary's Tracer answers it by injecting the command span's context through
+// opentelemetry_sdk's TraceContextPropagator into a carrier and reading "traceparent" and "tracestate" back
+```
+
 `scrubbed` and `Scrub` are this leaf's contract, given by `remove` and `env` of Child environment below without
 `WINTER_NESTED_CHAIN`. `epic:parallel-workspaces/workspace-bootstrap` landed the scrub first, for the `cmd` of a nested
-project (reconciliation.md, Commands), as the private `command_environment` and `CommandEnvironment` of
+project (reconciliation.md, Commands), as the nested branch of the private `command_environment` of
 `crates/core/src/bootstrap/checkout.rs`, whose PATH filter compares each entry's bytes with `<VIRTUAL_ENV>/bin` and does
-not normalise. This epic moves it to `nested::scrubbed` and `Scrub` in `crates/core/src/nested.rs`, with the lexical
-normalise of Child environment, and `checkout` calls it there for a nested project's `cmd`; no second scrub remains.
+not normalise. This epic moves that branch alone, the `WINTER_*` and `VIRTUAL_ENV` removal and the PATH filter, to
+`nested::scrubbed` and `Scrub` in `crates/core/src/nested.rs`, with the lexical normalise of Child environment; no
+second scrub remains. `command_environment` and `CommandEnvironment` stay in `checkout`, with the `COMMAND_VARIABLES`
+overlay set on every `cmd` and the path of a project without `nested`; for a nested project it lays `scrubbed`'s
+`remove` and `env` before that overlay, as reconciliation.md, Commands, orders them. `child_environment` takes no
+`COMMAND_VARIABLES`: a nested CLI call is no `cmd`.
 
 ```rust
 // crates/core/src/termination.rs — RepoMessage gains; each RepoError carries cwd = the nested root
@@ -89,8 +103,11 @@ Visibility: `CHAIN`, `chain`, `child_environment`, `Scrub`, `Nesting`, and `Nest
 `lib.rs`, each module's names on a `pub use` line of their own, with every type their signatures name
 (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
 before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
-(`context/standards/rust.md`). `Program` is re-exported already. Everything else here stays `pub(crate)`: `scrubbed` has
-its caller in `checkout` from the change that moves it.
+(`context/standards/rust.md`). `chain` is re-exported as `nested_chain`, since
+`epic:parallel-workspaces/stacked-history` re-exports its own `chain` as `restack_chain` and neither keeps the bare name
+at the crate root; `run` and the other methods are reached through `Nesting` and add no name there. `Program` and
+`CommandTracer` are re-exported already. Everything else here stays `pub(crate)`: `scrubbed` has its caller in
+`checkout` from the change that moves it.
 
 ## Interfaces
 
@@ -101,9 +118,12 @@ its caller in `checkout` from the change that moves it.
 # reference: modules/workspace/nested_env.py:12-67
 base        the git child environment of child-processes.md (WINTER_LAUNCH_TIME left out, GIT_SSH_COMMAND defaulted),
             without LANGUAGE and LC_ALL forced to C
-            TRACEPARENT, TRACESTATE: when tracing is on, the W3C context of the span active at the call, replacing
-            the snapshot's, so the child's command span is a child of the outer command; off, as the snapshot holds
-            them (tracing.md; engineering:observability-isolation)
+            TRACEPARENT, TRACESTATE: tracer.child_context() Some((p, s)) -> env TRACEPARENT = p, and TRACESTATE = s
+            when s is Some, else TRACESTATE in remove, since an overlay cannot unset a name; so the child's command
+            span is a child of the outer command span. None (tracing off) -> as the snapshot holds them
+            (tracing.md; engineering:observability-isolation)
+            the program port of child-processes.md is unchanged: it passes the snapshot's TRACEPARENT, and this
+            call's env and remove replace it, as tracing.md leaves child propagation to the port's caller
             # reference: core/internal/local_subprocess_runner.py:187-190 writes the active context
             tracing.md = ../../../../delivered/parallel-workspaces/component-runtime/spec/tracing.md
 remove      every name of the snapshot that starts "WINTER_", except WINTER_LOG_LEVEL and names starting "WINTER_OTEL_"

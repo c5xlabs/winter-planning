@@ -19,11 +19,12 @@ nothing here allocates, probes, or records. Delivers the identity bullets of `pr
 - `scope_env.rs` gains `identity`: `workspace` is `Scope::Workspace` with index 0 and no port base; a recorded name is
   `Scope::Feature` with the recorded index, `port_base(index)` of configuration-model.md, Derived values, in checked
   `i64` arithmetic, and its `IndexFault`; anything else is `EnvError::UnknownScope`.
-- The managed variables, `WINTER_ENV`, `WINTER_ENV_INDEX`, `WINTER_PORT_BASE` (feature only),
-  `WINTER_WORKSPACE_PORT_BASE`, and `WINTER_SERVICE_PREFIX`, are built in that order from an `Identity`; the five names
-  are one list that `run-lookup` removes from a lookup's environment and the Launch environment of
+- `managed_variables` builds the managed variables, `WINTER_ENV`, `WINTER_ENV_INDEX`, `WINTER_PORT_BASE` (feature only),
+  `WINTER_WORKSPACE_PORT_BASE`, and `WINTER_SERVICE_PREFIX`, in that order from an `Identity`; the five names are
+  `MANAGED_NAMES`, the one list that `run-lookup` removes from a lookup's environment and the Launch environment of
   [consumers.md](../spec/consumers.md) names.
-- `identity`, `WORKSPACE_SCOPE`, `Scope`, and `Identity` are re-exported by name from `lib.rs` for its tests
+- `identity`, `WORKSPACE_SCOPE`, `Scope`, `MANAGED_NAMES`, and `managed_variables` are re-exported by name from `lib.rs`
+  for its tests, and `Identity` as `ScopeIdentity`, since `process::Identity` holds `Identity` at the crate root
   ([scope-identity.md](../spec/scope-identity.md), Domain); no command calls them yet.
 
 ## Acceptance
@@ -34,8 +35,8 @@ nothing here allocates, probes, or records. Delivers the identity bullets of `pr
   above `envs_per_workspace` are `OutsideLayout`, and an index whose port base overflows `i64` is `OutsideLayout`.
 - Unit tests: an unrecorded name is `UnknownScope` when `<root>/<name>` is a directory, and when it is an alias that
   `ws init` has not recorded.
-- Unit tests of the managed variables: a feature scope gives the five in order; the workspace scope gives four, with no
-  `WINTER_PORT_BASE`.
+- Unit tests of `managed_variables`: a feature scope gives the five of `MANAGED_NAMES` in order; the workspace scope
+  gives four, with no `WINTER_PORT_BASE`.
 - `cargo dev gate slice` exits 0.
 
 ## Out of scope

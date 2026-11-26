@@ -33,12 +33,30 @@ pub(crate) struct CleanFailure {
     pub message: String,                  // the repo error's message and git's stderr, or the parse diagnosis
     pub unattempted: Vec<(String, String)>,   // registered deviation: (env, repo) of every target not reached
 }
-pub(crate) struct CleanReport { pub dry_run: bool, pub repos: Vec<RepoClean>, pub failure: Option<CleanFailure> }
+pub(crate) struct CleanReport {
+    pub dry_run: bool,
+    pub missing: Vec<(Selected, Missing)>,   // target-patterns.md, Missing targets in results
+    pub repos: Vec<RepoClean>,               // empty: nothing matched; every count 0: nothing to clean
+    pub failure: Option<CleanFailure>,
+}
 pub(crate) fn preview(ports: &Ports<'_>, targets: &[Selected]) -> Result<CleanReport, CleanError>;
 pub(crate) fn clean(ports: &Ports<'_>, targets: &[Selected], dry_run: bool) -> CleanReport;
-// the failure of preview: a list call that failed, before anything is removed (Running, step 5)
-// the command file maps: Repo -> Termination::Repo, Internal -> Termination::Internal, each box as it is
-pub enum CleanError { Repo(Box<RepoError>), Internal(Box<InternalError>) }
+// The command file's one domain call (context/architecture/changes.md, A command): Running, steps 1-10, from the start
+// path, as the built locations::list and pins::repin take it. confirm is called with the preview exactly when step 7
+// prompts; the command file builds it over confirm.rs (runtime.md, Confirmation), rendering the preview and asking
+// "Continue?". Its Err is the ending, answered as Stopped with nothing removed
+pub(crate) fn run(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern],
+    force: bool, dry_run: bool, confirm: &mut dyn FnMut(&CleanReport) -> Result<(), Termination>)
+    -> Result<CleanEnd, CleanError>;
+pub(crate) enum CleanEnd { Reported(CleanReport), Stopped(Termination) }
+// the failures before anything is removed: the load, the selection (target-patterns.md, SelectError), and a list
+// call of preview (Running, step 5). The command file maps: Config -> Termination::Config, EnvName ->
+// Termination::Command(CommandError::EnvName), Selection -> Termination::Command(CommandError::Selection), Repo ->
+// Termination::Repo, Internal -> Termination::Internal, each box as it is
+pub enum CleanError {
+    Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError), Repo(Box<RepoError>),
+    Internal(Box<InternalError>),
+}
 // crates/core/src/history.rs — the module's own error; termination.rs gains CommandError::History(HistoryError)
 pub enum HistoryError {
     JsonNeedsForce,                       // ws clean --json without --force or --dry-run; exit 1, nothing read
@@ -52,9 +70,10 @@ Visibility: `list`, `remove`, `parse`, `Removed`, `Parse`, and `CleanError` are 
 re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every type their
 signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands
 each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an
-`allow` (`context/standards/rust.md`); `HistoryError` is re-exported with them (changes.md, An error). `Selected` is
-`pub` by [target-patterns.md](../../coordinated-git/spec/target-patterns.md), Domain. Everything else here stays
-`pub(crate)`.
+`allow` (`context/standards/rust.md`); `HistoryError` is re-exported with them (changes.md, An error). `parse` is
+re-exported as `parse_clean`, since `targets::parse` holds `parse` at the crate root. `Selected` is `pub` by
+[target-patterns.md](../../coordinated-git/spec/target-patterns.md), Domain. Everything else here stays `pub(crate)`:
+`run`, `CleanEnd`, `preview`, `clean`, and the report types land with the command that calls them.
 
 ## Interfaces
 
@@ -82,16 +101,20 @@ the strict parse's failure -> the repo error UnrecognisedClean, naming the first
 ```text
 # reference: modules/workspace/handlers/workspace_handler.py:561-673, env_clean_service.py:58-110
 order
-  1. root discovery, the load, and the combination rules of command-surface.md; --json without --force or
-     --dry-run -> HistoryError::JsonNeedsForce, exit 1
+  0. the command file: the combination rules of command-surface.md; --json without --force or --dry-run ->
+     HistoryError::JsonNeedsForce, exit 1, nothing read
+  steps 1-10 are run's
+  1. root discovery and the load; a failure is CleanError::Config, exit 1
   2. the drift warning
-  3. targets := the non-pinned worktrees PATTERNS select (target-patterns.md), in its order
+  3. targets := the non-pinned worktrees PATTERNS select (target-patterns.md), in its order; a refusal is
+     CleanError::EnvName or Selection, exit 1
   4. no targets -> Nothing matched (Result); exit 0
   5. preview := list(wt) for each target, in order; a failure ends the command with its RepoError, exit 1, before
      anything is removed
   6. preview total 0 -> Nothing to clean (Result); exit 0, no prompt
-  7. neither --force nor --dry-run -> the preview rendered (every path, per worktree, and that this cannot be undone),
-     then confirm("Continue?"), even for one worktree; declined or end of input -> Aborted, exit 1, nothing removed
+  7. neither --force nor --dry-run -> confirm(preview): its closure renders the preview (every path, per worktree, and
+     that this cannot be undone), then confirm("Continue?"), even for one worktree; declined or end of input ->
+     Aborted, exit 1, nothing removed
   8. --dry-run -> list(wt) again per target, nothing removed; otherwise remove(wt) per target, in order, every target
      visited, also one the preview showed empty
      # decision:parallel-workspaces/destructive-approval: the files are listed again at removal, so a file created

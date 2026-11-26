@@ -7,7 +7,7 @@ depends-on:
 
 # The `ws clean` command
 
-Adds `RepoClean`, `CleanFailure`, `CleanReport`, `preview`, `clean`, and the `ws clean PATTERNS...` command of
+Adds `RepoClean`, `CleanFailure`, `CleanReport`, `preview`, `clean`, `run`, and the `ws clean PATTERNS...` command of
 [clean.md](../spec/clean.md), Running and Result: selection through `targets::select` with `EnvRule::Named`, the preview
 from `list` of `git-clean`, the confirmation, then `remove` one worktree at a time, the report naming what Git actually
 removed and stopping at the first failed worktree. Its rows are those of
@@ -22,15 +22,17 @@ deviations.
 
 ## Change
 
-- `crates/core/src/history/clean.rs` gains the report types, `preview`, and `clean`, and the run writes the drift
-  warning of clean.md, Running, step 2, through `drift::detect` and `drift::notice_line` before selection; a preview
-  failure is `CleanError` and ends the command before anything is removed; `remove` visits every target, also one the
+- `crates/core/src/history/clean.rs` gains the report types, `preview`, `clean`, `CleanEnd`, and `run`, which takes the
+  start path: root discovery and the load, then the drift warning of clean.md, Running, step 2, through `drift::detect`
+  and `drift::notice_line` before selection; a load, selection, or preview failure is `CleanError` and ends the command
+  before anything is removed; the prompt goes through its `confirm` closure; `remove` visits every target, also one the
   preview showed empty, and a failed call or strict parse stops the run with the paths recognised and the targets not
   reached.
 - `crates/core/src/commands/ws/clean.rs` registers the command with `--force`, `--dry-run`, and `--json`; `--json`
-  without `--force` or `--dry-run` is `HistoryError::JsonNeedsForce` before any git call; it maps a `CleanError` to its
-  `Termination` as clean.md, Domain, gives, and writes the preview and confirms otherwise, even for one worktree, then
-  the `target_missing` events and shape C events or the text.
+  without `--force` or `--dry-run` is `HistoryError::JsonNeedsForce` before the call; it builds the `confirm` closure
+  over `confirm.rs`, which renders the preview and confirms, even for one worktree, makes its one call to `run`, maps a
+  `CleanError` to its `Termination` as clean.md, Domain, gives, then writes the `target_missing` events from the
+  report's `missing` and the shape C events or the text.
 - `crates/core/topics/ws/clean.md`, referenced from the `ws` group topic: clean removes untracked files from the
   worktrees its patterns select, never ignored files or a pinned worktree, cannot be undone, and is not the top-level
   `clean` of `epic:running-environments/resource-provisioning`.

@@ -46,8 +46,9 @@ Visibility: `NestedState`, `NestedEnv`, `ShapeFault`, `NestedMember`, `parse`, a
 their private module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with
 every type their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the
 slice that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing
-unused without an `allow` (`context/standards/rust.md`). A name that would collide at the crate root, such as `parse`,
-is re-exported under a name of its own, as `run_checkout` is. Everything else here stays `pub(crate)`.
+unused without an `allow` (`context/standards/rust.md`). `parse` is re-exported as `parse_nested_state`, since
+`targets::parse` of `epic:parallel-workspaces/coordinated-git` holds `parse` at the crate root, as `run_checkout` is.
+Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

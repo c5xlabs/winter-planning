@@ -50,7 +50,8 @@ name from `lib.rs`, the names of `scope_env/resolve.rs` on a `pub use` line of t
 signatures name: `ResolutionError`, `Unresolved`, `UnresolvedCause`, and `Unclaimed`, which the scaffold re-exports
 (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
 before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
-(`context/standards/rust.md`). Everything else here stays `pub(crate)`.
+(`context/standards/rust.md`). `resolve` is re-exported as `resolve_scope`, since `pins::resolve::resolve` holds
+`resolve` at the crate root. Everything else here stays `pub(crate)`.
 
 ## Interfaces
 

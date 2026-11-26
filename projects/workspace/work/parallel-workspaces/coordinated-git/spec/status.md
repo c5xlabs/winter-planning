@@ -51,9 +51,20 @@ pub struct Snapshot {
 pub struct Unseen { pub missing_worktrees: usize, pub missing_standalones: usize, pub failed_standalones: usize,
     pub failed_refreshes: usize }
 
-pub fn collect(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern])
-    -> Result<Snapshot, StatusCollectionError>;
+/// Order, step 2: root discovery and the load from `start`, then the snapshot; `failed_refreshes` is Unseen's.
+pub fn collect(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern],
+    failed_refreshes: usize) -> Result<Snapshot, StatusError>;
 pub fn exit_code(snapshot: &Snapshot, scoped: bool) -> u8;
+// the command file maps Config -> Termination::Config, exit 1, and Collection -> Termination::StatusCollection, exit 2,
+// each box as it is
+pub enum StatusError { Config(Box<ConfigError>), Collection(Box<StatusCollectionError>) }
+
+/// The command file's one domain call (context/architecture/changes.md, A command): Order, steps 1 and 2. `sink`
+/// receives the --fetch run's events (refresh.md, FetchEvent); an Err from it is the ending, handed back as Stopped.
+pub(crate) fn run(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
+    patterns: &[Pattern], fetch: bool, sink: &mut dyn FnMut(&FetchEvent) -> Result<(), Termination>)
+    -> Result<StatusEnd, StatusError>;
+pub(crate) enum StatusEnd { Collected(Snapshot), Stopped(Termination) }
 
 // termination.rs — Termination gains StatusCollection(Box<StatusCollectionError>), exit 2, as
 // results-and-exit-codes.md, Domain, defines it; GitOperation gains LocalWorkProbe ("local-work probe"),
@@ -61,10 +72,12 @@ pub fn exit_code(snapshot: &Snapshot, scoped: bool) -> u8;
 ```
 
 Visibility: `WorktreeRow`, `Probed`, `probe`, `EnvRow`, `CheckoutRow`, `ProjectRow`, `Snapshot`, `Unseen`, `collect`,
-and `exit_code` are `pub` inside their private module and re-exported by name from `lib.rs`, the module's names on a
-`pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A domain module,
-of `winter-workspace`), so the slices that land them test them before a command calls them
+`exit_code`, and `StatusError` are `pub` inside their private module and re-exported by name from `lib.rs`, the module's
+names on a `pub use` line of their own, with every type their signatures name (`context/architecture/changes.md`, A
+domain module, of `winter-workspace`), so the slices that land them test them before a command calls them
 (`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
+`StatusCollectionError`, which `StatusError` carries, joins the `termination` line of `lib.rs`. `run` and `StatusEnd`
+stay `pub(crate)`: they land with the command that calls them.
 
 ## Interfaces
 
@@ -72,11 +85,16 @@ of `winter-workspace`), so the slices that land them test them before a command 
 
 ```text
 # reference: WH:272-312, WSS:88-357
-1. root discovery and the load; a failure is its ConfigError, exit 1
-2. --fetch: ws fetch of refresh.md with Scope::Project and the same PATTERNS, its events in their mode (under
-   --json, shape C events, then the document); its failures count in Unseen.failed_refreshes
-3. collect; any failure is the StatusCollectionError, exit 2, and nothing more is written
-4. the document, or the text, written whole; then exit_code
+steps 1 and 2 are run's; whichever loads first, the fetch or collect, meets a load failure as StatusError::Config,
+exit 1, before anything is written to stdout
+1. --fetch: refresh::fetch (ws fetch of refresh.md) from the same start, with Scope::Project and the same PATTERNS,
+   each event handed to the sink in its mode (under --json, shape C events, then the document); the repo_fetched
+   events whose result is an error count as failed_refreshes; its RefreshError::Config is StatusError::Config, exit 1;
+   its EnvName, Selection, and Internal are the collection error, exit 2, as target-patterns.md, Refusals and
+   warnings, gives for ws status; a Stopped fetch is StatusEnd::Stopped, and nothing is collected
+2. collect(start, PATTERNS, failed_refreshes: step 1's count, 0 without --fetch): root discovery and the load, a failure
+   StatusError::Config, exit 1; any other failure is StatusError::Collection, exit 2, and nothing more is written
+3. the command file: the document, or the text, written whole; then exit_code
 nothing is fetched without --fetch; nothing is written to any repository or file
 ```
 

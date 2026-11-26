@@ -22,8 +22,9 @@ and ignored-file bullets of `product:remove-untracked-content`.
   under the strict parse an output with no path and a line it cannot place is a parse failure carrying that diagnosis.
 - A worktree path that is no repository is the repo error `NotAGitWorktree`, and a strict parse failure the repo error
   `UnrecognisedClean`.
-- `list`, `remove`, `Removed`, `parse`, and `Parse` are re-exported by name from `lib.rs` for its tests
-  ([clean.md](../spec/clean.md), Domain); no command calls them yet.
+- `list`, `remove`, `Removed`, and `Parse` are re-exported by name from `lib.rs` for its tests, and `parse` as
+  `parse_clean`, since `targets::parse` holds `parse` at the crate root ([clean.md](../spec/clean.md), Domain); no
+  command calls them yet.
 
 ## Acceptance
 

@@ -37,8 +37,21 @@ pub struct PlanRefusal {
 pub enum Source { ForkPoint, Cut }              // "fork-point" | "cut"
 pub struct LinkRepo { pub repo_name: String, pub boundary: Option<Sha>, pub source: Option<Source> }
 pub struct Link { pub env: String, pub predecessor: String, pub repos: Vec<LinkRepo> }
-pub enum Plan { Refused(Vec<PlanRefusal>), Links(Vec<Link>) }  // Links bottom link first
-pub fn plan(ports: &Ports<'_>, workspace: &Workspace, chain: &Chain) -> Result<Plan, RestackError>;
+pub enum Plan {
+    Refused(Vec<PlanRefusal>),
+    Links { root: PathBuf, links: Vec<Link> },   // links bottom link first; root: the workspace root, for execute
+}
+/// Root discovery and the load from `start`, as the built locations::list and pins::repin take it, then Reads,
+/// Refusals, and Plan below.
+pub fn plan(ports: &Ports<'_>, start: &Path, chain: &Chain) -> Result<Plan, RestackError>;
+/// The command file's one domain call (context/architecture/changes.md, A command): plan, then, for an unrefused plan
+/// without --dry-run, execute (restack-execution.md) over its links.
+pub(crate) fn run(ports: &Ports<'_>, start: &Path, chain: &Chain, dry_run: bool) -> Result<Restacked, RestackError>;
+pub(crate) enum Restacked {
+    Refused(Vec<PlanRefusal>),
+    Planned(Vec<Link>),                          // --dry-run
+    Ran { links: Vec<Link>, report: Report },    // the plan's links and what execute reported
+}
 
 // the module's own errors (changes.md, An error); lib.rs re-exports both with the types their variants carry
 pub enum ChainError {                 // a command error, exit 1, nothing read; reference: modules/workspace/command.py
@@ -52,11 +65,12 @@ pub enum ChainError {                 // a command error, exit 1, nothing read; 
 }
 // termination.rs — CommandError gains Chain(#[from] ChainError), rendered transparently
 pub enum RestackError {               // plan's failure; the run ends before any write
+    Config(Box<ConfigError>),         // root discovery and the load
     RefToken(RefTokenError),          // Refusals, step 1a (ref-tokens.md)
     Repo(Box<RepoError>),             // Reads: a repo error of dirty or branch
     Internal(Box<InternalError>),     // Reads: a git that cannot be started
 }
-// the command file maps: ChainError -> Command(Chain); RestackError::RefToken -> Command(RefToken),
+// the command file maps: ChainError -> Command(Chain); RestackError::Config -> Config, RefToken -> Command(RefToken),
 // Repo -> Repo, Internal -> Internal, each exit 1, the box handed on as it is
 // termination.rs — GitOperation gains Rebase ("rebase"), the operation of the rebase's repo error
 // (restack-execution.md); branch's repo error is TrackingRead of ../../coordinated-git/spec/push.md
@@ -69,7 +83,10 @@ Visibility: `chain`, `Chain`, `ChainError`, `plan`, `Plan`, `Refusal`, `PlanRefu
 private module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every
 type their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice
 that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused
-without an `allow` (`context/standards/rust.md`). Everything else here stays `pub(crate)`.
+without an `allow` (`context/standards/rust.md`). `chain` is re-exported as `restack_chain`, since
+`epic:parallel-workspaces/nested-workspaces` re-exports its own `chain` as `nested_chain` and neither keeps the bare
+name at the crate root. Everything else here stays `pub(crate)`: `run` and `Restacked` land with the command that calls
+them.
 
 ## Interfaces
 
@@ -89,7 +106,7 @@ participates  env tip and predecessor tip both Some; otherwise the repo is skipp
 ancestor(a,b) git merge-base --is-ancestor <a> <b>: exit 0 -> true; any other exit, or a missing worktree -> false
 fork(wt)      git merge-base --fork-point <pred_ref> <env_ref>: exit 0 with non-empty stdout -> the sha; else None
 rebasing(wt)  git rev-parse --git-path rebase-merge, then rebase-apply: either path exists -> true
-dirty(wt)     git::dirty, as built (safety-probes.md's dirty): tracked changes only, no optional lock taken
+dirty(wt)     git::dirty, as built, with the repo and the worktree: tracked changes only, no optional lock taken
 branch(wt)    git symbolic-ref --quiet HEAD stripped of refs/heads/; exit 1 -> detached; any other exit -> the
               repo error of the call, TrackingRead
 spans         each call opens the span "git <subcommand>" with winter.repo, as repository-catalog's

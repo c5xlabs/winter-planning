@@ -37,7 +37,11 @@ Lookups follow the reference: computed once per scope per `up` or `start` fan-ou
 never run by inspection, status, or stop, each with a fixed 30-second deadline, closed stdin, and the workspace root as
 working directory. As a registered deviation, a timed-out lookup's whole process group is killed, because the reference
 killed only the direct child and left shell-started processes orphaned; an interrupted lookup's group is killed the same
-way, and the invocation still ends as the reference's interrupt does, aborted with exit 1.
+way, and the invocation still ends as the reference's interrupt does, aborted with exit 1. The group of its own is kept
+with a consequence, registered as a deviation too: a lookup runs in a background group of the terminal, so it cannot use
+the controlling terminal, and one that reads from it or changes its settings, such as a passphrase or MFA prompt, is
+stopped by the terminal and ends as `Timeout` at the deadline, where the reference's lookup stayed in the foreground
+group and could prompt.
 
 ## Resolution compatibility (decision:running-environments/scope-environment/resolution-compatibility)
 

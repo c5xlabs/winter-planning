@@ -31,7 +31,8 @@ pub(crate) enum ResetResult {
     Unattempted,              // "unattempted"             registered deviation (Execution)
 }
 pub(crate) enum ResetEvent<'r> {
-    Started { r#ref: &'r str, mode: ResetMode, dry_run: bool },
+    Started { r#ref: &'r str, mode: ResetMode, dry_run: bool,
+              missing: &'r [(Selected, Missing)] },   // written as the target_missing events before reset_started
     Repo(&'r RepoReset),
     Completed { success: bool },
 }
@@ -41,7 +42,31 @@ pub(crate) struct RepoReset {
     pub previous: Option<Sha>,        // registered deviation: the commit HEAD named before it moved
     pub error: Option<String>,        // failed: the repo error's message and git's stderr
 }
+// The command file's one domain call (context/architecture/changes.md, A command): Running, steps 1-8, from the start
+// path, as the built locations::list and pins::repin take it. confirm is called with the targets exactly when step 5
+// prompts; the command file builds it over confirm.rs (runtime.md, Confirmation), writing the preview line and asking
+// "Continue?". sink receives each event as it is reached. An Err from either is the ending, answered as
+// RunEnd::Stopped with nothing written to a worktree after it; Completed { success } otherwise
+pub(crate) fn run(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, start: &Path, patterns: &[Pattern],
+    r#ref: &str, mode: ResetMode, force: bool, dry_run: bool,
+    confirm: &mut dyn FnMut(&[Selected]) -> Result<(), Termination>,
+    sink: &mut dyn FnMut(&ResetEvent<'_>) -> Result<(), Termination>) -> Result<RunEnd, ResetError>;
+// the failures that end the command before any effect; the command file maps: Config -> Termination::Config, EnvName
+// -> Termination::Command(CommandError::EnvName), Selection -> Command(Selection), RefToken -> Command(RefToken),
+// Repo -> Termination::Repo, Internal -> Termination::Internal, each box as it is
+pub enum ResetError {
+    Config(Box<ConfigError>),          // root discovery and the load
+    EnvName(EnvNameError),             // target-patterns.md's name refusal
+    Selection(SelectionError),         // target-patterns.md's selection refusals
+    RefToken(RefTokenError),           // an unknown token (ref-tokens.md), before any git call
+    Repo(Box<RepoError>),              // a probe's repo error (Preflight)
+    Internal(Box<InternalError>),      // a git that cannot be started, or a candidate directory that cannot be listed
+}
 ```
+
+`ResetError` is `pub` and re-exported by name from `lib.rs` with the types its variants carry
+(`context/architecture/changes.md`, An error, of `winter-workspace`); the other names here land with the command that
+calls them and stay `pub(crate)`.
 
 ## Interfaces
 
@@ -50,15 +75,17 @@ pub(crate) struct RepoReset {
 ```text
 # reference: modules/workspace/handlers/workspace_handler.py:493-559, env_reset_service.py:72-141
 order
-  1. root discovery, the load, and the combination rules of command-surface.md
+  0. the command file: the combination rules of command-surface.md, before the call
+  steps 1-8 are run's
+  1. root discovery and the load; a failure is ResetError::Config, exit 1
   2. the drift warning
   3. targets := the non-pinned worktrees PATTERNS select (target-patterns.md), in its order; missing ones warned
-     about and skipped there
+     about and skipped there; a refusal is ResetError::EnvName or Selection, exit 1
   4. no targets -> Nothing matched (Result); exit 0
-  5. --hard, more than one target, neither --force nor --dry-run -> the preview, "This will hard-reset <n>
-     worktree(s): <env>/<repo>, ...", and confirm("Continue?"); both on stdout, also under --json, where they precede
-     the first event (output-formats.md, JSON-mode departures); declined or end of input -> Aborted, exit 1, nothing
-     read further and nothing written
+  5. --hard, more than one target, neither --force nor --dry-run -> confirm(targets), whose closure writes the
+     preview, "This will hard-reset <n> worktree(s): <env>/<repo>, ...", and confirm("Continue?"); both on stdout,
+     also under --json, where they precede the first event (output-formats.md, JSON-mode departures); declined or end
+     of input -> Aborted, exit 1, nothing read further and nothing written
      # the prompt comes before every refusal check, as in the reference
   6. preflight (below); any refusal -> the refused repos are reported; nothing is written; exit 1
   7. --dry-run -> every target reported reset with its expanded ref; no git write; exit 0

@@ -19,8 +19,12 @@ targets run one at a time, as `engineering:bounded-fan-out` binds a command that
 ## System
 
 ```text
-commands/ws/destroy.rs ── select ── confirm ──► env_destroy::destroy(ports, env, diagnostics, workspace, name, opts, sink)
-                                                   for each selected env, serially, every one attempted
+commands/ws/destroy.rs ──► env_destroy::run(ports, env, diagnostics, start, patterns, options, confirm, sink)
+                             the command file's one domain call (context/architecture/changes.md, A command)
+                             ├─ the load, the name rule, the registry read, select
+                             ├─ confirm, the command file's closure over confirm.rs, when Selection, step 7, prompts
+                             └─ destroy(ports, env, diagnostics, workspace, name, options, sink)
+                                for each selected env, serially, every one attempted
 ```
 
 Phases that other epics own, at the position the per-target order below gives them:
@@ -50,9 +54,27 @@ The nested phases are [teardown.md](../../nested-workspaces/spec/teardown.md); i
 ```rust
 // crates/core/src/env_destroy.rs — product:destroy-environments, product:environment-recovery
 // decision:parallel-workspaces/environment-lifecycle/teardown-policy
+#[derive(Clone, Copy)]
 pub struct Options { pub force: bool, pub dry_run: bool }   // the owners of System's options add their fields
+// The command file's entry: Selection, steps 1-8, from the start path, as the built locations::list and pins::repin
+// take it. confirm is called with the names, in order, exactly when step 7 prompts; the command file builds it over
+// confirm.rs (runtime.md, Confirmation), writing the "This will destroy" line and asking "Continue?". Its Err is the
+// ending: run answers Ran(RunEnd::Stopped(it)) with no target attempted, as a sink's Err is handed back
+pub(crate) fn run(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
+    patterns: &[String], options: Options, confirm: &mut dyn FnMut(&[String]) -> Result<(), Termination>,
+    sink: &mut InitSink<'_>) -> Result<Destroyed, DestroyError>;
+pub(crate) enum Destroyed {
+    NoMatch,       // Selection, step 6: the command file writes the no-match line
+    Ran(RunEnd),   // Completed { success: every target succeeded }, or Stopped(the ending of confirm or the sink)
+}
+// the failures before any prompt; the command file maps Config -> Termination::Config, EnvName ->
+// Termination::Command(CommandError::EnvName), Selection -> Termination::Command(CommandError::Selection), Internal ->
+// Termination::Internal, each box as it is; reach's ReachError::Internal is Internal
+pub(crate) enum DestroyError {
+    Config(Box<ConfigError>), EnvName(EnvNameError), Selection(SelectionError), Internal(Box<InternalError>),
+}
 pub(crate) fn select(ports: &Ports<'_>, workspace: &Workspace, registry: &[(String, i64)], patterns: &[String])
-    -> Result<Vec<String>, CommandError>;
+    -> Result<Vec<String>, DestroyError>;   // Selection, steps 2, 3, and 5; run reads the registry, step 4
 // RunEnd is that of pins/repin.rs, already re-exported at the crate root, as reconciliation.md's reconcile answers it
 pub fn destroy(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace,
     name: &str, options: Options, sink: &mut InitSink<'_>) -> RunEnd;
@@ -109,7 +131,8 @@ Visibility: `Options`, `Inventory`, and `destroy` are `pub` inside their private
 domain module, of `winter-workspace`), so the slice that lands each tests it before a command calls it
 (`context/standards/testing.md`) and the gate finds nothing unused without an `allow` (`context/standards/rust.md`).
 `worktree_remove` is `pub` and re-exported on the `pub use git::` line, as the built operations of `git.rs` are.
-Everything else here stays `pub(crate)`.
+Everything else here stays `pub(crate)`: `run`, `Destroyed`, `DestroyError`, and `select` land with the command that
+calls them.
 
 ## Interfaces
 
@@ -118,11 +141,11 @@ Everything else here stays `pub(crate)`.
 ```text
 # decision:parallel-workspaces/target-selection, product:target-patterns
 # reference: modules/workspace/handlers/destroy_handler.py:51-100, modules/workspace/pattern_match.py:48-68
-order, before any prompt, git call, or write
-  1. root discovery and the load; a failure is its ConfigError, exit 1
-  2. the env-level pattern shape (command-surface.md); a refusal is exit 1
-  3. env_name::check(each literal), argument order (env-names.md)
-  4. the registry read (lock-and-state.md); a refusal is its ConfigError, exit 1
+steps 1-8 are run's; order, before any prompt, git call, or write
+  1. root discovery and the load; a failure is DestroyError::Config, exit 1
+  2. the env-level pattern shape (command-surface.md); a refusal is DestroyError::Selection, exit 1
+  3. env_name::check(each literal), argument order (env-names.md); a refusal is DestroyError::EnvName, exit 1
+  4. the registry read (lock-and-state.md); a refusal is DestroyError::Config, exit 1
   5. select:
      env_selection::reach(files, root, config, registry, PATTERNS, EnvRule::Named) (env-selection.md):
      literal   a PATTERN with none of * ? [; the first, in pattern order, that names no environment ->
@@ -132,11 +155,13 @@ order, before any prompt, git call, or write
      glob      the environments present (location-listing.md) whose name matches; env_name::check of each match
                (env-names.md)
      names     the literals sorted by code point, then the glob matches not among them, sorted, without repeats
-  6. no names (only globs were given, and none matched): the line "No environments matched: <patterns joined by ' '>"
-     on stdout, also under --json; exit 0 (output-formats.md, JSON-mode departures)
-  7. prompt when more than one PATTERN was given or any PATTERN is a glob, unless --force or --dry-run:
-     "This will destroy <n> environment(s): <names joined ', '>", then confirm("Continue?"); declined or end of input
-     -> Termination::Aborted, exit 1, nothing done          # decision:parallel-workspaces/destructive-approval
+  6. no names (only globs were given, and none matched): Destroyed::NoMatch, and the command file writes the line
+     "No environments matched: <patterns joined by ' '>" on stdout, also under --json; exit 0 (output-formats.md,
+     JSON-mode departures)
+  7. prompt when more than one PATTERN was given or any PATTERN is a glob, unless --force or --dry-run: confirm(names),
+     whose closure writes "This will destroy <n> environment(s): <names joined ', '>", then confirm("Continue?");
+     declined or end of input -> Termination::Aborted, exit 1, nothing done
+     # decision:parallel-workspaces/destructive-approval
   8. destroy(name) for each name, in order, one at a time; every one attempted whatever an earlier one reported
      # decision:parallel-workspaces/partial-execution: attempt all, exit 1; target_started and target_completed
      # name each completed and failed target, and a stop on an unwritable stdout leaves the rest unattempted

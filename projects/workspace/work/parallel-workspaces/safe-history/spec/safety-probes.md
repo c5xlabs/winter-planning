@@ -16,8 +16,8 @@ under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`.
 // A selected worktree is the value target-patterns.md yields (../../coordinated-git/spec/target-patterns.md): env,
 // repository name, worktree path, and the repository's configured main branch. Pinned projects never reach here.
 // dirty: a staged or unstaged tracked change; untracked files never count. unpushed: the commits reachable from
-// the moving ref and not from its safety ref.
-pub fn dirty(ports: &Ports<'_>, wt: &Selected) -> Result<bool, GitFailure>;          // git::dirty, as built
+// the moving ref and not from its safety ref. dirty is git::dirty as built, called with wt.repo and wt.path: it has
+// no wrapper here, since git::dirty already holds the name at the crate root
 pub fn has_ref(ports: &Ports<'_>, wt: &Selected, rev: &str) -> Result<bool, GitFailure>;
 pub fn safety_ref(ports: &Ports<'_>, wt: &Selected, branch: Branch) -> Result<String, GitFailure>;
 pub fn unpushed(ports: &Ports<'_>, wt: &Selected, from: &str, safety: &str) -> Result<u64, GitFailure>;
@@ -31,11 +31,11 @@ pub enum Branch<'b> { Head, Named(&'b str) }
 // (coordinated-git)
 ```
 
-Visibility: `dirty`, `has_ref`, `safety_ref`, `unpushed`, `active_branch`, `commit`, and `Branch` are `pub` inside their
-private module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every
-type their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice
-that lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused
-without an `allow` (`context/standards/rust.md`). `Selected` is `pub` and re-exported by
+Visibility: `has_ref`, `safety_ref`, `unpushed`, `active_branch`, `commit`, and `Branch` are `pub` inside their private
+module and re-exported by name from `lib.rs`, each module's names on a `pub use` line of their own, with every type
+their signatures name (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that
+lands each tests it before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without
+an `allow` (`context/standards/rust.md`). `Selected` is `pub` and re-exported by
 [target-patterns.md](../../coordinated-git/spec/target-patterns.md), Domain; `Ports`, `GitFailure`, and `Sha` already
 are. Everything else here stays `pub(crate)`.
 
@@ -57,7 +57,8 @@ The operation each git call of this epic names when it fails as a repo error:
 
 ```text
 # reference: modules/workspace/worktree_safety.py:17-50, internal/write_repo_repository.py:256-323
-dirty(wt)            git status --porcelain --untracked-files=no, GIT_OPTIONAL_LOCKS=0 (git::dirty); output non-empty
+dirty(wt)            git::dirty(programs, tracer, wt.repo, wt.path), as built: git status --porcelain
+                     --untracked-files=no, GIT_OPTIONAL_LOCKS=0; output non-empty
                      -> true; a non-zero exit is the repo error of the call, never "clean"
 has_ref(wt, rev)     git rev-parse --verify --quiet <rev>; exit 0 -> true, any other exit -> false
                      # a tag, a remote-tracking ref, or a commit id all count: the reference does not restrict the kind

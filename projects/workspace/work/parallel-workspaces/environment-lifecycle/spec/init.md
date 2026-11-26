@@ -20,10 +20,13 @@ through the program port of
 ## System
 
 ```text
-commands/ws/init.rs ── TARGET ──► env_create::reconcile_env(ports, env, diagnostics, workspace, name, sink)
-                   ├── --all ───► bootstrap::reconcile (the workspace part)
-                   │              then env_create::discover, then reconcile_env per name
+commands/ws/init.rs ── TARGET ──► env_create::init_env(ports, env, diagnostics, start, name, sink)
+                   │              the load, the name check, the registry read, then reconcile_env
+                   ├── --all ───► env_create::init_all(ports, env, diagnostics, start, sink)
+                   │              the load, the registry read, bootstrap::reconcile (the workspace part), the
+                   │              findings, discover, then reconcile_env per name
                    └── neither ─► bootstrap::reconcile                                  (reconciliation.md)
+each branch is the command file's one domain call (context/architecture/changes.md, A command, of winter-workspace)
 reconcile_env ─► state_registry::allocate ─► create_dir_all ─► workspace_exclude::write_block
               ─► per project, at most 4 at once: worktree::run ─► hooks on_env_init
 ```
@@ -46,6 +49,18 @@ the nested step is [delegation.md](../../nested-workspaces/spec/delegation.md).
 // crates/core/src/env_create.rs — product:environment-worktrees, product:environment-recovery
 // engineering:lifecycle-step-isolation
 // RunEnd is that of pins/repin.rs, already re-exported at the crate root, as reconciliation.md's reconcile answers it
+// The command file's entries take the start path, as the built locations::list and pins::repin do, and do root
+// discovery, the load, and the registry read themselves: Running ws init <env>, steps 1-4, and Running ws init --all
+pub(crate) fn init_env(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
+    name: &str, sink: &mut InitSink<'_>) -> Result<RunEnd, EnvInitError>;
+pub(crate) fn init_all(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>, start: &Path,
+    sink: &mut InitSink<'_>) -> Result<RunEnd, EnvInitError>;
+// the failures that end the run before any target; the command file maps Config -> Termination::Config, EnvName ->
+// Termination::Command(CommandError::EnvName), Repo -> Termination::Repo, Internal -> Termination::Internal, each box
+// as it is. bootstrap::reconcile's InitError::Config and Internal are carried as Config and Internal
+pub(crate) enum EnvInitError {
+    Config(Box<ConfigError>), EnvName(EnvNameError), Repo(Box<RepoError>), Internal(Box<InternalError>),
+}
 pub(crate) fn reconcile_env(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Diagnostics<'_>,
     workspace: &Workspace, name: &str, sink: &mut InitSink<'_>) -> RunEnd;
     // Completed { success } of the target; Stopped(the sink's ending) for a sink that cannot write
@@ -89,8 +104,10 @@ Visibility: `EnvWorktree` and `run` of `env_create/worktree.rs`, and its trackin
 by name from `lib.rs`, each module's names on a `pub use` line of their own, with every type their signatures name
 (`context/architecture/changes.md`, A domain module, of `winter-workspace`), so the slice that lands each tests it
 before a command calls it (`context/standards/testing.md`) and the gate finds nothing unused without an `allow`
-(`context/standards/rust.md`). The git operations below are `pub` and re-exported, as the built ones of `git.rs` are.
-Everything else here stays `pub(crate)`.
+(`context/standards/rust.md`). `run` is re-exported as `reconcile_worktree`, since `process::run` holds that name at the
+crate root, as `bootstrap::checkout::run` is re-exported as `run_checkout`. The git operations below are `pub` and
+re-exported, as the built ones of `git.rs` are. Everything else here stays `pub(crate)`: `init_env` and `init_all` land
+with the command that calls them.
 
 ## Interfaces
 
@@ -132,10 +149,12 @@ set_upstream(path, u)         u split at its first "/" into remote and branch; a
 ```text
 # reference: modules/workspace/handlers/init_handler.py:31-50, modules/workspace/init_service.py:223-306
 order
-  1. root discovery and the load; a failure is its ConfigError, exit 1, nothing written
-  2. command-surface.md's ws init rules, then env_name::check(TARGET) (env-names.md); a refusal is exit 1 with
-     nothing read from git and nothing written
-  3. the env index registry read (lock-and-state.md); a refusal is its ConfigError, exit 1, nothing written
+  0. the command file: command-surface.md's ws init rules, a usage refusal before the call
+  steps 1-4 are init_env's
+  1. root discovery and the load; a failure is EnvInitError::Config, exit 1, nothing written
+  2. env_name::check(TARGET) (env-names.md); a refusal is EnvInitError::EnvName, exit 1 with nothing read from git
+     and nothing written
+  3. the env index registry read (lock-and-state.md); a refusal is EnvInitError::Config, exit 1, nothing written
   4. reconcile_env(TARGET); Completed { success: false } -> exit 1, true -> 0; Stopped -> its ending
 lock-and-state.md = ../../../../delivered/parallel-workspaces/workspace-configuration/spec/lock-and-state.md
 ```
@@ -232,11 +251,13 @@ outcome     a project's failure never stops another project
 
 ```text
 # reference: modules/workspace/init_service.py:360-393, handlers/init_handler.py:41-46
-order
-  1, 3 of ws init <env>; TARGET with --all is command-surface.md's refusal
-  2. the workspace part: bootstrap::reconcile (reconciliation.md), its events and its exit contribution
+order                                             # TARGET with --all is command-surface.md's refusal, step 0
+  steps 1-5 are init_all's
+  1. 1 and 3 of ws init <env>: root discovery, the load, and the registry read, each failure EnvInitError::Config
+  2. the workspace part: bootstrap::reconcile (reconciliation.md) from the same start, its events and its exit
+     contribution; its InitError is EnvInitError::Config or Internal, exit 1
   3. the registry findings of allocation.md, as warnings
-  4. discover; a GitFailure -> its Termination (Repo or Internal), exit 1, after the events of 2
+  4. discover; a GitFailure -> EnvInitError::Repo or Internal, exit 1, after the events of 2
   5. reconcile_env for each discovered name, in order, every one attempted whatever an earlier one reported
   exit 1 when the workspace part failed or any reconcile_env completed without success; else 0; a Stopped run of
   either ends the invocation with its ending, and no later environment is attempted
