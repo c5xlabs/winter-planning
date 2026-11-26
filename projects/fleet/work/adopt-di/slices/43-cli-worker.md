@@ -16,8 +16,10 @@ Delivers the runner worker-verb boundary in spec [Entrypoint resolution](../spec
 ## Change
 
 - Migrate the worker verbs, every verb calling through `WorkerCall`: `heartbeat`, `session-end`, `ask`, `attach`,
-  `work-items`, `pm-items`, `chunk`, `artifact`, `garden`, `finding`, `scope`, `analytics`, `opencode drive` and
-  `opencode attend`.
+  `work-items`, `pm-items`, `chunk`, `artifact`, `garden`, `finding`, `scope`, `analytics` and `opencode drive`.
+  `opencode attend` calls no `WorkerCall` and migrates with the local verbs in `cli-runner-local`.
+- `_RunnerGroup`'s `WorkerSession` stays the group's: it opens before the selected verb's container, which receives it
+  as a borrowed context value ([Entrypoint resolution](../spec/entrypoints.md#interfaces)).
 - Register worker-session, launcher, loopback/OpenCode transport, HTTP and trace dependencies in their own areas.
 - Keep `_RunnerGroup` from importing/registering daemon runtime siblings; retain selected-command loading.
 - Use command carrier inputs, remove replaced constructors and update worker wiring exemplars.

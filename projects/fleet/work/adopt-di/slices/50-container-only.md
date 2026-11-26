@@ -27,10 +27,12 @@ Closes spec [Mixed ownership](../spec/migration.md#flows), delivering `engineeri
 
 ## Acceptance
 
-- `blizzard:structural-gate`: the inventory gate has no migration allowance left; a planted bag parameter, root service
-  registration, duplicate port owner, raw child opening and unregistered owned construction each fail it.
-- `blizzard:structural-gate`: every parameter type of a registered constructor, factory or route handler is a registered
-  key, a context value, or a type the spec's end-state table classifies; a planted unclassified type fails.
+- `blizzard:structural-gate`: the inventory gate has no migration allowance left; a planted bag parameter and raw child
+  opening each fail it.
+- `blizzard:unit-test` (the registry guards in `tests/guards`, over each process's recorded registry): a planted root
+  service registration, duplicate port owner and unregistered owned construction each fail them.
+- `blizzard:unit-test` (the same guards): every parameter type of a registered constructor, factory or route handler is
+  a registered key, a context value, or a type the spec's end-state table classifies; a planted unclassified type fails.
 - `blizzard:structural-gate`: no legacy provider/bag/assembler remains, and a planted one fails; typed loop contexts and
   bounded lifecycle owners remain valid.
 - `blizzard:typecheck`, `blizzard:unit-test`, `blizzard:component-test` and `blizzard:service-test` pass, with
@@ -39,5 +41,5 @@ Closes spec [Mixed ownership](../spec/migration.md#flows), delivering `engineeri
 - `blizzard-context:reference-lint` and `blizzard-context:registry-drift` pass, and `bzh:dependency-injection` names the
   container-only end state; the final exemplars pass `blizzard:typecheck`, `blizzard:unit-test` and
   `blizzard:component-test`.
-- `blizzard:structural-gate`: a planted service added in an existing area passes with edits only to its area wiring and
-  consumers, and a planted root service registration fails.
+- `blizzard:unit-test` (the same guards): a planted service added in an existing area passes with edits only to its area
+  wiring and consumers, and a planted root service registration fails.

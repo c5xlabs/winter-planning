@@ -10,6 +10,7 @@ code:
   - blizzard/src/blizzard/runner/loop/wake.py::WakeSignals
   - blizzard/src/blizzard/runner/loop_wiring.py::host_pass_stepper
   - blizzard/src/blizzard/runner/composition.py::build_host_process
+  - blizzard/src/blizzard/runner/composition.py::build_host_settings_application
 ---
 
 # Host settings registrations
@@ -37,7 +38,10 @@ Moves the host-settings row in spec [Mixed ownership](../spec/migration.md#area-
   drive.
 - Remove the `HostProcess` settings fields (`host_settings`, `host_settings_authoring`, `wakes`) and the
   after-construction attachment, narrowing their consumers first: the host serve and tick paths in
-  `runner/cli/runtime.py`, `compose_runner` and `_build_runner` in composition, and `_wire_hosted_app`.
+  `runner/cli/runtime.py`, `compose_runner` and `_build_runner` in composition, `_wire_hosted_app`,
+  `HostRecordsReconcile`'s construction (it takes the reader's `retired_workspaces`), and
+  `build_host_settings_application`, which takes the registered reader and `WakeSignals` in place of `host.wakes`; its
+  own registration moves in `runner-api-settings`.
 
 ## Acceptance
 

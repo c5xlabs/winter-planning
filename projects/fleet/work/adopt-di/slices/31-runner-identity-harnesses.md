@@ -24,10 +24,11 @@ Moves the runner-identity/harness row in spec [Mixed ownership](../spec/migratio
 - Register runner identity/verdict/token/version/flag holders, `RunnerHubTokenSource`, `harness_key`,
   `HubNoticedRetirement`, `RetiredRunnerWatch` (built today per runner over its identity store and identity client),
   clients, executor, retained harness sets and runner tracing at runner lifetime.
-- The runner child resolves its `RunnerSettingsReader` from the host's `RunnerSettingsReaders` (`hosted-runners`) by its
-  runner id, replacing its daemon construction in `compose_runner` and the standalone tick's in `runner/cli/runtime.py`.
-  Its other constructions are the per-runner seed in `_seed_runner`, which `hosted-runners` already moved onto
-  `RunnerSettingsReaders`, and the boot preview in the `host` command, which moves in `cli-runner-host`.
+- Register the runner child's `RunnerSettingsReader` at runner lifetime, over its `BuiltRunner`'s entry, its settings
+  store and the host's `HostSettingsReader`, with its deferred seed and identity check bound to its own identity store,
+  replacing its daemon construction in `compose_runner` and the standalone tick's in `runner/cli/runtime.py`. The
+  seed-time readers stay their callers': the seeder's (`hosted-runners`) and the `host` boot preview's
+  (`cli-runner-host`).
 - The `ICurrentRunnerIdentity` holder is built eagerly when the runner child opens, so the runner app's middleware
   readers never construct it on the event loop.
 - The first harness set and resolved flags are built when the runner child opens, from its `BuiltRunner`, so a bad entry
@@ -42,7 +43,8 @@ Moves the runner-identity/harness row in spec [Mixed ownership](../spec/migratio
   retirement and retained-invocation behavior.
 - `blizzard:component-test`: failed runner construction closes acquired clients/executor/sets and reports the same start
   step; normal closure drains work before host disposal.
-- `blizzard:component-test`: the runner child's `RunnerSettingsReader` is the instance `RunnerSettingsReaders` holds for
-  its runner id; default factories and role keys hold, and no borrowed input is closed twice; `blizzard:typecheck` and
-  `blizzard:unit-test` (the runner graph/identity guards in `tests/guards`) pass.
+- `blizzard:component-test`: a runner adopted without an identity defers its seed until registration records one, as
+  today, and the settings apply and export reach the runner child's reader; default factories and role keys hold, and no
+  borrowed input is closed twice; `blizzard:typecheck` and `blizzard:unit-test` (the runner graph/identity guards in
+  `tests/guards`) pass.
 - `blizzard:component-test` runner API tests pass unchanged and unused runner fields/bridges are removed.

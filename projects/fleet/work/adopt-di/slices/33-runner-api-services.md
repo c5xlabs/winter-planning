@@ -44,16 +44,19 @@ route families migrate in `runner-api-host`, `runner-api-leases`, `runner-api-co
   whole.
 - Add the runner app's app-level exception handler that answers a `ScopeClosed(RUNNER, runner_id)` with the `404` a
   withdrawn runner answers (`decision:adopt-di/drained-runner-request`); any other `ScopeClosed` is not caught by it.
-- Move the middleware readers of the served runners onto the registry and child context values, per
-  [Entrypoint resolution](../spec/entrypoints.md#interfaces): `_served_identity` in the identity-stamping middleware,
-  `_FirstServedIdentity`, and `_gate_web_surface`'s `require_human_session`, which resolves only host services the root
-  builds eagerly. None constructs lazily, and each skips a runner whose child is closing.
+- Move the middleware readers of the served runners onto plain fields of the registry entry, per
+  [Entrypoint resolution](../spec/entrypoints.md#interfaces): each `HostRunnerRegistry` entry carries the runner's
+  `BuiltRunner` and `ICurrentRunnerIdentity` holder, captured when its child opens. `_served_identity` in the
+  identity-stamping middleware, `_FirstServedIdentity`, and `_gate_web_surface`'s `require_human_session` read those and
+  the host services handed to the middleware when the app is built; none calls a resolver's `get()`.
 - Asynchronous runner handlers take through `FromDishka` only host-lifetime services the root builds eagerly; anything
   else comes from a synchronous dependency.
 - Migrate `runner/api/invocation_usage.py`, a runner-scoped route reading one store and importing no other route module,
   from `RunnerWiring` accessors to declared services as the pilot.
 - Add a unit-tier walker that resolves every runner-app route's declared services at its actual scope, runner or host,
   over the full and the export app.
+- Extend the dishka import guard's route-edge allowance (`dishka.integrations.fastapi`, today admitted only under
+  `hub/api/`) to `runner/api/` and `runner/app.py`, with the matching line in the harness's clean-architecture guidance.
 
 ## Acceptance
 
@@ -64,5 +67,6 @@ route families migrate in `runner-api-host`, `runner-api-leases`, `runner-api-co
   no closed child and does not answer `500`; the web-surface gate behaves as today.
 - `blizzard:component-test`: a request whose runner is drained while it resolves answers `404`; a `ServedRunners`
   iteration over two runners, one draining, yields the other.
-- `blizzard:unit-test`: the every-route walker passes, and a planted route declaring a service its scope lacks fails it.
+- `blizzard:unit-test`: the every-route walker passes, and a planted route declaring a service its scope lacks fails it;
+  the dishka import guard admits a runner route on `FromDishka` and still refuses `dishka` elsewhere.
 - `blizzard:typecheck`, `blizzard:compat` and `blizzard:sse-contract` pass with unchanged wire behavior.

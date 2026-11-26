@@ -94,7 +94,8 @@ class ServedRunners(Protocol):
 
 Runner routes resolve from the selected runner's child container; host routes resolve from the host container, which
 `host_request`, the runner app's counterpart to `process_request`, attaches as a router dependency. A host route that
-reports per runner (environments, subscriptions, the runners list, hub tokens) iterates `ServedRunners`, which
+reports per runner (environments, the subscription records' spenders in `host_records.py`, the runners list, hub tokens,
+and the settings apply and export, which cover the open runners only, as today) iterates `ServedRunners`, which
 `HostRunnerRegistry` provides from the same `current()` read; a runner whose child closes mid-iteration is left out of
 the response, as a runner withdrawn before the read is today, and never fails the request. `bind_runner` reads
 `HostRunnerRegistry.current()` once per request, as today, so a runner served or withdrawn mid-flight is either fully
@@ -105,10 +106,12 @@ retired.
 
 Three readers of the served runners run outside any router, in the runner app's middleware and on the event loop:
 `_served_identity` (the identity-stamping middleware), `_FirstServedIdentity`, and `_gate_web_surface`'s
-`require_human_session`. They read `HostRunnerRegistry.current()`, the runner child's context values (runner id,
-`BuiltRunner`), its `ICurrentRunnerIdentity` holder, which the child builds eagerly when it opens, or host services the
-root builds eagerly; they never construct lazily, and a runner whose child is closing is skipped, so a `ScopeClosed`
-cannot escape middleware as a `500`.
+`require_human_session`. They never call a resolver's `get()`, since dishka holds a container's lock through a lazy
+construction on another thread, a cache hit waiting on it too. Each `HostRunnerRegistry` entry carries, beside its
+child, the runner's `BuiltRunner` and its `ICurrentRunnerIdentity` holder as plain fields, captured when the child
+opens, and the middleware reads those and `HostRunnerRegistry.current()`; `require_human_session` reads host services
+the root builds eagerly, handed to the middleware when the app is built. A runner withdrawn mid-read is skipped, so no
+`ScopeClosed` escapes middleware as a `500`.
 
 A service the app may be built without (the OpenAPI export build `create_app_for_export`, partial test apps) has an
 explicit absent registration (`Registry.absent`, registered by the area that owns the service, in the root that builds
@@ -151,23 +154,26 @@ selected CLI command
   → close command-owned resources
 ```
 
-| Command boundary            | Registration/import rule                                                                                                                                                                                                                                                                                                                 |
-| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Operator client verbs       | Client/context/trace registrations only; no daemon store or app imports                                                                                                                                                                                                                                                                  |
-| Developer invariant check   | Client mode loads client registrations; explicit offline hub/runner mode loads only the selected store/invariant providers after mode selection                                                                                                                                                                                          |
-| Hub tree                    | Selected client verb or selected local runtime/store verb; runtime providers imported inside that selected module                                                                                                                                                                                                                        |
-| Runner worker verbs         | `heartbeat`, `session-end`, `ask`, `attach`, `work-items`, `pm-items`, `chunk`, `artifact`, `garden`, `finding`, `scope`, `analytics`, `opencode drive` and `attend` (every verb calling through `WorkerCall`): worker-session, launcher, transport, and client registrations; never import `runner.cli.runtime` or daemon registrations |
-| Runner daemon-client verbs  | Client registrations only, reaching the running host through `RunnerDaemon`: control, settings, traces, `transcript list` and `get`, `prompt clear`, the workspace and subscription record verbs, apply and export                                                                                                                       |
-| Runner dual-mode verbs      | `tick`, `add`, `retire`, `token set`: the client path while a host answers; otherwise the selected store graph under `store_write_guard`                                                                                                                                                                                                 |
-| Runner local/runtime verbs  | Only the selected graph: `host`, `init`, `migrate`, `ingest`, `store reset`, `transcript backfill` and `reship` (store writes under `store_write_guard`), `prompt list`, `get`, `install`, `diff` and `status` (host file and offline store reads), `harness status`, `external-usage probe`, `opencode compatibility`                   |
-| Hub daemon-start command    | `hub host` opens the store, tracing and settings, lends them to the hosted root as context, and disposes them after the runtime stops; no double close                                                                                                                                                                                   |
-| Runner daemon-start command | `runner host` builds the host root, which owns its engine and closes it with the host container, as `HostProcess.close` does today                                                                                                                                                                                                       |
+| Command boundary            | Registration/import rule                                                                                                                                                                                                                                                                                                                                                                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Operator client verbs       | Client/context/trace registrations only; no daemon store or app imports                                                                                                                                                                                                                                                                                                                                                               |
+| Developer invariant check   | Client mode loads client registrations; explicit offline hub/runner mode loads only the selected store/invariant providers after mode selection                                                                                                                                                                                                                                                                                       |
+| Hub tree                    | Selected client verb or selected local runtime/store verb; runtime providers imported inside that selected module                                                                                                                                                                                                                                                                                                                     |
+| Runner worker verbs         | `heartbeat`, `session-end`, `ask`, `attach`, `work-items`, `pm-items`, `chunk`, `artifact`, `garden`, `finding`, `scope`, `analytics`, `opencode drive` (every verb calling through `WorkerCall`): worker-session, launcher, transport, and client registrations; never import `runner.cli.runtime` or daemon registrations                                                                                                           |
+| Runner daemon-client verbs  | Client registrations only, reaching the running host through `RunnerDaemon`: control, settings, traces, `transcript list` and `get`, apply and export                                                                                                                                                                                                                                                                                 |
+| Runner dual-mode verbs      | `tick`, `add`, `retire`, `token set`, the workspace and subscription record verbs, `prompt clear` and `install`: the client path while a host answers; otherwise the selected store graph, writes under `store_write_guard`                                                                                                                                                                                                           |
+| Runner local/runtime verbs  | Only the selected graph: `host`, `init`, `migrate`, `ingest`, `store reset`, `transcript backfill` and `reship` (store writes under `store_write_guard`), `prompt list`, `get`, `diff` and `status` (host file and offline store reads), `harness status`, `external-usage probe`, `opencode compatibility`, `opencode attend` (closes its command container before it `exec`s the operator's OpenCode, since the exec never returns) |
+| Hub daemon-start command    | `hub host` opens the store, tracing and settings, lends them to the hosted root as context, and disposes them after the runtime stops; no double close                                                                                                                                                                                                                                                                                |
+| Runner daemon-start command | `runner host` builds the host root, which owns its engine and closes it with the host container, as `HostProcess.close` does today                                                                                                                                                                                                                                                                                                    |
 
-A group may select or pass inputs but does not import/register the union of all its commands' providers. Carrier fakes
-supplied with `CliRunner.invoke(obj=...)` keep precedence, including HTTP clients, launcher, transports, process
-builders, and harness-bundle builders. A daemon-start command builds the hosted process root directly with command
-inputs rather than constructing a duplicate command-owned process graph. Delayed provider construction does not
-establish import isolation.
+A group may select or pass inputs but does not import/register the union of all its commands' providers. What a group
+opens around every verb, `_RunnerGroup`'s `WorkerSession` and `OperatorGroup`'s command trace, stays the group's: it
+opens before the selected command's container and closes after it, and the container receives it as a borrowed context
+value. Carrier fakes supplied with `CliRunner.invoke(obj=...)` keep precedence, including HTTP clients, launcher,
+transports, process builders, and harness-bundle builders; a carrier's host-process builder
+(`InitCollaborators.build_host_process`) replaces the hosted root `runner host` builds, whole, rather than overriding a
+registration in it. A daemon-start command builds the hosted process root directly with command inputs rather than
+constructing a duplicate command-owned process graph. Delayed provider construction does not establish import isolation.
 
 The first command-container path is `blizzard hub status`, using shared client/context/trace registrations. Other
 commands retain their existing construction until their selected-command paths migrate; installing shared support does

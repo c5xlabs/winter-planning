@@ -21,9 +21,9 @@ Moves the sealed-hub-tokens row in spec [Mixed ownership](../spec/migration.md#a
   `_running_host_tokens`.
 - Fill the `app.state` slot the hub-token routes read from the registered `HubTokens`; the routes migrate in
   `runner-api-host`, where they iterate `ServedRunners`.
-- `build_sealing_hub_tokens` is called from `runner/cli/runtime.py`: by `token set` on a stopped host, and by
-  `_seed_entries`, the per-runner seed that `StoreHostedRunners.built` runs on every reconcile of the running host. The
-  seed resolves the registered `HubTokens` once `hosted-runners` registers the seeder; until `token set` migrates,
+- `build_sealing_hub_tokens` is called by `token set` on a stopped host (`runner/cli/token.py`), and by `_seed_entries`,
+  the per-runner seed that `StoreHostedRunners.built` runs on every reconcile of the running host. The seed resolves the
+  registered `HubTokens` once `hosted-runners` registers the seeder; until `token set` migrates,
   `build_sealing_hub_tokens` stays a bounded compatibility entrypoint over the registered provider
   ([Mixed ownership](../spec/migration.md#area-ownership)). `HostKeyCiphers` and `DotenvTokenFiles` serve only
   `build_runner_ingest` and move with the ingest graph in `cli-runner-writes`.

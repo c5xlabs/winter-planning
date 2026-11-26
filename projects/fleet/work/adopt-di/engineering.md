@@ -8,8 +8,8 @@ Engineering requirements for `epic:adopt-di`.
   `TenantStores` 36; some 260 of the hub's roughly 305 route handlers take the whole `TenantServices` through one
   dependency.
 - The hub's `TenantServices` builder is some 630 lines, in a composition module of some 2,200 lines. The runner's
-  process graph is assembled by hand in `runner/composition.py`, some 2,500 lines, and is still being reshaped by
-  `epic:config/runtime` (`decision:adopt-di/after-runtime-config`).
+  process graph is assembled by hand in `runner/composition.py`, some 2,900 lines, in the shape `epic:config/runtime`
+  left it (`decision:adopt-di/after-runtime-config`).
 - `hub host` opens the hub's store and tracing once and lends them to the hosted app; a layering guard refuses a second
   acquisition.
 - `bzh:narrow-seams` already makes each runner loop step declare the slice of `LoopContext` it reads. The hub's API edge

@@ -4,6 +4,7 @@ depends-on:
   - runner-api-services
 code:
   - blizzard/src/blizzard/runner/api/host.py::router
+  - blizzard/src/blizzard/runner/api/host_records.py::router
   - blizzard/src/blizzard/runner/api/host_runners.py::router
   - blizzard/src/blizzard/runner/api/hub_token.py::router
   - blizzard/src/blizzard/runner/api/federation.py::router
@@ -26,9 +27,10 @@ resolution mechanism `runner-api-services` built, delivering `engineering:narrow
 ## Change
 
 - Move these route modules from `RunnerWiring` accessors to declared services: `runner/api/host.py`,
-  `runner/api/host_runners.py`, `runner/api/hub_token.py`, `runner/api/federation.py`, `runner/api/hub_proxy.py`,
-  `runner/api/health.py`, `runner/api/readiness.py`, `runner/api/clock.py`, `runner/api/invariants.py`, and the
-  hub-proxied reads `runner/api/fleet_summary.py`, `runner/api/chunk_detail.py`, `runner/api/work_items.py`.
+  `runner/api/host_records.py` (the host workspace and subscription records), `runner/api/host_runners.py`,
+  `runner/api/hub_token.py`, `runner/api/federation.py`, `runner/api/hub_proxy.py`, `runner/api/health.py`,
+  `runner/api/readiness.py`, `runner/api/clock.py`, `runner/api/invariants.py`, and the hub-proxied reads
+  `runner/api/fleet_summary.py`, `runner/api/chunk_detail.py`, `runner/api/work_items.py`.
 - Register a runner-lifetime `HubProxies` factory over the runner's `hub_proxy_client` and config, whose `named(what)`
   returns the `HubProxy` a route names by its module (`what` stays per route, for its failure log), and which keeps
   today's `503` "runner not wired to a hub — start via `blizzard runner host`" when `hub_url` is empty; move this
@@ -36,8 +38,9 @@ resolution mechanism `runner-api-services` built, delivering `engineering:narrow
   and the last of them, `runner-api-control`, retires it.
 - `federation.py`'s routes migrate here; `_gate_web_surface`'s use of `require_human_session` in middleware is
   `runner-api-services`' and resolves only eagerly built host services.
-- The host routes that report per runner (environments and subscriptions in `host.py`, the runners list in
-  `host_runners.py`, `hub_token.py`) iterate `ServedRunners` in place of `RunnerWiring.for_runner`.
+- The host routes that report per runner (environments in `host.py`, the subscription records' spenders in
+  `host_records.py`, the runners list in `host_runners.py`, `hub_token.py`) iterate `ServedRunners` in place of
+  `RunnerWiring.for_runner`.
 - Narrow the shared helpers these modules use to typed arguments; a helper another family still calls keeps its old
   callers.
 

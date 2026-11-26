@@ -10,15 +10,15 @@
 | Runner host         | process → runner → operation, when operation-local inputs are needed                                              | Host runtime → `HostRunnerSet` → driver/invocation                                  |
 | CLI                 | command; a local or offline command's owning-process root; or the hosted process graph for a daemon-start command | Selected command's context manager; daemon startup transfers to its process runtime |
 
-| Lifetime    | Values and collaborators                                                                                                                                                                                                                  | Closure                                         |
-| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| Hub process | Borrowed store, tracing and settings; hub-level stores and identity services, `TenantBrokers` directory, action loop, tenant cache                                                                                                        | After request/driver shutdown and child closure |
-| Tenant      | `StoreScope`, `ScopedConnections`, stores, tenant services, `TenantBrokers.for_tenant(id)`, configured adapter state                                                                                                                      | Eviction or hub shutdown                        |
-| Request     | Principal, request metadata, genuinely request-local providers                                                                                                                                                                            | Response/stream completion or cancellation      |
-| Host        | Engine, host stores, shared clocks, host identity and telemetry; the settings readers (`HostSettingsReader`, `RunnerSettingsReaders`), `HostWorkspaces`, `HostTick`'s sampler and renewer passes, the sealed-token store, `HostRunnerSet` | After serving threads and runners stop          |
-| Runner      | Bound connections/stores, identity/token holders, executor, retained harness sets, the runner's stepper                                                                                                                                   | After loop/resume work drains                   |
-| Operation   | Borrowed caller-thread clients, selected harness-set snapshot, per-operation tracing context                                                                                                                                              | After the operation; only owned resources close |
-| Command     | Carrier overrides, selected client resources, command-local services of a client-only command                                                                                                                                             | Command exit, including exceptions              |
+| Lifetime    | Values and collaborators                                                                                                                                                                                             | Closure                                         |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
+| Hub process | Borrowed store, tracing and settings; hub-level stores and identity services, `TenantBrokers` directory, action loop, tenant cache                                                                                   | After request/driver shutdown and child closure |
+| Tenant      | `StoreScope`, `ScopedConnections`, stores, tenant services, `TenantBrokers.for_tenant(id)`, configured adapter state                                                                                                 | Eviction or hub shutdown                        |
+| Request     | Principal, request metadata, genuinely request-local providers                                                                                                                                                       | Response/stream completion or cancellation      |
+| Host        | Engine, host stores, shared clocks, host identity and telemetry; `HostSettingsReader`, `HostRecordsReconcile` and the holders it sets (`HostWorkspaces`, `HostTickInForce`), the sealed-token store, `HostRunnerSet` | After serving threads and runners stop          |
+| Runner      | Bound connections/stores, identity/token holders, its `RunnerSettingsReader`, executor, retained harness sets, the runner's stepper                                                                                  | After loop/resume work drains                   |
+| Operation   | Borrowed caller-thread clients, selected harness-set snapshot, per-operation tracing context                                                                                                                         | After the operation; only owned resources close |
+| Command     | Carrier overrides, selected client resources, command-local services of a client-only command                                                                                                                        | Command exit, including exceptions              |
 
 The hub's engine, `HubStoreConnections`, platform tracing and `HubSettingsGraph` are not container resources. `hub host`
 opens them once (`open_hub_store`, then `build_hub_settings`), supplies them to the hub root as borrowed context values,
@@ -34,40 +34,41 @@ Under `epic:config/runtime`, an object built from settings is rebuilt when the r
 start of a pass (`bzh:settings-snapshot-per-pass`, `bzh:config-read-on-use`). The container never holds such an object.
 It builds the stable owner that holds it, and the owner rebuilds it:
 
-| Owner (container lifetime)                     | What it rebuilds, and when                                                                                                                                                                                                                                                                                                                                                                                                         |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `RunnerSettingsReaders` (host)                 | One `RunnerSettingsReader` per hosted runner, keyed by runner id, as the host tick holds one per hosted runner; an entry is added or dropped when a hosted-runner record is added or retired; a runner child resolves its own reader from it by runner id, and the tick and the seeder read it for a runner with no open child (a failed start or a halted runner), over the host's own connections to that runner's settings rows |
-| `RunnerStepper` (runner)                       | The `LoopContext` and its hub client, when the host or runner revision, the harness key, or the timeout moves                                                                                                                                                                                                                                                                                                                      |
-| The runner's harness sets (runner)             | The harness set, when the `session` keys it reads move                                                                                                                                                                                                                                                                                                                                                                             |
-| `HostWorkspaces` (host)                        | The `WorkspaceRegistry`, when a workspace record moves; locks are kept by `workspace_id`                                                                                                                                                                                                                                                                                                                                           |
-| `HostTick`'s sampler and renewer passes (host) | Each subscription's sampler and renewer, when its record moves                                                                                                                                                                                                                                                                                                                                                                     |
-| `HostRunnerSet` (host)                         | Its runner children, when a hosted-runner record is added or retired (§Flows)                                                                                                                                                                                                                                                                                                                                                      |
+| Owner (container lifetime)         | What it rebuilds, and when                                                                                                                                                                                                                                                                                              |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `RunnerStepper` (runner)           | The `LoopContext` and its hub client, when the host or runner revision, the harness key, or the timeout moves                                                                                                                                                                                                           |
+| The runner's harness sets (runner) | The harness set, when the `session` keys it reads move                                                                                                                                                                                                                                                                  |
+| `HostRecordsReconcile` (host)      | The `WorkspaceRegistry` it sets in `HostWorkspaces`, when a workspace record moves, unmoved workspaces keeping their providers and locks kept by `workspace_id`; each subscription's sampler and renewer, when its record moves, and with them the `HostTick` and the served subscriptions it sets in `HostTickInForce` |
+| `HostRunnerSet` (host)             | Its runner children, when a hosted-runner record is added or retired (§Flows)                                                                                                                                                                                                                                           |
 
 An owner builds its first object when its child opens, from the settings in force at that start, so a bad entry fails
 the start step that reports it today (`compose` or `serve` in the host's runner report); every later pass rebuilds from
 that pass's snapshot. No provider captures one pass's settings into a longer-lived object: a provider takes the settings
 reader, and its owner reads per pass. The owner keeps the last good object when a rebuild fails, as
-`epic:config/runtime` specifies. `HostTick`'s `ExternalUsageSamplePass` and `CredentialRenewalPass` exist with zero
-subscription records, in place of today's absent pass, and hold one sampler and renewer per record. `RunnerStepper` also
-carries retention state across a rebuild and closes a replaced hub client only once it is idle. A new settings-built
-object follows this table rather than a new container lifetime: it gets a stable owner registered at the owner's
-lifetime.
+`epic:config/runtime` specifies. `HostTick` is itself a rebuilt object: a moved subscription record replaces it, with
+its sample and renewal passes, and a host with no subscriptions runs it with no sample pass, as today. The container
+holds the `HostTickInForce` holder, never a `HostTick`, and the host pass reads the tick from the holder each pass.
+`HostRecordsReconcile` is registered `optional`, `None` for a host keeping no records, as today. A runner's
+`RunnerSettingsReader` reads its stored entries on use and rebuilds nothing; the runner child builds it, at runner
+lifetime, over its own settings store and identity. The per-runner seed builds a seed-time reader of its own, as today,
+because it runs before the child opens and without the child's identity. `RunnerStepper` also carries retention state
+across a rebuild and closes a replaced hub client only once it is idle. A new settings-built object follows this table
+rather than a new container lifetime: it gets a stable owner registered at the owner's lifetime.
 
 ## Interfaces
 
 ```python
-# Translation/entrypoint-only interfaces; engineering:locked-child-container.
-def open_child(
-    parent: ProcessContainer | TenantContainer | RunnerContainer,
-    *,
-    lifetime: Lifetime,
-    values: ScopeValues,
-) -> OwnedChild: ...
+# Translation/entrypoint-only interfaces; engineering:locked-child-container. As shipped in foundation/registry/scopes.py.
+def open_child(parent: OwnedChild, *, lifetime: Lifetime, owner: str, values: ScopeValues) -> OwnedChild: ...
 
 class OwnedChild(Protocol):
     @property
-    def resolver(self) -> ProcessContainer | TenantContainer | RunnerContainer | RequestContainer: ...
-    def close(self) -> None: ...
+    def lifetime(self) -> Lifetime: ...
+    @property
+    def owner(self) -> str: ...  # a tenant id, a runner id, or a process label
+    @property
+    def resolver(self) -> Resolver: ...
+    def close(self, exception: BaseException | None = None) -> None: ...
 
 class TenantContainers(Protocol):
     def resolve[T](self, scope: StoreScope, service: type[T]) -> T: ...
@@ -107,8 +108,9 @@ positionally; it forwards it with the runtime annotation key; guarding does not 
 | Runner            | `HostRunnerSet` opens one locked child per runner with its context values, before resolving stores; host-scoped stores remain in the parent                  |
 | Operation         | Supply borrowed caller-thread values or factories; never cache a selected operation's principal/client/set snapshot in a parent                              |
 
-A runner child's context values are its hub-minted runner id, its `BuiltRunner` (the start snapshot of its settings, its
-token, and its hosted-runner entry), and nothing else; everything else the runner needs is resolved beneath them.
+A runner child's one context value is its `BuiltRunner` (its hub-minted id, the start snapshot of its settings, its
+token, and its hosted-runner entry); `open_child`'s `owner` is that id, which `ScopeClosed` carries. Everything else the
+runner needs is resolved beneath it.
 
 The hub maps `PROCESS`, `TENANT`, and `REQUEST` to consecutive non-skipped Dishka scopes. The host separately maps
 `PROCESS`, `RUNNER`, and `OPERATION`; a command maps `COMMAND`. Unused lifetime kinds are rejected by that process's
@@ -142,11 +144,16 @@ runner start: open runner child → build the runner from it → startup steps �
                   └─ fails after placement → abandon: withdraw, remove, stop drivers, close runner child,
                      close wiring → same retry
 
-host tick: read revisions → HostRunnerSet reconcile → HostWorkspaces rebuild → sampler/renewer rebuild → host report
+host pass: host settings snapshot → HostRecordsReconcile (workspaces, then subscriptions)
+             → retirement notices → HostRunnerSet reconcile → the HostTickInForce tick → host report
+host boot: host settings snapshot → HostRecordsReconcile → runner children open
 
 runner drain: withdraw from HostRunnerRegistry → stop drivers → quiesce → on_shutdown → close runner child
                   → close wiring → remove from HostRunnerSet → drop sealed token
 ```
+
+The records reconcile runs before any runner starts, resumes or reconciles, in a pass and at boot alike, so a retired
+workspace's provider releases what it holds first; this is the order `epic:config/runtime` delivered.
 
 The runner child holds the executor, the stepper and the per-runner hub clients, and closes them in reverse construction
 order, so the stepper and its clients close before the executor they were built over. "Close wiring" then closes only

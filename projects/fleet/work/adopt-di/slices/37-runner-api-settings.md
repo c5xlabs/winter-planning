@@ -18,8 +18,10 @@ resolution mechanism `runner-api-services` built, delivering `engineering:narrow
 
 - Move these route modules from `RunnerWiring` accessors to declared services: `runner/api/settings.py`,
   `runner/api/host_settings.py`, `runner/api/workspace_prompt.py`.
-- Register the settings apply and export services (`epic:config/runtime`), after the host settings, the workspace and
-  subscription records and the runner settings writers they drive, and narrow their routes to them.
+- Register the settings apply and export (`build_host_settings_application`) at host lifetime, after the host settings,
+  the workspace and subscription records and the runner settings writers they drive, and narrow their routes to them. It
+  reaches each runner's settings store and reader through `ServedRunners`, covering the open runners only, as today, in
+  place of iterating `HostProcess.runners`.
 - Narrow the shared helpers these modules use to typed arguments; a helper another family still calls keeps its old
   callers.
 

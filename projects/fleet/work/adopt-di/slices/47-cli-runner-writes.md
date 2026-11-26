@@ -24,8 +24,9 @@ Delivers the runner local store-write verbs in spec [Entrypoint resolution](../s
 - The transcript verbs resolve the loop collaborators `runner-loop` registered in place of `LoopWiring.with_context`.
 - Retire the compatibility entrypoints whose last callers these verbs are: `build_runner_ingest` (`ingest`), and
   `build_runner_store_files` with the `build_runner_transfer` and `build_runner_removal` it composes (`store reset` and
-  `ingest`), and `build_read_stores`, whose last callers are `RunnerStoreFiles.held_bindings` and
-  `RunnerBoundStoreFiles.runner_view` inside `build_runner_store_files`.
+  `ingest`; its `host_roster` callers moved onto the command root in `cli-runner-dual-mode` and `cli-runner-host`), and
+  `build_read_stores`, whose last callers are `RunnerStoreFiles.held_bindings` and `RunnerBoundStoreFiles.runner_view`
+  inside `build_runner_store_files`.
 
 ## Acceptance
 

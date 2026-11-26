@@ -23,13 +23,13 @@ Delivers the runner daemon-start row and the `host`, `init` and `migrate` local 
 - Move the boot seed into that start: `seed_host` writes the host record before the hosted root opens, so it runs over a
   command-owned host root that closes first; `seed_hosted_runners`, `hosted_entries` and `seed_runners` then run in the
   hosted root, `seed_runners` calling the seeder `hosted-runners` registered. These are the boot's own seed calls; the
-  stopped-host calls in `tick`, `add` and `retire` moved in `cli-runner-dual-mode`. The boot preview's
-  `RunnerSettingsReader` comes from `RunnerSettingsReaders`.
+  stopped-host calls in `tick`, `add` and `retire` moved in `cli-runner-dual-mode`. The boot preview builds its
+  seed-time `RunnerSettingsReader` over the registered `HostSettingsReader`, as the seeder does.
 - Migrate `init` and `migrate` to command roots over the selected store graph.
 - Retire the compatibility entrypoints whose last callers these verbs are: `runner_admission` (`init`'s join),
   `stored_hub_token` (the `host` boot preview and `init`), `build_host_settings_store` (`seed_host` and `_check`), and
-  `build_settings_stores` (the `host` command's `_check`, and `hosted_entries` through the boot's `seed_runners`;
-  `store_write_guard` and the stopped-host seed calls left it in `cli-runner-dual-mode`).
+  `build_settings_stores` (the `host` command's `_check`, and `hosted_entries` through the boot's `seed_runners`; the
+  seeder and `StoreHostedRunners` left it in `hosted-runners`).
 
 ## Acceptance
 

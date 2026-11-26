@@ -35,12 +35,10 @@ under `decision:adopt-di/after-runtime-config`.
   each runner it starts. Move `_seed_entries`, `_import_token` and `_seed_runner` into the hosting area as a
   host-lifetime seeder with no `click` dependency. It resolves the registered `HostSettingsReader` and `HubTokens`, and
   the runner settings-store factory, which it takes as a legacy leaf that `runner-stores` adopts.
-- Register `RunnerSettingsReaders` at host lifetime
-  ([Objects built from settings](../spec/scopes.md#objects-built-from-settings)): one `RunnerSettingsReader` per hosted
-  runner, keyed by runner id. The seeder and the host tick read it for any runner, one with no open child included (a
-  failed start or a halted runner); `runner-identity-harnesses` resolves the runner child's reader from it. A refusal
-  the seed raises as `click.ClickException` today becomes a typed seed refusal that `StoreHostedRunners` turns into the
-  same `HaltedRunner` message.
+- The seeder builds its seed-time `RunnerSettingsReader` per seed, over the registered `HostSettingsReader`, as
+  `_seed_runner` does today ([Objects built from settings](../spec/scopes.md#objects-built-from-settings)); the runner
+  child's own reader is `runner-identity-harnesses`'. A refusal the seed raises as `click.ClickException` today becomes
+  a typed seed refusal that `StoreHostedRunners` turns into the same `HaltedRunner` message.
 - The seed loop (`seed_host`, `seed_hosted_runners`, `hosted_entries`, `seed_runners`) stays in the runner CLI and calls
   the registered seeder. Its callers migrate with their commands: the stopped-host calls in `tick` (`seed_runners`),
   `add` and `retire` (`seed_hosted_runners`) in `cli-runner-dual-mode`, and the `host` boot's in `cli-runner-host`.
@@ -55,8 +53,6 @@ under `decision:adopt-di/after-runtime-config`.
   with today's message; the seed constructs no `HostSettingsReader` or `HubTokens` of its own.
 - `blizzard:unit-test` (a layering guard in `tests/guards`): the hosting area imports no `click` or `runner.cli` module;
   `blizzard:component-test`: the host tick opens no engine of its own.
-- `blizzard:component-test`: the tick reads a halted runner's settings through `RunnerSettingsReaders` with no child
-  open.
 - `blizzard:unit-test` (`tests/unit/runner/cli`): `runner add` and `retire` on a stopped host, and `runner host` boot
   seeding, behave unchanged.
 - `blizzard:typecheck` and `blizzard:unit-test` (the host graph/identity guards in `tests/guards`) pass.
