@@ -45,7 +45,8 @@ pub(crate) fn compute(
 Launch    registered deviation, decision:running-environments/scope-environment/incomplete-launch-refusal: the
           reference catches a template or shell-reference failure, warns, and launches with no scope variables; only
           a failing command entry stopped it. Here every EnvError stops the scope's launch. The fan-out treats it as
-          a failed call: no later cell is called, and the cells already called stay reported
+          a failed call that returned 1: no later cell is called, and the cells already called stay reported
+          (provider-contract.md, Fan-out, owns the reporting of attempted and unattempted cells)
 Observe   registered deviation, product:complete-launch-environment: the reference passes no variables at all
           after such a failure, so a stop or status call lost the scope's identity and port base. Degraded keeps
           the managed variables, and the caller reports the observation as degraded
@@ -85,8 +86,12 @@ its whole process environment through
 
 ## Open questions
 
-- [provider-contract.md](../../service-orchestration/spec/provider-contract.md), Invocation, gives a provider "the
-  binary's environment, plus the base five, plus the table below". That passes a caller's stale managed variables
-  through, which contradicts the Launch environment above and
-  `decision:running-environments/scope-environment/inherited-environment`. The service-orchestration spec owner applies
-  the `remove` list there.
+- [invocation-contract.md](../../../agent-ready-operation/executable-extensions/spec/invocation-contract.md) starts
+  every child, hooks and provision handlers included, "from a copy of the binary's own environment", so a caller's stale
+  managed variables reach a hook that runs with a scope's variables. The executable-extensions owner says whether the
+  `remove` list of the Launch environment applies there.
+- What the teardown computation of `ws destroy` does when `Observe` returns `UnknownScope` for an environment selected
+  by its directory alone and never recorded
+  ([destroy.md](../../../parallel-workspaces/environment-lifecycle/spec/destroy.md), Selection). Environment-lifecycle
+  engineering answers with resource-provisioning, once
+  `decision:running-environments/resource-provisioning/handler-environment` is made.

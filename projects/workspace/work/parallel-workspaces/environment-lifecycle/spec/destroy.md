@@ -49,7 +49,8 @@ pub(crate) fn destroy(ports: &Ports<'_>, env: &ProcessEnv, diagnostics: &mut Dia
 
 // what the env directory holds, read once before any effect; engineering:teardown-evidence-completeness
 pub(crate) struct Inventory {
-    pub declared: Vec<(ProjectRepository, PathBuf)>,   // projects whose <root>/<env>/<name> is a directory, merged order
+    // the projects whose <root>/<env>/<name> passes owned (Per target, step 2), in merged order
+    pub declared: Vec<(ProjectRepository, PathBuf)>,
 }
 
 // crates/core/src/files.rs — WriteFiles gains; OsFiles implements it with std::fs::remove_dir
@@ -58,12 +59,15 @@ fn remove_empty_dir(&self, path: &Path) -> io::Result<()>;   // fails, removing 
 
 ```rust
 // crates/core/src/bootstrap.rs — Action gains; location, detail, and text
-WorktreeRemoved,              // "worktree_removed"   <root>/<env>/<repo>; "" or "no source checkout"
-                              //   "[<repo>] worktree removed at <location>" + " (<detail>)" when detail is not empty
+WorktreeRemoved,              // "worktree_removed"   <root>/<env>/<repo>; ""
+                              //   "[<repo>] worktree removed at <location>"
 EnvRemoved,                   // "env_removed"        <root>/<env>; ""      "[<env>] env directory removed at <location>"
 WouldRemoveWorktree,          // "would_remove_worktree"  <root>/<env>/<repo>; ""
                               //   "[<repo>] would remove worktree at <location>"
 WouldRemoveEnv,               // "would_remove_env"   <root>/<env>; ""      "[<env>] would remove env directory at <location>"
+WouldKeepEnv,                 // "would_keep_env"     <root>/<env>; the leftover entry names, sorted, joined ", "
+                              //   "[<env>] would keep <location>, which would still hold: <detail>"
+                              //   registered deviation, below
 WouldRemoveWorkspaceExclude,  // "would_remove_workspace_exclude"  the exclude file; "/<env>/"
                               //   "[<env>] would strip workspace exclude block: <detail>"
 EnvMissing,                   // "env_missing"        <root>/<env>; "index <i> released" | "index <i> would be released"
@@ -143,9 +147,22 @@ destroy(name)
                     # registered deviation: decision:parallel-workspaces/environment-lifecycle/location-confinement; the
                     # reference removes the worktrees, then fails at its rmtree of the link
   2. inventory    entries(d); an io::Error -> RepoError InventoryUnreadable; TargetCompleted false
-                  declared   each project, merged order, whose <d>/<name> is a directory, links followed
-                             a project with nothing there: a warning naming <d>/<name>, and the project is skipped
+                  declared   each project, merged order, whose p := <d>/<name> passes owned(p)
+                             a project with nothing there: a warning naming p, and the project is skipped
                              (product:target-patterns)
+                             a project whose p is there and fails owned(p): a warning "<p> is not a worktree of
+                             <source>: kept", and p is a leftover, kept and listed at step 11
+                  owned(p)   p is no symbolic link; source := <root>/projects/<name> is a directory;
+                             common_dir(p) == common_dir(source) (init.md, Git operations); and resolve(p) is a path
+                             of worktree_list(source) (init.md)
+                             a GitFailure of common_dir(p) -> p fails owned: it is no repository of its own
+                             a GitFailure of common_dir(source) or worktree_list(source) -> RepoError, TargetCompleted
+                             false, nothing below runs   # a failed check never reads as safe to remove
+                             # engineering:worktree-effect-confinement; registered deviation:
+                             # decision:parallel-workspaces/environment-lifecycle/location-confinement; the reference
+                             # declares any directory there, links followed, and rmtrees it when the source checkout
+                             # is absent (destroy_service.py). A plain directory there reads the workspace
+                             # repository's common dir, and a clone its own, so neither is declared
   3. nested audit                       teardown.md, phase 0
   4. dirty        unless --force: entries := the name of each declared (repo, p) with git::clean(p) false, then
                   the child entries of teardown.md, phase 1
@@ -154,13 +171,15 @@ destroy(name)
                   any dirty entry -> RepoError Dirty; any unpushed child entry -> teardown.md's refusal
                   either -> TargetCompleted false; nothing below runs
   5. --dry-run    child preview (teardown.md); then the provision plan (Provision teardown, unless
-                  --no-provision-teardown); then WouldRemoveWorktree per declared; WouldRemoveEnv d (removed at step 11 only when empty); then
+                  --no-provision-teardown); then WouldRemoveWorktree per declared; then leftovers := entries(d)
+                  less the declared locations: none -> WouldRemoveEnv d, else WouldKeepEnv d naming them, as step 11
+                  would (teardown-policy; registered deviation: the reference always previews the removal); then
                   locate (managed-content.md): a GitFailure -> RepoError "workspace exclude — <cause>", the preview
                   fails; a file whose lines hold Markers::exclude("winter-dir/<name>").begin ->
                   WouldRemoveWorkspaceExclude
                   TargetCompleted, true unless a preview step failed; stop
-                  # the preview runs no teardown command and writes nothing; hooks, leftovers, and the index
-                  # are not listed (product:destroy-environments)
+                  # the preview runs no teardown command and writes nothing; hooks and the index are not listed
+                  # (product:destroy-environments)
   6. children     teardown.md, phases 2 and 3; a failure keeps the env as teardown.md gives
   7. provision    unless --no-provision-teardown: Provision teardown below
                   a failure with --strict -> RepoError StrictAbort(ProvisionTeardown); TargetCompleted false; stop
@@ -170,10 +189,12 @@ destroy(name)
                   a failure without --strict -> remembered; the target fails at the end; teardown goes on
                   # registered deviation: the reference exits 0 on a non-strict hook failure (destroy_service.py:384-401)
   9. worktrees    each declared (repo, p), in merged order, one at a time:
-                    <root>/projects/<repo> absent -> WriteFiles::remove(p); RepoAction WorktreeRemoved "no source
-                                                     checkout"; an io::Error -> RepoError, failed
-                    else worktree_remove(source, p, --force) ; a GitFailure -> RepoError, failed
-                         -> RepoAction WorktreeRemoved ""
+                    owned(p) of step 2 again, immediately before the removal; failing -> RepoError NotAWorktreeOf
+                      (init.md), failed, p not removed
+                      # p replaced since step 2 (engineering:worktree-effect-confinement)
+                    worktree_remove(source, p, --force) ; a GitFailure -> RepoError, failed
+                      -> RepoAction WorktreeRemoved ""
+                    # nothing but git worktree remove deletes a declared worktree; Workspace runs no rmtree of its own
  10. kept         any worktree failed -> RepoError WorktreesKept naming them; TargetCompleted false; stop: d, the
                   self-exclude block, and the index stay      # teardown-policy; registered deviation: the reference
                                                               # removes d and releases the index (destroy_service.py:403-421)

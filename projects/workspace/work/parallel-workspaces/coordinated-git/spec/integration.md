@@ -29,10 +29,14 @@ pub(crate) enum Integrated {
                                            // conflicted and was aborted cleanly
     MissingRef,                            // "missing_ref": the target names no commit
     DirtyBlocked,                          // "dirty_blocked": git refused before starting, for local changes
-    AutostashFailed,                       // "autostash_failed": --autostash given and git refused or the stash
-                                           // could not be restored
+    AutostashFailed { step: AutostashStep, error: Box<RepoError> },
+                                           // "autostash_failed": --autostash given and git refused before saving
+                                           // (Save), or the saved changes could not be re-applied (Restore)
     AbortFailed { error: Box<RepoError> }, // "abort_failed": a conflicted merge or rebase whose --abort failed
 }
+pub(crate) enum AutostashStep { Save, Restore }   // "save" | "restore"; the text line names it
+// engineering:integration-recovery-evidence: error is the RepoError of the git call, GitFailure { Integrate, repo },
+// carrying git's stderr; on Restore the text line adds that the changes remain in the stash
 pub(crate) fn integrate(programs: &dyn RunPrograms, tracer: &dyn CommandTracer, diagnostics: &mut Diagnostics<'_>,
     repo: &str, path: &Path, target: &str, fallback: Fallback, autostash: bool) -> Result<Integrated, GitFailure>;
 
@@ -52,17 +56,28 @@ commits          git rev-list --count HEAD..<target>, before anything moves; a f
                  repository and the range, and counts 0
 ref check        git rev-parse --verify --quiet <target>^{commit}; non-zero -> MissingRef, nothing else runs
                  # ws merge runs this check first and reports skipped-missing-ref instead (merge.md)
+stash before     when autostash: s0 := git rev-parse --verify --quiet refs/stash, None on a non-zero exit
 fast-forward     Fallback::NoFf skips this step
                    h0 := git rev-parse HEAD
                    git merge [--autostash] --ff-only <target>
-                   exit 0: git rev-parse HEAD == h0 -> UpToDate, else FastForwarded { commits }
+                   exit 0: the restore check below; then git rev-parse HEAD == h0 -> UpToDate, else
+                           FastForwarded { commits }
                    non-zero: refused, classified below with "fallback allowed"
 fallback         Fallback::None: no fallback; Merge: git merge [--autostash] <target>; Rebase: git rebase
                  [--autostash] <target>; NoFf: when commits is 0 -> UpToDate and nothing runs, else git merge
                  [--autostash] --no-ff <target>
-                   exit 0 -> Merged { commits } or Rebased { commits }
+                   exit 0 -> the restore check below; then Merged { commits } or Rebased { commits }
                    non-zero: classified below
+restore check    when autostash, after a call that exited 0: git ls-files -u prints any path, or
+                 git rev-parse --verify --quiet refs/stash differs from s0
+                   -> AutostashFailed { step: Restore, error: the call's RepoError }; the checkout is left as git left
+                      it, with the conflicted paths, and the saved changes stay in the stash
+                 # git exits 0 when re-applying the autostash conflicts: it keeps the entry in the stash list and
+                 # leaves the conflicts in the worktree (git 2.56)
 classify a refused call, in order:
+  locked         git's stderr holds ".lock': File exists" (git runs under LC_ALL=C, child-processes.md): a ref, index,
+                 or config lock another process holds -> GitFailure::Repo { Integrate, repo } with git's cause, so the
+                 target reports error, never diverged or success   # engineering:shared-git-effects
   in progress    git rev-parse --verify --quiet MERGE_HEAD exits 0, or rev-parse --git-path rebase-merge or
                  rebase-apply names an existing directory: the call conflicted
                    git merge --abort, or git rebase --abort for a rebase
@@ -72,7 +87,7 @@ classify a refused call, in order:
   not started    the call refused before changing anything
                    the fast-forward step, and HEAD is an ancestor of the target
                    (git merge-base --is-ancestor HEAD <target> exits 0), or any fallback call:
-                     autostash   -> AutostashFailed
+                     autostash   -> AutostashFailed { step: Save, error: the call's RepoError }
                      dirty       -> DirtyBlocked, dirty as git::dirty answers it (tracked changes; untracked files
                                     git refused to overwrite count through git's own refusal)
                    otherwise, after the fast-forward step: the fallback runs when one is asked, else
@@ -80,15 +95,17 @@ classify a refused call, in order:
   a fallback call that is refused and not started, with neither autostash nor a dirty tree, is Diverged
 ahead, behind    git rev-list --count <target>..HEAD and git rev-list --count HEAD..<target>, after any abort; a
                  failure is a warning naming the repository and the target, and leaves both 0
-a git that cannot be started is GitFailure::Internal; no other call above returns an error: each non-zero exit is
-an outcome
+a git that cannot be started is GitFailure::Internal; apart from a lock, no other call above returns an error: each
+non-zero exit is an outcome
 ```
 
 ```text
 # what the reference does in each new case, for the parity record
 MissingRef        pull: ff-only fails, Diverged 0/0 with a warning (WRR:842-851,1016-1039)
 DirtyBlocked      Diverged with the real counts
-AutostashFailed   Diverged with the real counts
+AutostashFailed   Save: Diverged with the real counts; Restore: the call's own result (fast_forwarded, merged, or
+                  rebased), with the conflicts and the stash entry left unreported
+locked            Diverged with the real counts
 AbortFailed       a warning "abort cleanup failed", then Diverged (WRR:1041-1052)
 ```
 

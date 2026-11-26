@@ -28,7 +28,8 @@ impl NestedState {
     pub fn dirty(&self) -> bool;                       // any env with a dirty repo
     pub fn unpushed(&self) -> Vec<String>;             // "<env>/<entry>" for every env entry, then checkouts
 }
-pub(crate) fn parse(document: &serde_json::Value) -> Result<NestedState, ShapeFault>;
+pub(crate) fn parse(document: &serde_json::Value, present: &[String]) -> Result<NestedState, ShapeFault>;
+    // present: the standalones the child declares whose location exists (Derivation, unseen standalone)
 pub(crate) fn reported_root(document: &serde_json::Value) -> Result<Option<&str>, ShapeFault>;
 pub(crate) struct ShapeFault(pub String);          // "<field path> is <value>; expected <kind>"
 ```
@@ -74,8 +75,18 @@ checkout c, label "projects/<repo>" for a project, "standalone <repo>" for a sta
              c.local_only_commits > 0 "local-only commits"; c.stashes > 0 "stashes";
              c.local_only_commits absent "local-only commits unknown"; c.stashes absent "stashes unknown"
              any reason -> checkouts += "<label> (<reasons joined ', '>)"
-# registered deviation (decision:parallel-workspaces/nested-workspaces/child-compatibility, decision:rough-parity):
-# the reference reads an absent local_only_commits or stashes as 0, so such a checkout can read as holding nothing
+unseen standalone
+             present := each standalone of the child's merged configuration (its .winter/config.toml and
+             .winter/config.local.toml, layered as binds_service of teardown.md reads them), in merged order, whose
+             location (location-listing.md, Locations, under the child root) exists on disk; either file not valid
+             TOML -> NestedConfigUnreadable, and the read fails
+             each name of present with no row in standalones -> checkouts += "standalone <repo> (state unknown)"
+             # the child's ws status leaves out a standalone whose probe failed, with a warning alone
+             # (../../coordinated-git/spec/status.md, Projects, standalones, workspace), so its absence is no evidence
+# registered deviations (decision:parallel-workspaces/nested-workspaces/child-compatibility, decision:rough-parity):
+# the reference reads an absent local_only_commits or stashes as 0, and a standalone missing from the document as
+# holding nothing, so such a checkout can read as holding nothing
+location-listing.md = ../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md
 ```
 
 ### The `nested` member of `ws status`

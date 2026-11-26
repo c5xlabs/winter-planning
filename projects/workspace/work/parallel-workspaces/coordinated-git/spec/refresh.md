@@ -142,6 +142,7 @@ abort_failed, error; no standalone result in those or no_upstream, pin_error, re
 ### Events
 
 ```json
+{"type": "target_missing", "env": "<env> | standalone", "repo": "<name>", "reason": "absent | not_a_repository"}
 {"type": "fetch_started"}
 {"type": "repo_fetched", "scope": "project", "repo": "<name>", "success": true, "commits": 0, "error": null, "warning": null}
 {"type": "fetch_completed", "success": true}
@@ -156,6 +157,8 @@ abort_failed, error; no standalone result in those or no_upstream, pin_error, re
 repo_fetched   success false -> error is the rendered RepoError, commits 0, warning null; a warning is set only
                on success; a standalone's commits is always 0
 refresh_failed this epic's event, under fetch-freshness; never written by ws update
+target_missing ws fetch and ws pull, before their started event, as target-patterns.md, Missing targets in results,
+               gives; never written by ws update
 repo_synced    result: up_to_date, fast_forwarded, merged, rebased, diverged, no_upstream, held_pin, re_pinned,
                pin_error, and this epic's missing_ref, dirty_blocked, autostash_failed, abort_failed, error
                commits: Integrated's commits, else 0; ahead, behind: Diverged's, else 0

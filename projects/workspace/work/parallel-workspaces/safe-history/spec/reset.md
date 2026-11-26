@@ -104,6 +104,7 @@ a failure -> that target failed, with its error; every later target unattempted 
   {"type": "repo_reset", "env", "repo", "result", "ref", "previous", "error"}     one per reported target, in order
       previous: sha on a moved target, else null; error: message text on failed, else null     # registered deviation
   {"type": "reset_completed", "success": bool}
+  target_missing events precede reset_started (target-patterns.md, Missing targets in results)
   refused:  the started event, one repo_reset per refused target, completed with success false
   executed: one repo_reset per target, each written as it is reached, then completed
   nothing matched: the started and completed events alone, success true

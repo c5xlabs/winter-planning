@@ -38,7 +38,8 @@ pub(crate) struct Nesting<'p> {
 
 impl Nesting<'_> {
     pub(crate) fn new<'p>(ports: &'p Ports<'p>, snapshot: &'p ProcessEnv, own_root: &Path) -> Nesting<'p>;
-    /// Preflight, then a status read that verifies `root` and returns what it holds (child-state.md).
+    /// Preflight, then a status read that verifies `root`, then the child's declared standalones present on disk;
+    /// returns what it holds (child-state.md).
     pub(crate) fn state(&self, root: &Path) -> Result<NestedState, RepoError>;
     /// Preflight, then a status read only when `root` is not yet verified in this process.
     pub(crate) fn ensure_verified(&self, root: &Path) -> Result<(), RepoError>;
@@ -79,8 +80,13 @@ NestedNotStarted { command, root, cause },   // "`<command>` could not start in 
 ```text
 # engineering:nested-invocation-contract, engineering:child-process-isolation
 # reference: modules/workspace/nested_env.py:12-67
-base        the git child environment of child-processes.md (WINTER_LAUNCH_TIME left out, GIT_SSH_COMMAND defaulted,
-            TRACEPARENT and TRACESTATE as the snapshot holds them), without LANGUAGE and LC_ALL forced to C
+base        the git child environment of child-processes.md (WINTER_LAUNCH_TIME left out, GIT_SSH_COMMAND defaulted),
+            without LANGUAGE and LC_ALL forced to C
+            TRACEPARENT, TRACESTATE: when tracing is on, the W3C context of the span active at the call, replacing
+            the snapshot's, so the child's command span is a child of the outer command; off, as the snapshot holds
+            them (tracing.md; engineering:observability-isolation)
+            # reference: core/internal/local_subprocess_runner.py:187-190 writes the active context
+            tracing.md = ../../../../delivered/parallel-workspaces/component-runtime/spec/tracing.md
 remove      every name of the snapshot that starts "WINTER_", except WINTER_LOG_LEVEL and names starting "WINTER_OTEL_"
             VIRTUAL_ENV
 env         PATH, when the snapshot holds both VIRTUAL_ENV and PATH: PATH split at ":" with every entry whose normalised

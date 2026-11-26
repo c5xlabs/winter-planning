@@ -4,9 +4,10 @@
 
 **Decider:** product owner and engineering
 
-Push reports skipped pinned commits whenever it skips them and reports an up-to-date candidate as up to date, and push
-and `ws merge` skip a standalone held at a tag or commit with a reason. These are registered deviations: the reference
-mentions skipped pinned commits only when nothing else was pushed, counts a held standalone as a push failure, and lets
+Push reports skipped pinned commits whenever it skips them and reports an up-to-date candidate as up to date, connect
+and disconnect list the pinned worktrees they skip, and push and `ws merge` skip a standalone held at a tag or commit
+with a reason. These are registered deviations: the reference mentions skipped pinned commits only when nothing else was
+pushed, skips pinned worktrees in connect and disconnect silently, counts a held standalone as a push failure, and lets
 `ws merge` move a held standalone off its locked commit.
 
 ## Ordinary integration conflicts (decision:parallel-workspaces/coordinated-git/integration-conflicts)
@@ -15,8 +16,9 @@ mentions skipped pinned commits only when nothing else was pushed, counts a held
 
 Integration keeps the reference tool's behavior: fast-forward-only first, `--merge` or `--rebase` as the fallback, a
 conflicted merge or rebase always aborted and never left paused, and `--autostash` passed through as the only dirty-work
-preservation. As a registered deviation, a failed abort is reported, and a dirty blocker, a failed autostash, and a
-missing target ref are reported apart from divergence, which the reference folds them into.
+preservation. As a registered deviation, a failed abort is reported, and a dirty blocker, a failed autostash (a re-apply
+that conflicts after Git exits 0 included), a Git lock another process holds, and a missing target ref are reported
+apart from divergence or success, which the reference folds them into.
 
 ## Fetch effects and freshness (decision:parallel-workspaces/coordinated-git/fetch-freshness)
 

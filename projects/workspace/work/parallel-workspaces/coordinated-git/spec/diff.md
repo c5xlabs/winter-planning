@@ -50,7 +50,8 @@ untracked files are in no mode, as git diff leaves them out
 ```text
 --json, shape A
 {"patterns": [<as given, or ["*/*"]>], "mode": "<mode>",
- "results": [{"env": <name>, "repos": [{"name", "files_changed", "insertions", "deletions"}]}]}
+ "results": [{"env": <name>, "repos": [{"name", "files_changed", "insertions", "deletions"}]}],
+ "missing": [entry...]}       # missing: target-patterns.md, Missing targets in results
 text
   nothing kept -> nothing written, exit 0
   more than one environment and not --no-headers: the env name, bold, before each environment's repositories,

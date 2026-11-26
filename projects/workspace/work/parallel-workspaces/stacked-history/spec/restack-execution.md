@@ -39,6 +39,8 @@ per link, in plan order (bottom first); per participating repo, in configuration
     either tip None -> Failure naming the ref that no longer resolves
     # the reference's assertion error is an artifact of Python under decision:functional-parity, not a deviation
   cut_exempt := source is Cut and ancestor(oldbase, env_tip)      # the cut range is still to be dropped
+    # declared limit (product:resume-stack-rewrite): a cut already contained in BASE stays an ancestor of the env
+    # after its replay, so a re-run rebases that repo again, which changes nothing, and reports it rebased
   not cut_exempt and ancestor(newbase, env_tip) -> UpToDate; no write
   otherwise  git rebase --onto <newbase> <oldbase> <env>   (checks out <env> as a side effect)
     exit 0 -> Rebased, also when nothing past oldbase replays and the branch fast-forwards
@@ -58,7 +60,8 @@ remaining := the links from the stopped one to the top, plan-shaped; no rollback
 the engineer resolves with git (git rebase --continue or --abort) in that worktree, then runs the same chain, BASE, and
 --cut again; the re-run plans afresh: a worktree still mid-rebase is refused RebaseInProgress (restack-plan.md), a
 completed link reads UpToDate, and a cut repo already replayed has its env tip off the cut range, so cut_exempt is
-false and it reads UpToDate; a re-run without --cut plans by fork point instead, as the reference does
+false and it reads UpToDate, except the declared limit of Replay; a re-run without --cut plans by fork point instead,
+as the reference does
 ```
 
 ### Result

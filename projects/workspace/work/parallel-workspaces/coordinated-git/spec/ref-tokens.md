@@ -42,7 +42,8 @@ expand       each token, in order of position:
 callers      expand every target repository's ref before the first git call of the command, so a refusal leaves
              every repository untouched (decision:parallel-workspaces/partial-execution); a caller with no target
              repository expands nothing and refuses nothing
-results      events and documents carry the ref as typed, never an expansion
+results      events and documents carry the ref as typed; a caller's per-target record may add that target's
+             expansion, as ws reset's repo_reset.ref does (product:parallel-workspaces/ref-tokens)
 ```
 
 | Typed              | `main_branch` | Expansion        |

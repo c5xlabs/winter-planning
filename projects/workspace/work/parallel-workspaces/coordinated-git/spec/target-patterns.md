@@ -140,3 +140,21 @@ standalones   patterns never select a standalone: --standalone and --all reach e
 
 A command that matches nothing writes the result its own leaf gives for no target, and exits as that leaf says; the
 selection writes nothing for it.
+
+### Missing targets in results
+
+```text
+# product:explain-results, product:target-patterns; registered deviation, decision:parallel-workspaces/target-selection:
+# the reference names a skipped target in a warning at most, never in its --json output
+entry       {"env": <env, or "standalone">, "repo": <name>, "reason": "absent" | "not_a_repository"}, one per entry of
+            Selection.missing, and per missing standalone, in the order they were warned
+shape A     the command's document gains the member "missing": [entry...], [] when none
+shape C     one {"type": "target_missing", "env", "repo", "reason"} event per entry, written before the run's started
+            event; a run that writes no other event under --json, as for nothing to do, still writes these
+applies to  every command of the table above, and ws checkout of epic:parallel-workspaces/safe-history; its leaf
+            places the member or the events, and output-formats.md's vocabulary rows gain target_missing first
+ws status   excepted: the published v1 schema admits no extra member, so a missing worktree there is the warning
+            above and its exit code (status.md, Exit code), as target-selection decides
+the warnings above are written in every mode, also when the result names the entry
+output-formats.md = ../../../../delivered/parallel-workspaces/component-runtime/spec/output-formats.md
+```

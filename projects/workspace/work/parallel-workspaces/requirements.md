@@ -11,7 +11,7 @@ Acceptance:
 - `{main}`, `{master}`, and `{default}` anywhere in a ref, except directly after `@`, expand to the repository's
   configured main branch.
 - An unknown token, or a repository with no main branch configured, refuses the command before any Git call.
-- Results show the ref as the engineer typed it.
+- Results show the ref as the engineer typed it; a per-repository outcome may also show what it resolved to there.
 
 ## Push where each worktree tracks (product:upstream-push-default)
 

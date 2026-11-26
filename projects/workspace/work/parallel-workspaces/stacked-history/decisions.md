@@ -1,5 +1,14 @@
 # Stacked history decisions
 
+## Ref-token expansion before any Git call (decision:parallel-workspaces/stacked-history/token-expansion)
+
+**Decider:** product owner and engineering
+
+Restack expands BASE and `--cut` for every non-pinned repository before its first Git call, as
+`product:parallel-workspaces/ref-tokens` requires, so a token error refuses the run with nothing read. This is a
+registered deviation: the reference expands them during its reads and the cut only in participating repositories, so a
+non-participating repository with no main branch configured now refuses the run where the reference ignored it.
+
 ## Boundary derivation and cut scope (decision:parallel-workspaces/stacked-history/boundary-policy)
 
 **Decider:** product owner and engineering

@@ -146,7 +146,8 @@ per standalone, in merged order:
 
 ```text
 --json, shape A
-{"envs": [{"env": <name>, "repos": [outcome...]}], "standalone": [outcome...], "skipped": [{"env", "reason"}]}
+{"envs": [{"env": <name>, "repos": [outcome...]}], "standalone": [outcome...], "skipped": [{"env", "reason"}],
+ "missing": [entry...]}       # missing: target-patterns.md, Missing targets in results
 outcome: {"repo_name", "pushed": bool, "commits": int, "error": string | null,
           "local_ff": null | {"branch", "advanced", "commits", "skipped_reason": string | null},
           "status": "pushed" | "up_to_date" | "failed" | "no_upstream" | "skipped_pinned" | "held_pin"}

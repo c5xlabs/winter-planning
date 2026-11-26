@@ -87,6 +87,10 @@ missing     an absent or non-repository worktree is not probed: it is warned as 
 worktree probe, at the worktree, cwd = its path
   1. git status --porcelain=v2 --branch --untracked-files=all -z      non-zero -> RepoError "status probe failed"
      branch        the branch.head header; "(detached)" -> null
+     unborn        the branch.oid header is "(initial)": no commit yet; steps 2 and 3 do not run, ahead and behind
+                   are 0, last_commit_subject is null, and the text marks the row (Text)
+                   # the v1 schema has no field for it, so the document shows an unborn worktree only as a branch with
+                   # no commits ahead or behind (product:inspect-workspace-git)
      upstream      the branch.upstream header, or null; present once tracking is configured, fetched or not
      tracking_*    the branch.ab header "+<a> -<b>": tracking_ahead a, tracking_behind b, tracking_ref_present
                    true; no branch.ab header -> 0, 0, false
@@ -177,9 +181,14 @@ the empty object, as in-process plugin decorators are gone
 
 ```text
 # reference: WH:1212-1361; layout is not contract
-per environment   "Env: <name>", then "Branch:   <feature_branch>" when set, then a table REPO | SYNC | DIRTY:
+per environment   "Env: <name>", then "Branch:   <feature_branch>" when set, then a table
+                  REPO | BRANCH | UPSTREAM | SYNC | DIRTY:
+                  BRANCH the branch, "(detached)" when null, "<branch> (unborn)" when unborn
+                  UPSTREAM the upstream, plus " (not fetched)" when tracking_ref_present is false; "—" when null
                   SYNC "+<ahead>, -<behind>" (each only when non-zero), DIRTY "<n> file(s)"; "  No repos" when
                   it has none; then child-state.md's nested lines
+                  # each row shows its own tracking, so the Branch line never stands for every worktree
+                  # (product:worktree-upstream-control); layout is free under decision:functional-parity
 Projects:         REPO | BRANCH | SYNC | DRIFT, SYNC adding "<n> local-only" and "<n> stash(es)"
 Standalones:      REPO | BRANCH | SYNC | DIRTY
 Workspace:        only with drift or orphans: "missing: ...", "undeclared: ...", "orphans: <n>" with one

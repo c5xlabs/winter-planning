@@ -47,7 +47,8 @@ pub(crate) fn plan(ports: &Ports<'_>, workspace: &Workspace, chain: &Chain) -> R
 links         (envs[i], envs[i+1]) for each i, the last (envs[n-1], BASE): argument order, top first
 repos         every non-pinned project, in configuration order; no environment lookup and no registry read:
               the worktree is <root>/<env>/<repo> whether or not it exists
-pred_ref      the bottom link: expand(BASE) per repo; every other link: refs/heads/<predecessor>
+pred_ref      the bottom link: BASE as Refusals, step 1a, expanded it for the repo; every other link:
+              refs/heads/<predecessor>
 env_ref       refs/heads/<env>                     # engineering:stack-boundary-integrity: a tag never stands in
 tip(wt, ref)  git rev-parse --verify --quiet <ref> -> the sha, or None on any non-zero exit, a missing worktree, or
               a directory that is no repository
@@ -67,6 +68,11 @@ a git that cannot be started is InternalError; dirty and branch reading a repo e
 1. repeated      the first value of envs ++ [BASE] that occurs twice: the first link whose env is that value,
                  InvertedOrder, repos [], element None; else --cut equal to an env or BASE: the bottom link,
                  InvertedOrder, element the cut. A repeat is the only refusal reported; nothing is read
+1a. tokens       for every non-pinned repo, in configuration order: expand(BASE) and, with --cut, expand(cut)
+                 (ref-tokens.md); a RefTokenError ends the run as its command error, exit 1, before any git call
+                 # product:parallel-workspaces/ref-tokens; registered deviation,
+                 # decision:parallel-workspaces/stacked-history/token-expansion: the reference expands them during
+                 # its reads, and the cut only in participating repos
 2. reads         every link, every repo
 3. missing refs  each link, top first, whose env tip is None in every repo -> MissingRef, element the env
                  the bottom link, when some repo has its env tip and every such repo lacks the predecessor tip
@@ -74,8 +80,8 @@ a git that cannot be started is InternalError; dirty and branch reading a repo e
 4. per link, top first, over its participating repos:
    safety        Dirty, then RebaseInProgress, then DetachedHead (HEAD not on refs/heads/<env>), each one refusal
                  naming its repos
-   boundaries    the bottom link with --cut: per repo, cut_tip := tip(expand(cut)); None -> MissingRef with element
-                 "--cut"; ancestor(cut_tip, env tip) (applies) or ancestor(predecessor tip, env tip) (already done)
+   boundaries    the bottom link with --cut: per repo, cut_tip := tip(the cut expanded in 1a); None -> MissingRef
+                 with element "--cut"; ancestor(cut_tip, env tip) (applies) or ancestor(predecessor tip, env tip) (already done)
                  -> boundary cut_tip, Cut; neither -> CutNotAncestor; MissingRef before CutNotAncestor
                  every other link: fork(wt); None -> UnknownBoundary naming the repos; else boundary, ForkPoint
                  # no merge-base fallback; --cut is never a boundary for an upper link
@@ -102,7 +108,14 @@ frozen        boundaries are read once, here; execution reads new bases afresh (
             "fork-point"|"cut"|null}...]}...]}; exit 0, no write call at all
 text
   refused   that the restack was refused with no change, then per refusal its result, "<env> onto <predecessor>",
-            its repos, and its element when there is one
+            its repos, its element when there is one, and how to proceed (product:preserve-unrelated-work):
+              Dirty               commit or stash the tracked changes
+              RebaseInProgress    finish it with git rebase --continue, or git rebase --abort
+              DetachedHead        check out <env>
+              UnknownBoundary     give --cut for the bottom link; an upper link is rebased with git itself
+              CutNotAncestor      check the --cut ref
+              MissingRef          check the named ref
+              InvertedOrder       list the chain top of stack first, BASE last, each environment once
   --dry-run that this is a plan with no change, then per link "<env> onto <predecessor>" and a table of REPO,
             BOUNDARY, and SOURCE, "-" for a skipped repo
 ```

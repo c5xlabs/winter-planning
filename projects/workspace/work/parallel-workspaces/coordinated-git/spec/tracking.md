@@ -43,8 +43,10 @@ pub(crate) enum TrackingError { Config(Box<ConfigError>), Selection(SelectionErr
 2. the drift notice
 3. selection: EnvRule::Named over PATTERNS; an unknown literal env refuses here (target-patterns.md)
 4. per selected worktree, in selection order, one at a time:
-     pinned            skipped silently: never connected, never disconnected
-     missing           warned and skipped by the selection
+     pinned            skipped: never connected, never disconnected, and listed in skipped_pinned
+                       # registered deviation, decision:parallel-workspaces/coordinated-git/pinned-skips: the
+                       # reference skips it silently (product:select-git-targets)
+     missing           warned and skipped by the selection, and named in missing (target-patterns.md)
      otherwise         the writes below; a write that fails stops the run: that worktree is `failed`, every later
                        selected non-pinned worktree is `unattempted`, and nothing is rolled back
 5. the result; exit 0 when nothing failed, else 1 (Termination::Reported) after the result is written
@@ -80,12 +82,17 @@ a git config write that fails -> RepoError GitFailure { Config, repo }
 ```text
 --json, shape A
   ws connect     {"patterns": [<as typed>], "feature_branch": <B>, "connected": [{"env", "repo"}], "count": <n>,
-                  "failed": null | {"env", "repo", "error": <rendered RepoError>}, "unattempted": [{"env", "repo"}]}
-  ws disconnect  {"patterns": [...], "disconnected": [{"env", "repo"}], "count": <n>, "failed": ..., "unattempted": [...]}
+                  "failed": null | {"env", "repo", "error": <rendered RepoError>}, "unattempted": [{"env", "repo"}],
+                  "skipped_pinned": [{"env", "repo"}], "missing": [entry...]}
+  ws disconnect  {"patterns": [...], "disconnected": [{"env", "repo"}], "count": <n>, "failed": ...,
+                  "unattempted": [...], "skipped_pinned": [...], "missing": [...]}
   count is the length of connected or disconnected; failed and unattempted are this epic's additions and are
-  null and [] on a run that did not stop
+  null and [] on a run that did not stop; skipped_pinned lists every selected pinned worktree, in selection order;
+  missing is that of target-patterns.md, Missing targets in results
 text
-  nothing changed and nothing failed   "No worktrees matched: <patterns joined by spaces>", dim; exit 0
+  nothing changed, failed, or skipped  "No worktrees matched: <patterns joined by spaces>", dim; exit 0
+  skipped pinned                       "  skipped (pinned): <env>/<repo>" per entry of skipped_pinned, after the
+                                       changed lines
   changed                              "✓ Connected <n> worktree(s) → <B>" or "✓ Disconnected <n> worktree(s)",
                                        then "  <env>/<repo>" per changed worktree
   failed                               on stderr: "<env>/<repo>: <rendered RepoError>", then

@@ -70,7 +70,9 @@ allocate(name)
     r == N + 1                                        -> RecordedReserved { slot: Buffer }
                                                          # registered deviation: the reference answers r
     otherwise                                         -> Recorded { index: r }      # r <= 0 or r > M included;
-                                                         findings report it
+                                                         findings report it; so is an r another name also
+                                                         records: findings report it as Shared, and it is not
+                                                         refused (allocation-policy)
   otherwise                                           -> the probe of lock-and-state.md over the registry's indexes:
                                                          New { index }, or BandFull
 the probe and the checks read the registry as the update reads it under the lock, never an earlier read

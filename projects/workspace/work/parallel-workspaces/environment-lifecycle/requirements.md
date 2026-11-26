@@ -20,6 +20,8 @@ Acceptance:
 ## Create and reconcile task worktrees (product:environment-worktrees)
 
 The engineer can obtain one worktree per declared project in an environment without overwriting an existing task branch.
+A worktree moved off its environment branch is treated as
+`decision:parallel-workspaces/environment-lifecycle/head-state` decides.
 
 Acceptance:
 
@@ -35,8 +37,8 @@ Acceptance:
 
 ## Keep environment allocations stable (product:stable-environment-allocation)
 
-The engineer can run several environments without two tasks receiving the same workspace allocation. Allocation policy
-is settled by `decision:parallel-workspaces/environment-lifecycle/allocation-policy`.
+The engineer can run several environments without Workspace assigning two tasks the same workspace allocation.
+Allocation policy is settled by `decision:parallel-workspaces/environment-lifecycle/allocation-policy`.
 
 Acceptance:
 
@@ -44,6 +46,8 @@ Acceptance:
   another index is reported before it is applied.
 - A recorded index that collides with an alias's slot or the buffer slot is refused rather than shared, and two
   processes creating environments at once never record the same slot.
+- An index two environments already record, as a hand edit or the earlier tool can leave, is reported by name in
+  `ws list` rather than refused.
 - A full band refuses creation clearly before any environment directory is created.
 - Inspection distinguishes an allocated slot from a hypothetical suggestion and does not reserve suggestions.
 - Workspace-shared scope remains separate from feature environments; a recorded index outside the band is reported.
@@ -69,14 +73,12 @@ follows `decision:parallel-workspaces/destructive-approval`, and teardown follow
 
 Acceptance:
 
-- Preview names the nested environments, provision teardown, worktrees, and directory it would remove, without running
-  any of it.
-- A dirty worktree, or unpushed work in a nested workspace, refuses the target before any teardown unless `--force` is
-  given.
+- Preview names the worktrees and directory it would remove, and the leftovers it would keep, without running any
+  teardown.
+- A dirty worktree refuses the target before any teardown unless `--force` is given.
 - Anything left in the environment directory once its worktrees are removed, such as files or clones Workspace did not
   create, is kept and listed as a warning, even with `--force`; the environment is still retired and its slot released.
 - Removing a worktree keeps its environment branch in the source checkout.
-- A failed `on_env_destroy` hook fails the target without stopping teardown, unless `--strict` stops it.
 - A failed worktree removal keeps the environment directory and its slot, and fails that target.
 - Retiring one environment preserves sibling environments and workspace-shared resources outside its declared effects.
 - Destroying an environment whose directory is already gone releases its slot and succeeds with a note.

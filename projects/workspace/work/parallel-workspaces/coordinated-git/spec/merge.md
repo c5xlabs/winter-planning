@@ -65,6 +65,7 @@ success: every result is fast_forwarded, up_to_date, merged, or held_pin
 ```
 
 ```json
+{"type": "target_missing", "env": "<env> | standalone", "repo": "<name>", "reason": "absent | not_a_repository"}
 {"type": "merge_started", "source_ref": "<as typed>"}
 {"type": "repo_merged", "scope": "<env> | standalone", "repo": "<name>", "result": "<MergeResult>", "ahead": 0, "behind": 0}
 {"type": "merge_completed", "success": true}
@@ -74,6 +75,7 @@ success: every result is fast_forwarded, up_to_date, merged, or held_pin
 result   the reference's fast_forwarded, up_to_date, merged, diverged, skipped-missing-ref; this epic's
          dirty_blocked, autostash_failed, abort_failed, held_pin, error. Integrated's Rebased never occurs here
 ahead, behind   Diverged's counts, else 0
+target_missing  before merge_started, as target-patterns.md, Missing targets in results, gives
 ```
 
 | Result                                                       | Stream    | Line                                             |

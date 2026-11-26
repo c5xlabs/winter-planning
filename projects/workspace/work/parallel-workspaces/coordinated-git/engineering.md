@@ -19,9 +19,14 @@ For `epic:parallel-workspaces/coordinated-git`.
 
 ## Shared Git-store coordination (engineering:shared-git-effects)
 
-Operations account for linked worktrees sharing refs and configuration, including conflicting invocations from separate
-processes. Refresh count, concurrency, and per-target order follow `engineering:bounded-fan-out`. Serves
+A Git ref, index, or config lock held by another process fails only the affected target, reported with Git's cause as
+that target's refresh or write failure, never as divergence or success; Workspace adds no lock of its own. Refresh
+count, concurrency, and per-target order follow `engineering:bounded-fan-out`. Serves
 `product:integrate-selected-repositories` and `product:push-worktree-destinations`.
+
+Acceptance:
+
+- Two concurrent `ws pull` runs sharing a project end with each target integrated or failed with the lock cause.
 
 ## Bounded remote operations (engineering:remote-operation-bounds)
 

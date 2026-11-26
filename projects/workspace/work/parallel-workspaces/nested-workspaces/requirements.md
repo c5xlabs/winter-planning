@@ -81,6 +81,7 @@ Acceptance:
   removal.
 - A child with no service binding does not fail because a workspace-service stop does not apply to it.
 - An unreadable child, a failed child env teardown, or a failed child workspace-service stop keeps the outer
-  environment, even under `--force`, and the result says which child failed and what work it retains.
+  environment, even under `--force`, and the result names the child and env that failed and that the outer environment
+  was kept.
 - The outer `--force`, `--strict`, and `--no-provision-teardown` reach every child without broadening scope or bypassing
   root verification.

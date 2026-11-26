@@ -84,7 +84,8 @@ order
 
 ```text
 --json  NDJSON, each line flushed (shape C)
-  {"type": "clean_started", "dry_run": bool}
+  {"type": "clean_started", "dry_run": bool}     target_missing events precede it (target-patterns.md, Missing
+                                                 targets in results)
   {"type": "repo_clean", "env", "repo", "count", "paths"}       one per target reached, in order, empty ones too;
                                                                 paths is what git reported removed, or would remove
   {"type": "clean_completed", "success": bool, "total": <sum of count>}

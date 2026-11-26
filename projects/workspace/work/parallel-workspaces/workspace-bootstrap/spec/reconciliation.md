@@ -219,8 +219,8 @@ environment   the snapshot's names and values, as the reference's os.environ.cop
               not set to C, so the user's locale reaches the command; then these set, replacing any value:
                 CI=1 TERM=dumb NO_COLOR=1 FORCE_COLOR=0 NPM_CONFIG_PROGRESS=false PNPM_PROGRESS=false
                 PYTHONUNBUFFERED=1 PIP_PROGRESS_BAR=off DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
-              for a nested project, before those: every WINTER_* name removed except WINTER_LOG_LEVEL and WINTER_OTEL_*;
-              VIRTUAL_ENV removed, and each PATH entry equal to $VIRTUAL_ENV/bin removed; Call gains
+              for a nested project, before those: `scrubbed` of
+              ../../nested-workspaces/spec/invocation.md, its `remove` names and its `env` entries; Call gains
               `remove: &[&OsStr]`, names left out of the child environment, applied before `env`
               # the shell expands whatever these hold; nothing claims otherwise
 timeout       none

@@ -56,5 +56,6 @@ Acceptance:
 - The conflicted repository remains in a recoverable paused state with manual continuation or abort guidance.
 - Non-conflict failures retain completed outcomes and the unfinished tail instead of discarding the run report.
 - Re-running the same command with the same cut continues: completed links, including cut work already applied, read as
-  up to date and are not replayed again.
+  up to date and are not replayed again, except a repository whose cut is already contained in BASE, which re-reports
+  rebased with no change.
 - Every re-run repeats the full preflight; nothing from the stopped run is trusted without it.

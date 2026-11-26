@@ -63,11 +63,13 @@ check(name, reserved), each test in this order, the first failing one the error
   4. branch name: the tests git applies to refs/heads/<name> under `git check-ref-format --branch <name>`,
      restricted to one component, as git 2.x documents them (git-check-ref-format(1), rules 1, 3-10, and the
      --branch rules)                                     -> NotABranchName, the first BranchFault above that holds
-  5. name equals "workspace" or "projects", or the first component of a standalone location
+  5. fold(name) equals fold("workspace"), fold("projects"), or fold of the first component of a standalone location
                                                          -> Reserved
-the comparison is of exact strings: no case folding, no Unicode normalisation; a name is UTF-8 because every argument
-is (component-runtime/spec/command-surface.md); non-ASCII characters other than the forbidden ones pass, as git
-accepts them
+fold(s) := the Unicode full case folding of the NFC normalisation of s; only test 5 folds
+  # macOS's default volume ignores case and normalisation, so `Projects` or `WORKSPACE` would be projects/ or the
+  # workspace scope there; refused on every platform so the rule stays pure (env-name-grammar)
+a name is UTF-8 because every argument is (component-runtime/spec/command-surface.md); non-ASCII characters other than
+the forbidden ones pass, as git accepts them
 no git process runs: the rule is written out here so a refusal comes before any git call
 ```
 

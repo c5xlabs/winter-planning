@@ -13,7 +13,10 @@ Acceptance:
 - Workspace scope does not masquerade as a feature environment or emit its band as the feature port base.
 - A name that is not a registered environment is refused by every command that computes a scope, and a recorded index
   outside the declared band is reported; neither is silently assigned during inspection.
-- Changing declared allocation settings exposes affected assignments; an old assignment is not silently claimed safe.
+- A recorded index that the current layout places at 0, on the buffer slot, or outside the band is reported by every
+  command that computes the scope; one the layout now places on an alias's slot, or that two environments share, is
+  reported by `ws list`, as `product:parallel-workspaces/environment-lifecycle/environment-state-recovery` and
+  `product:parallel-workspaces/environment-lifecycle/stable-environment-allocation` say.
 
 ## Print a scope's environment (product:scope-env-command)
 
@@ -66,8 +69,9 @@ Acceptance:
 
 - Single-value output and multi-value dotenv or flat JSON imports remain available, with an output-key allow-list.
 - Anonymous import labels are not exported; command output cannot replace Winter-managed variables.
-- Lookups run once per scope each time services start or restart, so a restart obtains fresh values; a lookup shared by
-  several scopes runs for each. Inspection, status, and stopping never run them.
+- Lookups run once per scope for each `up` or `start` fan-out; a lookup shared by several scopes runs for each.
+  `restart` passes no scope values; a provider that needs fresh values obtains them with `winter env SCOPE --resolve`,
+  which runs lookups each time. Inspection, status, and stopping never run them.
 - Failure, invalid output, missing executable, or timeout names the entry and fails the requested resolution rather than
   launching with an omitted or placeholder value.
 - Each lookup runs from the workspace root with closed stdin and a 30-second deadline; a timed-out lookup leaves no
@@ -82,7 +86,6 @@ An agent learns that a required environment could not be computed before a workl
 Acceptance:
 
 - A failed required value or template computation prevents the affected launch; a diagnostic alone is not success.
-- Previously launched targets are identified if a later scope fails, with remaining targets marked not attempted.
 - Teardown and inspection retain independently known target identity even when optional runtime values cannot resolve;
   degraded observation is identified, not represented as verified readiness.
 - Caller values do not silently supply another scope's Winter identity or an explicitly unresolved required key.

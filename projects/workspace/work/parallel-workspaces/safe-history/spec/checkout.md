@@ -34,11 +34,14 @@ pub(crate) struct RepoCheckout {
     pub repo_name: String,
     pub result: CheckoutResult,
     pub previous: Option<Previous>,   // Some once the worktree's pointer moved (safety-probes.md)
-    pub error: Option<String>,        // Failed: the repo error's message and git's stderr; RefusedUntracked: the
-                                      // blocking paths
+    pub error: Option<String>,        // Failed: the repo error's message and git's stderr; else None
+    pub blocking: Vec<String>,        // RefusedUntracked: the blocking paths, each as git ls-files -z yields it,
+                                      // in that order; empty otherwise
 }
 pub(crate) struct Previous { pub head: Option<Sha>, pub branch: Option<Sha> }
-pub(crate) struct CheckoutReport { pub env: String, pub feature_branch: String, pub aborted: bool, pub repos: Vec<RepoCheckout> }
+pub(crate) struct CheckoutReport { pub env: String, pub feature_branch: String, pub aborted: bool,
+    pub repos: Vec<RepoCheckout>,
+    pub missing: Vec<(Selected, Missing)> }   // target-patterns.md, Missing targets in results
 pub(crate) fn checkout(ports: &Ports<'_>, diagnostics: &mut Diagnostics<'_>, workspace: &Workspace,
                        env: &str, feature_branch: &str, force: bool, new: bool) -> Result<CheckoutReport, Termination>;
 ```
@@ -82,7 +85,7 @@ per target, in order:
     untracked         untracked := git ls-files --others --exclude-standard -z; incoming := git ls-tree -r
                       --name-only -z <target_rev> (target_rev as Execution gives it); a path of untracked that
                       equals a path of incoming, that is a leading directory of one (u + "/" starts it), or that
-                      lies under one (i + "/" starts u) -> refused-untracked, error naming those paths
+                      lies under one (i + "/" starts u) -> refused-untracked, blocking those paths
                       # ignored files are not listed, so Git's expendable ignored files never refuse
                       # decision:parallel-workspaces/safe-history/pointer-recovery — registered deviation: the
                       # reference always forces Git and overwrites the file
@@ -117,10 +120,13 @@ either stops the run: every later target is unattempted and untouched; nothing r
 
 ```text
 --json  one document, written once at the end:
-  {"env": <ENV>, "feature_branch": <FEATURE_BRANCH as typed>, "aborted": bool, "repos": [repo...]}
-  repo: {"repo_name", "result", "previous", "error"}
+  {"env": <ENV>, "feature_branch": <FEATURE_BRANCH as typed>, "aborted": bool, "repos": [repo...],
+   "missing": [entry...]}        # missing: target-patterns.md, Missing targets in results
+  repo: {"repo_name", "result", "previous", "error", "blocking"}
     previous: {"head": sha|null, "branch": sha|null} when the pointer moved, else null    # registered deviation
-    error:    message text on failed, the blocking paths on refused-untracked, else null  # registered deviation
+    error:    message text on failed, else null
+    blocking: on refused-untracked, a JSON array of the blocking paths, each a string as git ls-files -z yields
+              it, in that order; else null                                                # registered deviation
   aborted true:  preflight refused; repos holds only the refused repos
   aborted false: repos holds every target, in order
 text    a table of REPO and RESULT, one row per entry of repos, then the previous commits of every moved repo

@@ -79,6 +79,8 @@ documents  a document written after the fan-out lists targets in configuration o
 
 ```text
 a task returns its own outcome, a failure included; one task's failure never stops another task or group
+a Git lock another process holds in a shared store fails only the task that met it, with git's cause, as its refresh
+or write failure (integration.md, locked); Workspace takes no lock of its own (engineering:shared-git-effects)
 an Err from on_message (stdout cannot be written) stops the fan-out: no new task starts, the running ones finish,
 their results are discarded, and fan_out returns that Termination
 a panic in a worker is InternalError::Panic for the whole invocation, after the other workers finish

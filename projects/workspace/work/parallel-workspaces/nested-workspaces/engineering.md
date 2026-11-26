@@ -4,9 +4,12 @@ For `epic:parallel-workspaces/nested-workspaces`.
 
 ## Verified child boundary before every authority change (engineering:child-authority-confinement)
 
-Child-root verification and ancestor-recursion protection remain valid across concurrent path/config changes and every
-mutating child invocation; discard approval cannot bypass workspace identity. Process status and output compatibility
-are validated without assuming all nonzero exits mean unusable state. Serves `product:verified-child-workspace`.
+Every child call runs the chain and marker preflight, and no mutating child call starts until a status read in the same
+process has verified its resolved root; `--force` skips neither. Serves `product:verified-child-workspace`.
+
+Acceptance:
+
+- A `--force` destroy into a child whose status reports another root runs no child command.
 
 ## Nested invocation contract (engineering:nested-invocation-contract)
 

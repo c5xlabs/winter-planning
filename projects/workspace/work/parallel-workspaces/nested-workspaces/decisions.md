@@ -27,5 +27,5 @@ relocating them silently.
 The child component is the `winter` found on `PATH` at the child root, and the protocol is its `ws status --json` at
 `schema_version` 1, accepted on exit 0 or 1 when `root_path` equals the child root; each root is verified once per
 process, and recursion is bounded by the nested chain alone, as the reference does. One deliberate fix: a child result
-missing `stashes` or `local_only_commits` counts as unknown, not zero, so a child that cannot report them never reads as
-having nothing to lose.
+missing `stashes` or `local_only_commits`, or leaving out a standalone the child declares and holds on disk, counts as
+unknown, not zero, so a child that cannot report its work never reads as having nothing to lose.

@@ -69,6 +69,11 @@ pub(crate) fn run(ports: &Ports<'_>, workspace: &Workspace, w: &EnvWorktree<'_>,
 WorktreeCreated,      // "worktree_created"     detail ""                text "[<repo>] worktree created at <location>"
 UpstreamInferred,     // "upstream_inferred"    detail the upstream      text "[<repo>] inferred upstream set: <detail>"
 PinnedTrackingSet,    // "pinned_tracking_set"  detail the changes       text "[<repo>] pinned tracking set: <detail>"
+WorktreeDetached,     // "worktree_detached"    detail ""                stderr "[<repo>] warning: HEAD is detached at
+                      //                                                   <location>; not reattached"
+WorktreeParked,       // "worktree_parked"      detail the branch        stderr "[<repo>] warning: <location> is on
+                      //                                                   <detail>, not <env>; tracking left as it is"
+                      //   both: registered deviation, decision:parallel-workspaces/environment-lifecycle/head-state
 
 // crates/core/src/termination.rs — RepoMessage gains
 SourceCheckoutMissing { name, path },   // "source checkout missing at <path>. Run `winter ws init` first."
@@ -161,11 +166,17 @@ reconcile_env(name)
 worktree::run(w)
   1. location
      absent (nothing at w.location, links not followed):
+       resolve(<root>/<env>) != resolve(root)/<env>, checked again immediately before worktree_add, so a directory
+         replaced by a link since reconcile_env's step b is caught -> NotAWorktreeOf
        branch_exists(source, env) -> worktree_add(source, location, env)
                                   else worktree_add_new(source, location, env, main_branch)
        -> RepoAction WorktreeCreated            # a reused local branch and a new one report the same
      present:                                   # engineering:worktree-effect-confinement
-       common_dir(location) != common_dir(source), or toplevel(location) != resolve(location) -> NotAWorktreeOf
+       any of these -> NotAWorktreeOf
+         resolve(location) != resolve(root)/<env>/<repo>     # a link to another environment's worktree included
+         common_dir(location) != common_dir(source)
+         toplevel(location) != resolve(location)
+         resolve(location) is no path of worktree_list(source)
        -> RepoAction Exists
        # registered deviation: decision:parallel-workspaces/environment-lifecycle/location-confinement; the
        # reference reports exists without a check
@@ -174,6 +185,12 @@ worktree::run(w)
                   .git file and commondir to the store's info/exclude
   4. tracking     its failure is the project's RepoError and fails the project, and step 5 still runs
                   # engineering:lifecycle-step-isolation; reference: init_service.py:600-628
+     head:        head_branch(location) None -> RepoAction WorktreeDetached; the rest of step 4 runs as below, so
+                    a write it needs fails as HeadDetached
+                  Some(b), b != env -> RepoAction WorktreeParked, detail b; the rest of step 4 is skipped, so
+                    another branch's tracking is never written
+                  # decision:parallel-workspaces/environment-lifecycle/head-state: no step checks out <env>, so a
+                  # detached or parked worktree is reported, never reattached (product:environment-worktrees)
      pinned:      desired := "origin/<main_branch>"; changes := []
                   tracking(location) != desired -> set_upstream(location, desired); changes += desired
                   push_default(location) != Some("upstream") -> set_push_default_upstream(location);

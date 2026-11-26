@@ -11,7 +11,9 @@ Acceptance:
 
 - Selection identifies the resolved target set, supports multi-target matching, and does not repeat overlapping matches.
 - Project worktree selection is distinct from standalone and workspace-repository selection.
-- Pinned-project inclusion is visible for every operation; feature tracking never silently rewires pinned projects.
+- Every result names the pinned worktrees it acted on, and those it left out that it would otherwise have changed, such
+  as pinned commits not pushed or a pinned worktree not connected; feature tracking never silently rewires pinned
+  projects.
 - Refs name each repository's main through `product:parallel-workspaces/ref-tokens`.
 
 ## Track each worktree's own destination (product:worktree-upstream-control)
@@ -36,8 +38,9 @@ destructive reset. Refresh follows `decision:parallel-workspaces/coordinated-git
 
 Acceptance:
 
-- Fetch refreshes each project with a selected worktree on disk once, through its source checkout, and reports any
-  advance of the source checkout's main separately from feature-worktree integration.
+- Fetch refreshes each project with a selected worktree on disk once, through its source checkout; `ws fetch` reports
+  any advance of the source checkout's main in its own result, and `ws pull` reports a failed refresh apart from
+  feature-worktree integration.
 - A source main that cannot fast-forward fails that project's fetch.
 - Pinned projects integrate their own main.
 - Integration is fast-forward-only unless `--merge` or `--rebase` is given; `--autostash` is the way to carry dirty work
@@ -60,7 +63,8 @@ Acceptance:
 - Publication uses the selected worktree's intended revision and destination, including creation of a remote branch.
 - Pinned projects are excluded unless deliberately included, and skipped pinned commits are reported whenever they are
   skipped, under `decision:parallel-workspaces/coordinated-git/pinned-skips`.
-- Up-to-date targets are distinguishable from targets not attempted or lacking an upstream.
+- A target with nothing to publish is reported as up to date; a target with commits to publish and no destination is
+  reported as lacking an upstream, apart from up-to-date and unattempted targets.
 - A standalone held at a tag or commit is skipped with a reason, not reported as a failed push.
 - Optional local landing-branch advancement requires it to have matched the pre-push remote tip and preserves dirty,
   ahead, behind, or diverged copies rather than resetting them.
@@ -75,7 +79,8 @@ Acceptance:
 
 - Status separates main-relative and upstream-relative divergence, staged, unstaged, and untracked changes.
 - A missing or non-repository worktree, a failed probe, detached HEAD, and unborn history are not shown as healthy clean
-  state.
+  state; `ws status --json`, whose published schema has no field for it, shows unborn history only as a branch with no
+  commits ahead or behind.
 - Diffs distinguish unstaged, staged, and branch-relative changes with repository and environment attribution.
 - `ws status --fetch` reports a failed refresh per project and fails, unlike read-only inspection, which never fetches.
 - Structured output and success categories follow `decision:command-vocabulary`; scoped cleanliness is distinguishable
