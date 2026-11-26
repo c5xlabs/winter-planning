@@ -4,30 +4,23 @@
 
 **Decider:** product owner and engineering
 
-**Open.** Choose defaults, literal-versus-pattern matching, no-match results, and unknown-target refusals across env and
-worktree operations, without interpreting a typo as implicit all-target permission; this blocks finalizing
-`product:parallel-workspaces/environment-lifecycle/environment-targets`,
-`product:parallel-workspaces/coordinated-git/select-git-targets`,
-`product:parallel-workspaces/safe-history/destructive-target-review`, and
-`product:parallel-workspaces/stacked-history/declare-stack-order` under `decision:command-vocabulary`.
+Targets follow `product:target-patterns`, which keeps the reference tool's grammar, defaults, and no-match results.
+Refusing an unknown literal environment before any effect, and reporting a missing worktree instead of skipping it
+silently or failing part-way, are registered deviations: the reference crashes in some commands after earlier writes.
 
 ## Approval and changed plans (decision:parallel-workspaces/destructive-approval)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose confirmation thresholds, unattended approval, and what happens when targets or loss sets change after
-preview, keeping scope approval distinct from discard approval; this blocks finalizing
-`product:parallel-workspaces/environment-lifecycle/destroy-environments`,
-`product:parallel-workspaces/safe-history/destructive-target-review`, and
-`product:parallel-workspaces/safe-history/remove-untracked-content`.
+One `--force` per command approves both its prompt and the discards its help names, as in the reference tool; prompt
+thresholds are the component runtime's, and clean lists files again at removal. There is no separate scope approval,
+because the reference's single override is what engineers and agents already use.
 
 ## Preflight and partial execution (decision:parallel-workspaces/partial-execution)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose whole-selection versus per-target preflight, stopping versus continuing, and recovery obligations for
-concurrent changes, interruption, and mid-run failure; this blocks finalizing
-`product:parallel-workspaces/environment-lifecycle/environment-recovery`,
-`product:parallel-workspaces/coordinated-git/integrate-selected-repositories`,
-`product:parallel-workspaces/safe-history/history-operation-recovery`, and
-`product:parallel-workspaces/stacked-history/resume-stack-rewrite`, not truthful reporting of completed effects.
+Each command keeps the reference tool's policy: checkout, reset, merge tokens, and restack refuse the whole selection
+before running serially; clean stops at its first failure; fetch, pull, push, init, and destroy attempt every target and
+fail if any did. Nothing rolls back. As a registered deviation, a multi-target command that stops or fails part-way
+names its completed, failed, and unattempted targets, which the reference's checkout and reset do not.

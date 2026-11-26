@@ -12,12 +12,14 @@ engineers developing or exercising whole workspace definitions inside isolated f
 ## The problem
 
 A nested checkout can resolve the enclosing workspace by mistake, inherit its credentials and runtime settings, collide
-with its sibling's ports, or lose entire Git stores when the outer task is removed.
+with its sibling's ports, or lose entire Git stores when the outer task is removed, leaving the child's services running
+from a directory that no longer exists.
 
 ## The outcome
 
 The engineer can initialize, inspect, and retire a declared nested workspace with verified child identity, isolated
-allocations, deliberately inherited local settings, and recursive protection for work that would disappear.
+allocations, deliberately inherited local settings, and recursive protection for work that would disappear. Retiring the
+outer environment retires each child first, its services and provisioned resources included.
 
 ## Depends on
 
@@ -25,7 +27,7 @@ allocations, deliberately inherited local settings, and recursive protection for
 
 ## Left for later
 
-This epic is structural: it needs no runtime capability, and teardown here retires child environments and their stores
-only. Stopping a child's services, running its provision teardown, and checking its runtime values against the delegated
-allocation belong to `epic:running-environments/nested-runtime`, which builds on this epic and the runtime epics; none
-of them depends on nested workspaces to operate independently.
+Nothing runtime-shaped is left to another epic. The child's runtime is retired by invoking the child's own CLI: its
+`ws destroy` runs the child's provision teardown and stops its env services, and its `service down workspace` stops its
+workspace services, so this epic needs neither the service-orchestration nor the provisioning capability of the outer
+workspace. Provider behaviour inside the child stays with the child's own providers.

@@ -26,8 +26,7 @@ that matches the selected tool. They do not clone Winter's framework source to s
 ## Work across isolated branches (milestone:parallel-branches)
 
 An engineer can put two agents in separate feature environments, move and inspect work across repositories, and include
-nested workspaces deliberately with their work protected. Branch operations protect local work and explain any partial
-completion. Stopping a nested workspace's services and tearing down its resources come with running environments.
+nested workspaces deliberately. Branch operations protect local work and explain any partial completion.
 
 | Epic                                             | Status  |
 | ------------------------------------------------ | ------- |
@@ -52,7 +51,6 @@ resources.
 | `epic:running-environments/provider-docker`          | planned |
 | `epic:running-environments/provider-process-compose` | planned |
 | `epic:agent-ready-operation/executable-extensions`   | planned |
-| `epic:running-environments/nested-runtime`           | planned |
 
 ## Bring the team's harnesses and extensions (milestone:agent-ready-workspace)
 

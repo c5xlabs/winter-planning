@@ -1,5 +1,13 @@
 # Workspace configuration decisions
 
+## Inline registry table (decision:parallel-workspaces/workspace-configuration/inline-registry-table)
+
+**Decider:** product owner
+
+An allocation keeps the entries of an `env_index` written as an inline table and writes them back, with the new name, as
+a standard table. This is a registered deviation: the reference replaces the inline table with a fresh one and drops its
+entries, which silently moves live environments to new indexes and ports.
+
 ## Write byte preservation (decision:parallel-workspaces/workspace-configuration/write-byte-preservation)
 
 **Decider:** product owner
@@ -60,13 +68,6 @@ The binary accepts and refuses TOML text as its parser does, in each of the four
 text first so that the two tools agree. Where its parser and the reference tool's read a text differently, the
 difference is one registered deviation; the discovery and loading spec lists the texts as a probe of the parser finds
 them.
-
-## Inline registry table (decision:parallel-workspaces/workspace-configuration/inline-registry-table)
-
-**Open.** Whether an allocation keeps the entries of an `env_index` written as an inline table, or drops them as the
-reference tool does. The product owner has deferred the question to the refinement of
-`epic:parallel-workspaces/environment-lifecycle`, which builds the allocation write. It blocks that write alone and
-nothing in this epic.
 
 ## Unhandled reference failures (decision:parallel-workspaces/workspace-configuration/unhandled-reference-failures)
 

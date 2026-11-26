@@ -4,14 +4,15 @@
 
 **Decider:** product owner and engineering
 
-**Open.** Choose supported historical boundary evidence and explicit-cut scope when reflogs are missing or ancestry was
-severed, including differing repo boundaries; this blocks finalizing `product:review-replay-boundaries`, not refusal
-when a safe replay range cannot be established.
+Each link's boundary is Git's fork point from the predecessor's reflog, per link and repository, with no merge-base
+fallback, and a link without one is refused; `--cut` sets the bottom link's boundary only, classified per repository as
+applies, already done, or refused, and every boundary is frozen before anything moves. This keeps the reference tool's
+behaviour, which already handles amended and squash-landed predecessors without guessing.
 
 ## Resume identity and lifetime (decision:parallel-workspaces/stacked-history/resume-policy)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose whether continuation reconstructs intent or retains an operation identity, and how long completed and
-cut evidence remains valid across edits or interruption; this blocks finalizing `product:resume-stack-rewrite` without
-choosing a continuation file format here.
+Restack keeps no operation state: the engineer resolves a conflict with Git and re-runs the same command, completed
+links then read as up to date, and a worktree already mid-rebase is refused. This keeps the reference tool's stateless
+behaviour, so no continuation record can go stale or disagree with Git.

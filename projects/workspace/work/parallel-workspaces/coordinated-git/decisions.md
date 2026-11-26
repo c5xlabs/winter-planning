@@ -1,25 +1,37 @@
 # Coordinated Git decisions
 
-## Remote and upstream policy (decision:parallel-workspaces/coordinated-git/remote-policy)
+## Pinned and held work in push and merge (decision:parallel-workspaces/coordinated-git/pinned-skips)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose non-origin remotes, local upstreams, and destination changes on detached or parked worktrees; this
-blocks finalizing `product:worktree-upstream-control` and `product:push-worktree-destinations` without borrowing an
-environment-wide branch as a fallback.
-
-## Fetch effects and freshness (decision:parallel-workspaces/coordinated-git/fetch-freshness)
-
-**Decider:** product owner and engineering
-
-**Open.** Choose whether refresh advances source checkouts, how parked source branches are treated, and whether pull may
-continue against stale refs after failed refresh; this blocks finalizing `product:integrate-selected-repositories` and
-explicit-refresh behavior in `product:inspect-workspace-git`.
+Push reports skipped pinned commits whenever it skips them and reports an up-to-date candidate as up to date, and push
+and `ws merge` skip a standalone held at a tag or commit with a reason. These are registered deviations: the reference
+mentions skipped pinned commits only when nothing else was pushed, counts a held standalone as a push failure, and lets
+`ws merge` move a held standalone off its locked commit.
 
 ## Ordinary integration conflicts (decision:parallel-workspaces/coordinated-git/integration-conflicts)
 
 **Decider:** product owner and engineering
 
-**Open.** Choose abort-versus-pause behavior for ordinary merge/rebase conflicts and supported dirty-work preservation
-policy, separately from deliberate stack rewrites; this blocks finalizing `product:integrate-selected-repositories` and
-`engineering:integration-recovery-evidence`.
+Integration keeps the reference tool's behavior: fast-forward-only first, `--merge` or `--rebase` as the fallback, a
+conflicted merge or rebase always aborted and never left paused, and `--autostash` passed through as the only dirty-work
+preservation. As a registered deviation, a failed abort is reported, and a dirty blocker, a failed autostash, and a
+missing target ref are reported apart from divergence, which the reference folds them into.
+
+## Fetch effects and freshness (decision:parallel-workspaces/coordinated-git/fetch-freshness)
+
+**Decider:** product owner and engineering
+
+Refresh keeps the reference tool's mechanics: it goes through each project's source checkout, advances the source main
+only when that checkout has it checked out, and pull still integrates on local refs after a failed refresh. As a
+registered deviation, a failed refresh during pull or `ws status --fetch` is reported per project and fails the command,
+where the reference only logs a warning.
+
+## Remote and upstream policy (decision:parallel-workspaces/coordinated-git/remote-policy)
+
+**Decider:** product owner and engineering
+
+Workspace uses only `origin`, as the reference tool does. Connect writes `branch.<head>.remote=origin` and its merge ref
+as given, or under the environment's branch name with a warning when the worktree is detached; push sends a non-pinned
+worktree to its tracked branch on `origin`, creating it if needed, and pushes pinned projects and standalones plainly to
+`origin`.

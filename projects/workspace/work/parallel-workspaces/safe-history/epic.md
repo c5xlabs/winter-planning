@@ -12,12 +12,14 @@ task reuse and stack maintenance through explicit destructive scope and work-pre
 ## The problem
 
 An engineer reusing an environment can accidentally move every repository instead of one, strand an unpushed env branch
-behind detached HEAD, or delete files no reflog can restore. A generic force switch hides those different risks.
+behind detached HEAD, or delete files no reflog can restore. When such a command stops part-way, the engineer cannot
+tell which repositories already moved.
 
 ## The outcome
 
 The engineer can deliberately adopt a branch, reset selected worktrees, or remove untracked content with clear scope,
-preflight, approval, and partial-result information. Ordinary synchronization does not perform these actions implicitly.
+preflight, approval, and partial-result information, and find the commit each moved pointer left behind. Ordinary
+synchronization does not perform these actions implicitly.
 
 ## Depends on
 

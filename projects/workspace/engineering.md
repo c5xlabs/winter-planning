@@ -80,6 +80,19 @@ Acceptance:
   recorded rather than presented as a transaction that never happened.
 - Concurrent different-scope operations do not replace each other's state or claim each other's managed resources.
 
+## Bounded parallel fan-out (engineering:bounded-fan-out)
+
+Commands that reach remotes or probe many repositories run at most four repository tasks at once, and status probes at
+most eight; work on worktrees that share one Git store runs one after another after that store's single refresh. Push
+and every command that moves pointers or removes files act on one repository at a time. Events stream as each target
+completes, and final documents list targets in configuration order. Serves `product:explain-results` and
+`product:preserve-unrelated-work`.
+
+Acceptance:
+
+- Raising the number of selected repositories never raises concurrent Git processes past the bound.
+- Parity scenarios compare parallel events per target, not as one ordered stream.
+
 ## TOML through the Rust library (engineering:toml-library)
 
 TOML files are parsed with the `toml` crate and edited with `toml_edit`, or with a line edit where a made decision fixes

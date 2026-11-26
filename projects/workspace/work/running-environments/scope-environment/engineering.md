@@ -12,15 +12,17 @@ extension. Extension invocation consumes this capability later.
 ## One computation authority (engineering:scope-computation-authority)
 
 Inspection and workload consumers use one semantic definition of scope, precedence, and interpolation; each consumer
-states its lookup-execution policy explicitly. Resolution consumes registry identity without allocating or repairing it.
-Serves `product:runtime-scope-values`, `product:layered-runtime-values`, and `product:offline-env-inspection`.
+states its lookup-execution policy explicitly. Resolution consumes registry identity without allocating or repairing it;
+no consumer derives an index from an unregistered name. Serves `product:runtime-scope-values`,
+`product:layered-runtime-values`, and `product:offline-env-inspection`.
 
 ## Bounded value execution (engineering:bounded-value-commands)
 
-Value-producing commands have a 30-second per-invocation baseline, closed stdin, an explicit working directory and
-visible environment, and cleanup of invocation-owned processes on timeout or cancellation. Native argument execution is
-the default; shell execution requires an operator-authored opt-in and prohibited substitutions fail before execution.
-Serves `product:external-value-resolution` and `product:private-runtime-values`.
+Value-producing commands have a fixed 30-second deadline per invocation, stdin closed, the workspace root as working
+directory, and a visible environment. Each runs in its own process group, and the whole group is killed on timeout or
+cancellation. Native argument execution is the default; shell execution requires an operator-authored opt-in and
+prohibited substitutions fail before execution. Serves `product:external-value-resolution` and
+`product:private-runtime-values`.
 
 ## Atomic computation outcomes (engineering:complete-resolution-outcomes)
 
@@ -32,5 +34,6 @@ does not erase the failure cause. Serves `product:complete-launch-environment`.
 
 Resolution retains enough declaration and import provenance to diagnose precedence, blocked references, and prohibited
 shell substitutions without recording values in diagnostics or telemetry. Export quoting preserves literal resolved
-content; compatibility for scalar conversion and intermediate collision reads is settled before contracts freeze. Serves
-`product:layered-runtime-values` and `product:private-runtime-values`.
+content; scalar conversion and collision reads follow
+`decision:running-environments/scope-environment/resolution-compatibility`. Serves `product:layered-runtime-values` and
+`product:private-runtime-values`.

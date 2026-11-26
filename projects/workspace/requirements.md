@@ -39,3 +39,19 @@ Acceptance:
 - Workspace setup, repository operations, provisioning, service orchestration, and inspection do not require Fleet.
 - Automations can select explicit targets and request structured results without answering interactive prompts.
 - Workspace never requires a running Workspace daemon to perform its commands.
+
+## Select targets by pattern (product:target-patterns)
+
+An engineer or agent can name the environments and repositories a command acts on with one pattern language across
+Workspace, and a typo never widens what the command touches.
+
+Acceptance:
+
+- A target pattern is `<env>/<repo>`, split at its first `/`; a bare `<env>` means `<env>/*`. Each half matches
+  case-sensitively, and a half is a glob only when it holds `*`, `?`, or `[`; otherwise it is an exact name. `**` means
+  the same as `*`.
+- Commands that default to every worktree when given no pattern, and commands that require one, keep the reference
+  tool's split; a command never chooses its target from the working directory.
+- A literal environment that is neither registered nor present on disk is refused before the command has any effect.
+- A pattern that matches nothing changes nothing and says so, with the result each command's spec states.
+- A selected worktree missing from disk is reported and skipped, never treated as a clean or empty repository.

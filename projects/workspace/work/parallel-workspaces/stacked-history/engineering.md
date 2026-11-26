@@ -16,6 +16,5 @@ just old SHA reachability or an outcome enum. Serves `product:replay-dependent-w
 
 ## Paused-state evidence is mandatory (engineering:stack-stop-classification)
 
-A failed Git invocation is classified as a conflict pause only when the worktree's actual rebase state supports that
-classification; other failures retain their cause and prior completions. Interruptions and concurrent writers cannot
-silently discard continuation evidence. Serves `product:resume-stack-rewrite`.
+A failed Git invocation is classified as a conflict only when the worktree is actually mid-rebase; any other failure
+keeps its cause and the outcomes completed before it. Serves `product:resume-stack-rewrite`.

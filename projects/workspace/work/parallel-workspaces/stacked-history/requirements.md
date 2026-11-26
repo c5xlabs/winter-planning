@@ -4,16 +4,18 @@ For `epic:parallel-workspaces/stacked-history`.
 
 ## Declare a meaningful stack order (product:declare-stack-order)
 
-The engineer can name dependent environments in a deliberate order and a base, independently of unordered target
-patterns. Vocabulary follows `decision:command-vocabulary` and `decision:parallel-workspaces/target-selection`.
+The engineer can name dependent environments in a deliberate order and a base. Vocabulary follows
+`decision:command-vocabulary`; unlike `product:target-patterns`, every environment in the chain is a literal name.
 
 Acceptance:
 
 - Help and preview show which environment is replayed onto which predecessor and which repositories participate.
 - Chain members are actual local env branches, not same-named tags, globs, or an accidental repo-qualified operand.
-- Repeated, missing, or inverted elements receive an actionable refusal rather than a successful all-skipped plan.
+- A repeated element, an element no repository has, or a link whose environment has its own commits yet sits behind its
+  predecessor in every repository is refused before anything moves, rather than planned as all skipped.
 - Pinned projects are excluded, and a repository legitimately absent from one link is visibly nonparticipating.
-- Base and explicit cut references can resolve each repository's own configured main without changing chain order.
+- Base and explicit cut references can name each repository's own main (`product:parallel-workspaces/ref-tokens`)
+  without changing chain order.
 
 ## Establish replay boundaries before rewriting (product:review-replay-boundaries)
 
@@ -25,6 +27,7 @@ Acceptance:
 - Preview names each link's boundary and provenance, not just the current predecessor tip.
 - Amending a predecessor does not cause its old commits to be mistaken for the dependant's own work.
 - Unknown boundaries refuse before any link moves; an explicit cut is validated rather than accepted as discard consent.
+- A cut applies to the bottom link only and is judged per repository: it replays, reads as already done, or refuses.
 - A deliberate cut can address severed ancestry such as squash landing without dropping unrelated dependant work.
 - Dirty tracked state, an ongoing rebase, or detached/parked HEAD is identified before rewriting begins.
 - Dry-run is mutation-free and reports a plan, not guaranteed outcomes that depend on earlier links moving.
@@ -52,5 +55,6 @@ Acceptance:
 - The first conflict stops later repositories and upper links and identifies the link, replayed commit, and paths.
 - The conflicted repository remains in a recoverable paused state with manual continuation or abort guidance.
 - Non-conflict failures retain completed outcomes and the unfinished tail instead of discarding the run report.
-- Resuming recognizes completed work, including explicit-cut work already applied, without silently dropping ranges.
-- Concurrent edits, lost boundary evidence, or a changed chain require fresh validation rather than blind continuation.
+- Re-running the same command with the same cut continues: completed links, including cut work already applied, read as
+  up to date and are not replayed again.
+- Every re-run repeats the full preflight; nothing from the stopped run is trusted without it.

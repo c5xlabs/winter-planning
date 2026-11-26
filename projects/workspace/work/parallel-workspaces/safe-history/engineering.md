@@ -11,15 +11,10 @@ For `epic:parallel-workspaces/safe-history`.
 
 ## Abandonment evidence follows every moved ref (engineering:moved-ref-preservation)
 
-Safety evidence covers both current HEAD and any separate env branch the operation will overwrite, with configured
-upstream distinguished from a locally present upstream ref. Failed history probes cannot count as zero unpublished
-commits. Serves `product:adopt-feature-history` and `product:reset-worktree-pointers`.
-
-## Validate against concurrent Git changes (engineering:destructive-effect-revalidation)
-
-The approved target identities, safety-relevant ref positions, and filesystem confinement remain checked at the mutation
-boundary across processes; changed evidence cannot authorize a different destructive effect under old approval. Serves
-`product:destructive-target-review` and `product:history-operation-recovery`.
+Unpushed commits are measured against the configured upstream when its ref exists locally, otherwise against
+`origin/<main>`; checkout also measures the env branch whenever HEAD is not on it. Dirt is staged or unstaged tracked
+change and is checked before abandonment. A failed probe is that repository's error, never zero unpushed commits. Serves
+`product:adopt-feature-history` and `product:reset-worktree-pointers`.
 
 ## Retain irreversible deletion evidence (engineering:clean-partial-accounting)
 
