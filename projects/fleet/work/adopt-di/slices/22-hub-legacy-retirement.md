@@ -27,8 +27,9 @@ code:
 # Close the hub's legacy registration
 
 Closes the hub portion of spec [Mixed ownership](../spec/migration.md#flows), delivering `engineering:container-only`
-and `engineering:rules-follow-wiring` under `decision:adopt-di/declared-cutover`. Available field/branch removal has
-already happened with its last consumer.
+and `engineering:rules-follow-wiring` under `decision:adopt-di/declared-cutover`. Field and branch removal had not
+finished with the earlier slices: six route handlers and the shared test harness still read the bags, so this closure
+also moves those leftover consumers onto the container before it deletes the bags.
 
 ## Change
 
