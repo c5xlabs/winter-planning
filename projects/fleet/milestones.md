@@ -31,7 +31,7 @@ takes work theirs to declare, and every upgrade taken when they choose and told 
 | `epic:test-suite/controlled-clock`       | delivered   |
 | `epic:config/model-resolution`           | planned     |
 | `epic:config/sweep`                      | planned     |
-| `epic:config/runtime`                    | in-progress |
+| `epic:config/runtime`                    | delivered   |
 | `epic:ui-toolkit`                        | in-progress |
 | `epic:cli-context`                       | ready       |
 | `epic:adopt-di`                          | in-progress |
