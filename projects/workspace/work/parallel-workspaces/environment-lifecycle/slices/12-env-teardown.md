@@ -53,8 +53,8 @@ under `decision:parallel-workspaces/environment-lifecycle/teardown-policy` and
 - Component tests: an env directory that is a link out of the root fails `UnsafeLocation` and removes nothing; a
   location whose source checkout is gone is kept as a leftover; a `common_dir` failure on the source checkout fails the
   target with nothing removed; an unlistable env directory fails `InventoryUnreadable`.
-- Component tests: a missing env directory with a record releases it and succeeds with `env_missing` "index <i>
-  released"; without a record it fails `EnvDirectoryMissing`.
+- Component tests: a missing env directory with a record releases it and succeeds with `env_missing`
+  `"index <i> released"`; without a record it fails `EnvDirectoryMissing`.
 - A unit test: `OsFiles::remove_empty_dir` fails on a directory holding an entry and removes nothing.
 - `cargo dev gate slice` exits 0.
 

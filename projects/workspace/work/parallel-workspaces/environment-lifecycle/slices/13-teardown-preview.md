@@ -18,8 +18,8 @@ deviation.
 
 - `Options` gains `dry_run`; with it, step 5 runs in place of steps 9 to 13 and writes nothing.
 - `bootstrap.rs`'s `Action` gains `WouldRemoveWorktree`, `WouldRemoveEnv`, `WouldKeepEnv`, and
-  `WouldRemoveWorkspaceExclude`; a missing env directory with a record reports `env_missing` "index <i> would be
-  released".
+  `WouldRemoveWorkspaceExclude`; a missing env directory with a record reports `env_missing`
+  `"index <i> would be released"`.
 - A failure to locate the exclude file fails the preview.
 
 ## Acceptance

@@ -42,7 +42,7 @@ Shaped by `engineering:typed-outcomes`.
 
 - Unit tests of the rendering: `RefTokenError::Unknown` reads "unknown ref token '{<token>}' in '<ref>'; accepted
   aliases: {main}, {master}, {default}"; `NoMainBranch` names the repository, the token, and the ref; `NotEnvRepo` reads
-  "invalid pattern '<p>': expected <env>/<repo> (one '/' max)"; each new `GitOperation` renders its leaf's name.
+  `"invalid pattern '<p>': expected <env>/<repo> (one '/' max)"`; each new `GitOperation` renders its leaf's name.
 - Unit tests: `Termination::Command` of `CommandError::RefToken` has exit 1, and `Termination::StatusCollection` exit 2.
 - A unit test of the command-file scan in `crates/dev`: a command file that names `fan_out` or `integration` is a
   violation naming the file, the line, and the token.
