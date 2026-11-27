@@ -73,8 +73,9 @@ identity(scope)
   registered deviation, decision:running-environments/scope-environment/incomplete-launch-refusal: the reference's
   build_env_trio answers an unrecorded name with its alias position or unprobed hash slot, which provisioning, hooks,
   and nested delegation consume; no consumer of identity() derives an index from a name
-  every operation that needs a scope's identity calls identity(), provisioning, extension hooks, and nested
-  delegation included, so a hook or provision step run before ws init records the name is refused with UnknownScope
+  every operation that needs a scope's identity calls identity(), provisioning and extension hooks included, so a hook
+  or provision step run before ws init records the name is refused with UnknownScope; nested delegation reads the
+  index ws init has already recorded (nested-workspaces, delegation.md) and derives none from a name
 
 managed variables, in this order: MANAGED_NAMES, and managed_variables(identity) their values
   WINTER_ENV                   "workspace", or the feature name

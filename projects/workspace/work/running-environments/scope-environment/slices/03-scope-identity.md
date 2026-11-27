@@ -44,4 +44,4 @@ nothing here allocates, probes, or records. Delivers the identity bullets of `pr
 - What each consumer does with an `IndexFault` lands with `compute-print` and `launch-observe-consumers`.
 - The alias-slot and shared-index findings are reported by `ws list` of `epic:parallel-workspaces/environment-lifecycle`
   (`product:parallel-workspaces/environment-lifecycle/environment-state-recovery`).
-- Provisioning, hooks, and nested delegation call `identity` in the epics that own them.
+- Provisioning and hooks call `identity` in the epics that own them; nested delegation reads the recorded index.
