@@ -20,7 +20,8 @@ pub enum Scope { Workspace, Feature(String) }
 pub struct Identity {
     pub scope: Scope,
     pub index: i64,                 // 0 for Workspace; the recorded index for Feature
-    pub port_base: Option<i64>,     // None for Workspace: WINTER_PORT_BASE is never emitted for it
+    pub port_base: Option<i64>,     // None for Workspace, and for a Feature whose port_base overflows (OutsideLayout):
+                                    // WINTER_PORT_BASE is not emitted for either
     pub workspace_port_base: i64,   // port_base(0)
     pub service_prefix: String,     // WorkspaceConfig.service_prefix
     pub index_fault: Option<IndexFault>,
@@ -80,10 +81,12 @@ identity(scope)
 managed variables, in this order: MANAGED_NAMES, and managed_variables(identity) their values
   WINTER_ENV                   "workspace", or the feature name
   WINTER_ENV_INDEX             index, decimal
-  WINTER_PORT_BASE             port_base, decimal; Feature only
+  WINTER_PORT_BASE             port_base, decimal; Feature only, and not emitted when port_base overflows
   WINTER_WORKSPACE_PORT_BASE   workspace_port_base, decimal
   WINTER_SERVICE_PREFIX        service_prefix
   these are the base variables of resolution.md; port_base(i) is i64 arithmetic, an overflow is OutsideLayout
+  with port_base None; WINTER_ENV still names the feature, so the scope is not taken for the workspace's, and only
+  Observe, which goes on under the fault, emits the variables without WINTER_PORT_BASE
 ```
 
 What each consumer does with an `index_fault` ([consumers.md](./consumers.md) defines the consumer kinds):

@@ -47,7 +47,10 @@ pub(crate) enum MergeError {
 order
   1. root discovery and the load; 2. the drift notice
   3. selection with PATTERNS (none when --standalone), then pinned scope: Include keeps every worktree, Exclude
-     drops pinned ones, Only keeps only pinned ones; --standalone and --all reach every standalone
+     drops pinned ones, Only keeps only pinned ones; --standalone and --all reach every standalone; each pinned
+     worktree Exclude drops is a target whose result is skipped_pinned, and no git call runs in it
+     # registered deviation, decision:parallel-workspaces/coordinated-git/pinned-skips: the reference drops them
+     # silently
   4. no target -> no event; text "Nothing to merge", dim; --json writes nothing; exit 0
   5. the ref per target repository: ref_tokens::expand(source_ref, repo, main_branch), once per project and
      once per standalone, every one before the first git call; a refusal ends the command as
@@ -63,7 +66,7 @@ per target
   git rev-parse --verify --quiet <expanded>^{commit} non-zero -> skipped-missing-ref
   otherwise integrate(path, expanded, mode's Fallback, autostash) of integration.md
   a GitFailure::Repo of the target -> result "error", its rendered error as a stderr line; the others go on
-success: every result is fast_forwarded, up_to_date, merged, or held_pin
+success: every result is fast_forwarded, up_to_date, merged, held_pin, or skipped_pinned
 ```
 
 ```json
@@ -75,7 +78,8 @@ success: every result is fast_forwarded, up_to_date, merged, or held_pin
 
 ```text
 result   the reference's fast_forwarded, up_to_date, merged, diverged, skipped-missing-ref; this epic's
-         dirty_blocked, autostash_failed, abort_failed, held_pin, error. Integrated's Rebased never occurs here
+         dirty_blocked, autostash_failed, abort_failed, held_pin, skipped_pinned, error. Integrated's Rebased never
+         occurs here
 ahead, behind   Diverged's counts, else 0
 target_missing  before merge_started, as target-patterns.md, Missing targets in results, gives
 ```
@@ -86,6 +90,7 @@ target_missing  before merge_started, as target-patterns.md, Missing targets in 
 | `fast_forwarded`, `up_to_date`                               | stdout    | `[<scope>/<repo>] fast-forwarded`, `up-to-date`  |
 | `merged`                                                     | stdout    | `[<scope>/<repo>] merged (merge commit created)` |
 | `held_pin`                                                   | stdout    | `[standalone/<repo>] held @ <declared ref>`      |
+| `skipped_pinned`                                             | stdout    | `[<env>/<repo>] skipped (pinned)`, dim           |
 | `diverged`                                                   | stderr    | `[<scope>/<repo>] diverged: +<ahead>/-<behind>`  |
 | `skipped-missing-ref`                                        | stderr    | `[<scope>/<repo>] skipped: source ref not found` |
 | `dirty_blocked`, `autostash_failed`, `abort_failed`, `error` | stderr    | `[<scope>/<repo>] <what happened>`               |

@@ -36,7 +36,8 @@ Delivers the arbitrary-ref bullets of `product:integrate-selected-repositories` 
 - A component test: `ws merge '{mian}' '*/*'` exits 1 with `RefToken` before `merge_started` and with no git call.
 - Component tests: a ref missing in one repository is `skipped-missing-ref` there and merged elsewhere; `--no-ff`
   creates a merge commit; a conflicting merge is aborted and `diverged`.
-- A component test: `--only-pinned` acts on pinned worktrees alone and `--exclude-pinned` on the rest.
+- A component test: `--only-pinned` acts on pinned worktrees alone and `--exclude-pinned` on the rest, reporting each
+  pinned worktree it leaves out as `skipped_pinned` with no git call in it and the run still a success.
 - A component test: `--standalone` with an absent standalone warns it, names it in a `target_missing` event under
   `--json`, and starts no git process in it.
 - A component test: with `--standalone`, a standalone held at a tag is `held_pin` and its HEAD does not move, and a

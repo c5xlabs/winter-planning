@@ -38,7 +38,9 @@ calls them from its fan-out and its provider invocation. Delivers the refusal, d
   slot, and an unrecorded name are each `Err`, and no `ScopeEnv` is answered.
 - Unit tests, `Observe`: a recorded index at 0 writes one warning and answers `Complete` with `WINTER_ENV_INDEX=0`; an
   undefined reference writes one warning naming the scope and the key, and answers `Degraded` whose managed variables
-  hold the scope's identity and port base; an unrecorded name is `Err(UnknownScope)`.
+  hold the scope's identity and port base; a recorded index whose `port_base` overflows `i64` writes one `OutsideLayout`
+  warning and answers with `WINTER_ENV` naming the feature and no `WINTER_PORT_BASE`; an unrecorded name is
+  `Err(UnknownScope)`.
 - A unit test: no warning text holds a value of the scope's bands.
 - A unit test, `Launch`, over a recording program port with an interrupt pending: the command entry answers
   `Interrupted`, and `compute` is `Err(EnvError::Interrupted)`, not a resolution failure.
