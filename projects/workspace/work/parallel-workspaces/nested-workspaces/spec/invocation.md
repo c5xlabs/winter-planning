@@ -5,7 +5,8 @@ before anything starts, and the verification that must hold before any mutating 
 [delegation.md](./delegation.md), [child-state.md](./child-state.md), and [teardown.md](./teardown.md) goes through this
 leaf. The program port is that of
 [child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md), with the
-streaming, `stdin`, and `remove` that [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), Commands,
+streaming, `stdin`, and `remove` that
+[reconciliation.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/reconciliation.md), Commands,
 adds to it; `RepoError` and `Termination` are those of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
 Domain. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`.

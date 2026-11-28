@@ -9,9 +9,9 @@ are the `ws destroy` row of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), Commands.
 Every child call is a call of [invocation.md](./invocation.md); `NestedState` is that of
 [child-state.md](./child-state.md). Events are the shape C `InitEvent`s of
-[reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), Events and text. Reference locations are paths
-under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Message wording is the binary's own
-(`decision:functional-parity`).
+[reconciliation.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/reconciliation.md), Events and
+text. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Message
+wording is the binary's own (`decision:functional-parity`).
 
 ## Domain
 

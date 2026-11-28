@@ -10,10 +10,11 @@ depends-on:
 
 Adds `worktree::run` and `EnvWorktree` of [init.md](../spec/init.md), One worktree, steps 1 to 5: the location step that
 creates or verifies the worktree, then identity, excludes, tracking, and `cmd`. Identity, excludes, and `cmd` are the
-steps of [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), One repository and Commands, which
-`epic:parallel-workspaces/workspace-bootstrap` builds; the push default is `push-default`'s. Delivers
-`product:environment-worktrees` for one worktree, `engineering:worktree-effect-confinement` at creation, and
-`engineering:lifecycle-step-isolation`, under `decision:parallel-workspaces/environment-lifecycle/head-state`,
+steps of [reconciliation.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/reconciliation.md), One
+repository and Commands, which `epic:parallel-workspaces/workspace-bootstrap` builds; the push default is
+`push-default`'s. Delivers `product:environment-worktrees` for one worktree, `engineering:worktree-effect-confinement`
+at creation, and `engineering:lifecycle-step-isolation`, under
+`decision:parallel-workspaces/environment-lifecycle/head-state`,
 `decision:parallel-workspaces/environment-lifecycle/location-confinement`, and
 `decision:parallel-workspaces/environment-lifecycle/reused-branch-tracking`, all registered deviations.
 

@@ -13,7 +13,8 @@ extends that of
 [location-listing.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/location-listing.md); drift is
 `drift::detect` of
 [drift-warning.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/drift-warning.md), with no notice;
-orphans are `scan` of [prune.md](../../workspace-bootstrap/spec/prune.md); pins are `snapshot` of
+orphans are `scan` of [prune.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/prune.md); pins are
+`snapshot` of
 [standalone-pins.md](../../../../delivered/parallel-workspaces/reproducible-inputs/spec/standalone-pins.md); the
 `nested` member is [child-state.md](../../nested-workspaces/spec/child-state.md)'s, and
 `epic:parallel-workspaces/nested-workspaces` adds it: its field, its reads, and its text lines; until then no row

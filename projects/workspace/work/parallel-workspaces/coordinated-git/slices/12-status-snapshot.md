@@ -13,8 +13,8 @@ depends-on:
 Adds `status::collect`, `Snapshot`, and `exit_code` of [status.md](../spec/status.md), Environments, Projects,
 standalones, workspace, and Exit code: every environment present probed by `worktree-probe` at most `STATUS_PROBES` at
 once and filtered by PATTERNS, the source checkouts and standalones with their local work, and the workspace level from
-`drift::detect`, `scan` of [prune.md](../../workspace-bootstrap/spec/prune.md), which
-`epic:parallel-workspaces/workspace-bootstrap` builds, and `pins::snapshot`. Delivers the read-only bullets of
+`drift::detect`, `scan` of [prune.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/prune.md),
+which `epic:parallel-workspaces/workspace-bootstrap` builds, and `pins::snapshot`. Delivers the read-only bullets of
 `product:inspect-workspace-git` and the per-worktree tracking of `product:worktree-upstream-control`, under
 `decision:parallel-workspaces/target-selection`, whose missing-worktree exit is a registered deviation.
 

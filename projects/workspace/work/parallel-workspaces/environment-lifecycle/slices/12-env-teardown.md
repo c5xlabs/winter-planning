@@ -14,10 +14,11 @@ code:
 Adds `env_destroy::destroy` and `Inventory` of [destroy.md](../spec/destroy.md), Per target, steps 1, 2, 4, and 9 to 13:
 the directory and confinement check, the inventory with its ownership test, the dirty refusal, worktree removal through
 `git worktree remove` alone, the kept-worktrees stop, the empty-directory removal, the self-exclude strip of
-[managed-content.md](../../workspace-bootstrap/spec/managed-content.md), and the release of `registry-writes`. Delivers
-`product:destroy-environments` but its preview, the release bullet of `product:stable-environment-allocation`,
-`engineering:teardown-evidence-completeness` for the refusal, and `engineering:worktree-effect-confinement` at removal,
-under `decision:parallel-workspaces/environment-lifecycle/teardown-policy` and
+[managed-content.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/managed-content.md), and the
+release of `registry-writes`. Delivers `product:destroy-environments` but its preview, the release bullet of
+`product:stable-environment-allocation`, `engineering:teardown-evidence-completeness` for the refusal, and
+`engineering:worktree-effect-confinement` at removal, under
+`decision:parallel-workspaces/environment-lifecycle/teardown-policy` and
 `decision:parallel-workspaces/environment-lifecycle/location-confinement`, both registered deviations.
 
 ## Change

@@ -5,7 +5,8 @@ The nested step of `ws init <env>` and `ws init --all`: verifying the child in a
 overlay, and running the child's own bare `ws init`. The env worktree's other steps, the order of repositories, and the
 fan-out are `epic:parallel-workspaces/environment-lifecycle`'s ([its spec](../../environment-lifecycle/spec/init.md));
 the step runs after the worktree's `cmd`, whose scrubbed environment is `scrubbed` of [invocation.md](./invocation.md).
-Shape C events are `InitEvent` of [reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), Domain. The
+Shape C events are `InitEvent` of
+[reconciliation.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/reconciliation.md), Domain. The
 local-overlay edit is the "Upsert local keys" row of
 [configuration-model.md](../../../../delivered/parallel-workspaces/workspace-configuration/spec/configuration-model.md),
 Writers, through the port of

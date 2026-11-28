@@ -10,11 +10,12 @@ the confirmation of [runtime.md](../../../../delivered/parallel-workspaces/compo
 Confirmation, under the thresholds of
 [results-and-exit-codes.md](../../../../delivered/parallel-workspaces/component-runtime/spec/results-and-exit-codes.md),
 Interrupts and prompts. Events are the `InitEvent`s of
-[reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md), Events and text. Names pass
-[env-names.md](./env-names.md); selection is `reach` with `EnvRule::Named` of [env-selection.md](./env-selection.md);
-targets run one at a time, as `engineering:bounded-fan-out` binds a command that removes files; the release is
-[allocation.md](./allocation.md)'s. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
-`winter-workspace` at `127cdf2`. Message wording is the binary's own (`decision:functional-parity`).
+[reconciliation.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/reconciliation.md), Events and
+text. Names pass [env-names.md](./env-names.md); selection is `reach` with `EnvRule::Named` of
+[env-selection.md](./env-selection.md); targets run one at a time, as `engineering:bounded-fan-out` binds a command that
+removes files; the release is [allocation.md](./allocation.md)'s. Reference locations are paths under
+`tools/winter-cli/src/winter_cli/` of `winter-workspace` at `127cdf2`. Message wording is the binary's own
+(`decision:functional-parity`).
 
 ## System
 

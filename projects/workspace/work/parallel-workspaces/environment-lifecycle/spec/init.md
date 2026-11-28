@@ -3,17 +3,17 @@
 `ws init <env>` and `ws init --all`: allocating an environment's index, creating its directory and one worktree per
 declared project, and reapplying each worktree's identity, excludes, tracking, and setup commands; and, for `--all`,
 finding every existing environment after the workspace part. Bare `ws init` and the workspace part of `--all` are
-[reconciliation.md](../../workspace-bootstrap/spec/reconciliation.md)'s, which leaves TARGET and `--all` to this leaf
-(`decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope`); its `InitEvent`, `Action`, `checkout::run`
-steps, set_config, exclude_path, Commands, and Events and text are used here as they stand. The argument and options are
-the `ws init` row of
+[reconciliation.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/reconciliation.md)'s, which
+leaves TARGET and `--all` to this leaf (`decision:parallel-workspaces/workspace-bootstrap/reconciliation-scope`); its
+`InitEvent`, `Action`, `checkout::run` steps, set_config, exclude_path, Commands, and Events and text are used here as
+they stand. The argument and options are the `ws init` row of
 [command-surface.md](../../../../delivered/parallel-workspaces/component-runtime/spec/command-surface.md), Commands, and
 its refusals that file's `ws init` row of Combination rules, then [env-names.md](./env-names.md). Every git call goes
 through the program port of
 [child-processes.md](../../../../delivered/parallel-workspaces/repository-catalog/spec/child-processes.md); the index is
 [allocation.md](./allocation.md)'s; the workspace exclude file is that of
-[managed-content.md](../../workspace-bootstrap/spec/managed-content.md); the fan-out bound is
-`engineering:bounded-fan-out`'s; `push_default` and `set_push_default_upstream` are
+[managed-content.md](../../../../delivered/parallel-workspaces/workspace-bootstrap/spec/managed-content.md); the fan-out
+bound is `engineering:bounded-fan-out`'s; `push_default` and `set_push_default_upstream` are
 [push-default.md](./push-default.md)'s. Reference locations are paths under `tools/winter-cli/src/winter_cli/` of
 `winter-workspace` at `127cdf2`. Message wording is the binary's own (`decision:functional-parity`).
 

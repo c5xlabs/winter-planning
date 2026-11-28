@@ -8,21 +8,6 @@ The milestones are useful destinations across the four initiatives, reached one 
 under the first milestone that needs it: a milestone is reached when its own epics are delivered, and each later
 milestone builds on everything reached before it.
 
-## Declare a workspace without forking Winter (milestone:declare-workspace)
-
-An engineer can create and inspect a workspace, declare its repositories and local settings, and give an agent guidance
-that matches the selected tool. They do not clone Winter's framework source to start configuring their own system.
-
-| Epic                                               | Status      |
-| -------------------------------------------------- | ----------- |
-| `epic:parallel-workspaces/component-runtime`       | delivered   |
-| `epic:rust-adoption/parity-validation`             | delivered   |
-| `epic:parallel-workspaces/workspace-configuration` | delivered   |
-| `epic:parallel-workspaces/repository-catalog`      | delivered   |
-| `epic:parallel-workspaces/reproducible-inputs`     | delivered   |
-| `epic:agent-ready-operation/context-navigation`    | delivered   |
-| `epic:parallel-workspaces/workspace-bootstrap`     | in-progress |
-
 ## Work across isolated branches (milestone:parallel-branches)
 
 An engineer can put two agents in separate feature environments, move and inspect work across repositories, and include

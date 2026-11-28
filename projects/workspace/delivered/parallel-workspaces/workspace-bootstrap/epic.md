@@ -1,7 +1,7 @@
 ---
 epic: parallel-workspaces/workspace-bootstrap
 refinement: outline
-status: in-progress
+status: delivered
 external: github:paul-gross/winter#245
 ---
 
